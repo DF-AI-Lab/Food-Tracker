@@ -1,0 +1,430 @@
+<title>Fridge Cards Mock</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: one phone-width column. Tabs on top, Mains | Sides columns, extras below, data record at the end. */
+:root{
+  --bg:#f2f3f5; --surface:#ffffff; --fg:#1b1f24; --muted:#5f6670; --line:#d8dce1;
+  --accent:#1f6fd1; --ok:#2f8a4f; --soon:#c27a00; --off:#c2393b; --soonbg:#fff3dc; --offbg:#fde6e6; --okbg:#e2f4e8; --redline:#8f1416; --planline:#17262b;
+  --display:"Fredoka",system-ui,sans-serif; --body:"Nunito Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171b; --surface:#1f2329; --fg:#e8eaed; --muted:#9aa1ab; --line:#30353d;
+  --accent:#58a6ff; --ok:#5fc27f; --soon:#f0b443; --off:#f07476; --soonbg:#4a3812; --offbg:#4a1b1d; --okbg:#173a24; --redline:#ff4d50; --planline:#ffffff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171b; --surface:#1f2329; --fg:#e8eaed; --muted:#9aa1ab; --line:#30353d;
+  --accent:#58a6ff; --ok:#5fc27f; --soon:#f0b443; --off:#f07476; --soonbg:#4a3812; --offbg:#4a1b1d; --okbg:#173a24; --redline:#ff4d50; --planline:#ffffff; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;padding-inline:16px;padding-block:16px 40px}
+.phone{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.note{font-size:13px;color:var(--muted);line-height:1.45}
+.tabs{display:flex;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px}
+.tab{flex:1;text-align:center;padding:9px 4px;border-radius:8px;font-family:var(--display);font-weight:500;color:var(--muted)}
+.tab.on{background:var(--accent);color:var(--bg)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col{display:flex;flex-direction:column;gap:8px;min-width:0}
+h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.name{font-weight:700;font-size:15px}
+.packs{display:flex;flex-direction:column;gap:4px}
+.pack{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;padding:4px 7px;border-radius:5px;font-variant-numeric:tabular-nums}
+.pack:focus-visible{outline:2px solid var(--accent)}
+.pack{border:2px solid transparent;color:var(--fg);font-weight:700}
+.pack.ok{background:var(--okbg)} .pack.soon{background:var(--soonbg)} .pack.off{background:var(--offbg);border-color:var(--redline)}
+.pack .tag{color:inherit;opacity:.75}
+.pack.plan{border-color:var(--planline);box-shadow:0 0 0 1px var(--planline)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.pane{display:flex;flex-direction:column;gap:8px;min-width:0;height:62vh;min-height:320px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px}
+.scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain;padding-right:2px}
+.veg{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;border-top:2px dashed var(--line);padding-top:8px}
+.pane .card,.pane .age{background:var(--bg)}
+.today{font-family:var(--display);font-size:18px}
+.age{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
+.age b{font-weight:700} .age.old{background:var(--soonbg);color:var(--soon);border-color:transparent}
+.age:focus-visible{outline:2px solid var(--accent)}
+.extras{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:14px}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button.act{font:inherit;font-weight:700;border:0;border-radius:8px;padding:10px 14px;cursor:pointer;background:var(--accent);color:var(--bg)}
+button.act.alt{background:var(--offbg);color:var(--off)}
+button.act.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.sub{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sb{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:9px 6px;cursor:pointer;text-align:center}
+.sb.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column}
+.stat b{font-family:var(--display);font-size:28px;color:var(--ok)} .stat.w b{color:var(--off)} .stat span{font-size:12px;color:var(--muted)}
+.row{display:flex;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px}
+.row .u{color:var(--ok);font-weight:700} .row .w{color:var(--off);font-weight:700}
+button.tab{font:inherit;border:0;background:transparent;cursor:pointer}
+button.tab.on{background:var(--accent);color:var(--bg)}
+.mgrid{display:grid;grid-template-columns:44% 1fr;gap:10px}
+.mtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mtabs .sb{padding:7px 2px;font-size:12px}
+.day{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:4px;background:var(--bg);border:2px solid var(--line);border-radius:6px;padding:7px 8px}
+.day.on{border-color:var(--accent)} .day.drop{border-style:dashed;border-color:var(--accent)}
+.day .dn{font-weight:700;font-size:13px} .day .dn small{color:var(--muted);font-weight:600}
+.chip2{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:3px 6px}
+.chip2 .x{all:unset;cursor:pointer;color:var(--muted);padding:0 3px} .chip2.warn{background:var(--offbg);border-color:var(--redline)}
+.slot{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.item{all:unset;cursor:grab;display:flex;justify-content:space-between;gap:6px;font-size:13px;font-weight:700;padding:7px 8px;border-radius:5px;border:2px solid transparent}
+.item.ok{background:var(--okbg)} .item.soon{background:var(--soonbg)} .item.off{background:var(--offbg);border-color:var(--redline)} .item.nd{background:var(--bg);border-color:var(--line)}
+.item span:last-child{font-weight:600;opacity:.8}
+.warnbar{display:flex;flex-direction:column;gap:6px;background:var(--offbg);border:2px solid var(--redline);border-radius:6px;padding:8px;font-size:13px;font-weight:700}
+.warnbar .btns button{padding:7px 10px;font-size:13px}
+.item.ta{background:var(--bg);border-color:var(--accent);white-space:nowrap;padding:5px 8px}
+.wkhead{display:flex;justify-content:space-between;align-items:center}
+.pbtn{font:inherit;font-size:16px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:6px;padding:5px 7px;color:var(--fg)}
+.sub.two{grid-template-columns:1fr 1fr}
+.shop{height:62vh}
+.sform{display:flex;gap:8px}
+.sform input{flex:1;min-width:0;font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:9px 10px}
+.srow{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;font-weight:700}
+.srow input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.srow label{flex:1;cursor:pointer}
+.srow.got label{text-decoration:line-through;color:var(--muted);font-weight:600}
+.undo{font:inherit;font-size:12px;font-weight:700;background:transparent;color:var(--accent);border:1px solid var(--line);border-radius:6px;padding:4px 8px;cursor:pointer}
+.shop{height:auto;min-height:62vh}
+#shopList{max-height:40vh}
+.quick{display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.qtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.qtabs .sb{padding:7px 2px;font-size:12px}
+.qchips{display:flex;flex-wrap:wrap;gap:6px}
+.qc{font:inherit;font-size:13px;font-weight:700;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;cursor:pointer}
+.qc.on{border-color:var(--accent);color:var(--accent)}
+.auto{font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 5px;margin-left:4px;white-space:nowrap}
+.idea{margin-left:auto}
+.ideas{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.irow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
+.irow b{font-size:14px} .irow small{color:var(--muted);display:block}
+.stars{display:flex}
+.stars button{all:unset;cursor:pointer;font-size:16px;color:var(--line);padding:0 1px}
+.stars button.on{color:var(--soon)}
+.stars button:focus-visible{outline:2px solid var(--accent)}
+.irow.low{opacity:.55}
+.del{all:unset;cursor:pointer;font-size:14px;padding:2px 4px;opacity:.7}
+.del:hover,.del:focus-visible{opacity:1;outline:2px solid var(--accent);border-radius:4px}
+.clr{display:flex;justify-content:flex-end;gap:6px;align-items:center;font-size:13px}
+.srow.gone{border-color:var(--redline)}
+.srow.gone label{text-decoration:line-through;text-decoration-color:var(--off);text-decoration-thickness:2px;color:var(--muted);font-weight:600}
+.srow.gone input{visibility:hidden}
+.gonetag{font-size:11px;color:var(--off);font-weight:700;white-space:nowrap}
+.sbot{border-top:1px solid var(--line);padding-top:8px}
+.wrow{display:grid;grid-template-columns:44px 1fr;gap:8px;font-size:14px;align-items:baseline}
+.wrow b{color:var(--accent)}
+pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg);border-radius:6px;padding:10px;color:var(--fg)}
+</style>
+
+<div class="phone">
+  <div class="note"><b>Mock-up only.</b> Example food, "today" = Wed 7 Oct. Tap a date to mark it used or thrown away. White outline + 🍽️ = in the meal plan. Tap <b>🍽️ Meals</b> to try the planner.</div>
+
+  <div class="today">📅 Today · <b>Wed 7 Oct</b></div>
+  <div class="tabs"><button class="tab on" id="tF">🥶 Fridge</button><button class="tab" id="tM">🍽️ Meals</button><button class="tab" id="tA">➕ Add</button></div>
+
+  <div id="addView" class="col" style="gap:14px" hidden>
+    <div class="sub two"><button class="sb" id="aF">🥶 Add to fridge</button><button class="sb on" id="aS">🛒 Shopping list</button></div>
+    <div id="addFridge" class="sheet" hidden><b>🥶 Add to fridge</b><div class="note">Next mock-up: usual-food buttons, typing, voice, date shortcut.</div></div>
+    <div id="addShop" class="pane shop">
+      <div class="wkhead"><h2>🛒 Shopping list</h2><span class="tag" id="shopCount"></span></div>
+      <div class="clr"><button class="undo" id="clearAll">🗑️ Clear all</button><span id="clrAsk" hidden>Sure? <button class="undo" id="clrYes">Yes, clear</button> <button class="undo" id="clrNo">No</button></span></div>
+      <form id="shopForm" class="sform"><input id="shopIn" placeholder="Add an item…" autocomplete="off"><button class="act" type="submit">Add</button></form>
+      <div class="quick">
+        <div class="tag">⭐ Bought before · tap to add</div>
+        <div class="qtabs" id="qtabs"><button class="sb on" data-q="main">🍖 Mains</button><button class="sb" data-q="side">🥔 Sides</button><button class="sb" data-q="veg">🥕 Veg</button><button class="sb" data-q="other">🧂 Other</button></div>
+        <div class="qchips" id="qchips"></div>
+      </div>
+      <div class="scroll" id="shopList"></div>
+      <div class="btns sbot"><button class="act" id="gotAll">✅ Got all</button><button class="act ghost" id="clearGot">Clear crossed out</button><button class="act ghost idea" id="ideaBtn">💡 Ideas</button></div>
+      <div id="ideaBox" class="ideas" hidden></div>
+    </div>
+  </div>
+
+  <div id="mealsView" class="col" style="gap:14px" hidden>
+    <div class="note">1) Tap a day · 2) tap or drag a Main · 3) it jumps to Sides, then Veg · ✕ removes.</div>
+    <div class="mgrid">
+      <div class="pane days"><div class="wkhead"><h2>📅 Week</h2><button class="pbtn" id="printBtn" title="Print this week (coming soon)" aria-label="Print this week">🖨️</button></div><div class="note" id="printNote" hidden>Print: coming soon</div><div class="scroll" id="dayList"></div></div>
+      <div class="pane"><div class="mtabs" id="mtabs">
+        <button class="sb on" data-s="main">🍖 Mains</button><button class="sb" data-s="side">🥔 Sides</button><button class="sb" data-s="veg">🥕 Veg</button></div>
+        <div class="tag" id="pickFor"></div>
+        <div class="warnbar" id="warnBar" hidden></div>
+        <div class="scroll" id="pickList"></div>
+        <button class="act" id="nextDay">Next day ▸</button>
+      </div>
+    </div>
+    <div class="sheet"><b>🍽️ This week's meals</b><div id="weekSum" class="col" style="gap:6px"></div></div>
+  </div>
+
+  <div class="sub" id="fridgeSub"><button class="sb on" id="vF">In fridge</button><button class="sb" id="vW">♻️ Used &amp; wasted</button><button class="sb" id="vS">🛒 Shopping list</button></div>
+
+  <div id="fridgeView" class="col" style="gap:16px">
+  <div class="cols">
+    <div class="pane"><div class="wkhead"><h2>🍖 Mains · <span id="cM"></span></h2><button class="pbtn" id="printF" title="Print the whole fridge list (coming soon)" aria-label="Print the whole fridge list">🖨️</button></div><div class="note" id="printFNote" hidden>Prints all items: mains, sides, veg, misc. Coming soon</div><div class="scroll" style="flex:2"><div id="mains" class="col"></div></div>
+      <div class="veg"><div class="tag">🧂 Misc – under 7 days</div><div class="scroll"><div id="misc" class="col" style="gap:6px"></div><div class="note" id="miscOk"></div></div></div></div>
+    <div class="pane"><h2>🥔 Sides · <span id="cS"></span></h2><div class="scroll" style="flex:2"><div id="sides" class="col"></div></div>
+      <div class="veg"><div class="tag">🥕 Veg &amp; misc – no date</div><div class="scroll"><div id="extras" class="col" style="gap:6px"></div></div></div></div>
+  </div>
+
+
+  </div>
+
+  <div id="wasteView" class="col" hidden>
+    <div class="cols"><div class="stat"><b id="nU">0</b><span>used in October</span></div><div class="stat w"><b id="nW">0</b><span>wasted in October</span></div></div>
+    <div id="wlist" class="col"></div>
+  </div>
+
+  <div id="shopView" class="sheet" hidden>
+    <b>🛒 Shopping list</b>
+    <div class="note">Coming soon. On the ideas list for after V1.</div>
+  </div>
+
+  <div id="sheet" class="sheet" hidden>
+    <div><b id="sName"></b> · <span id="sDate"></span></div>
+    <div class="btns">
+      <button class="act" id="bUsed">✅ Used</button>
+      <button class="act alt" id="bBin">🗑️ Thrown away</button>
+      <button class="act ghost" id="bCancel">Cancel</button>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>💾 What's saved — one pack</h2>
+    <pre id="rec"></pre>
+    <div class="note">Used and thrown-away packs stay saved and show in the Used &amp; wasted list. <span id="gone"></span></div>
+  </div>
+</div>
+
+<script>
+const T=new Date(2026,9,7);
+let packs=[
+ {id:1,name:"Sausages",kind:"main",date:"2026-10-08",dateType:"use_by",plannedFor:"Fri",slot:"main"},
+ {id:2,name:"Sausages",kind:"main",date:"2026-10-10",dateType:"use_by"},
+ {id:3,name:"Sausages",kind:"main",date:"2026-10-14",dateType:"use_by"},
+ {id:4,name:"Gammon",kind:"main",date:"2026-10-06",dateType:"use_by",plannedFor:"Thu",slot:"main"},
+ {id:5,name:"Chicken",kind:"main",date:"2026-10-12",dateType:"use_by"},
+ {id:6,name:"Coleslaw",kind:"side",date:"2026-10-09",dateType:"use_by"},
+ {id:7,name:"Potato salad",kind:"side",date:"2026-10-11",dateType:"use_by"},
+ {id:8,name:"Garlic bread",kind:"side",date:"2026-10-13",dateType:"best_before"},
+ {id:20,name:"Chips",kind:"side",date:"2026-10-20",dateType:"best_before"},
+ {id:21,name:"Hash browns",kind:"side",date:"2026-10-15",dateType:"use_by"},
+ {id:22,name:"Hummus",kind:"side",date:"2026-10-10",dateType:"use_by"},
+ {id:23,name:"Rice pot",kind:"side",date:"2026-10-09",dateType:"use_by"},
+ {id:24,name:"Cauliflower",kind:"side",date:null,dateType:null,added:"2026-10-06"},
+ {id:25,name:"Broccoli",kind:"side",date:null,dateType:null,added:"2026-10-03"},
+ {id:26,name:"Onions",kind:"side",date:null,dateType:null,added:"2026-09-27"},
+ {id:27,name:"Mushrooms",kind:"side",date:null,dateType:null,added:"2026-10-04"},
+ {id:28,name:"Bacon",kind:"main",date:"2026-10-16",dateType:"use_by"},
+ {id:29,name:"Bacon",kind:"main",date:"2026-10-18",dateType:"use_by"},
+ {id:30,name:"Salmon",kind:"main",date:"2026-10-06",dateType:"use_by"},
+ {id:40,name:"Milk",kind:"misc",date:"2026-10-10",dateType:"use_by"},
+ {id:41,name:"Cheese",kind:"misc",date:"2026-10-09",dateType:"best_before"},
+ {id:42,name:"Eggs",kind:"misc",date:"2026-10-06",dateType:"best_before"},
+ {id:43,name:"Butter",kind:"misc",date:"2026-11-02",dateType:"best_before"},
+ {id:44,name:"Ketchup",kind:"misc",date:"2027-03-01",dateType:"best_before"},
+ {id:45,name:"Mayo",kind:"misc",date:"2026-12-12",dateType:"best_before"},
+ {id:9,name:"Carrots",kind:"side",date:null,dateType:null,added:"2026-10-05"},
+ {id:10,name:"Potatoes",kind:"side",date:null,dateType:null,added:"2026-09-29"},
+ {id:11,name:"Peas",kind:"side",date:null,dateType:null,added:"2026-10-02"},
+].map(p=>({added:"2026-10-05",...p,status:"in_fridge",left:null}));
+packs.push({id:12,name:"Mince",kind:"main",date:"2026-10-04",dateType:"use_by",status:"used",added:"2026-09-30",left:"2026-10-03"},
+ {id:13,name:"Yoghurt",kind:"side",date:null,dateType:null,status:"thrown_away",added:"2026-09-28",left:"2026-10-05"});
+let pick=null;
+const D=s=>new Date(s+"T00:00");
+const days=s=>Math.round((D(s)-T)/864e5);
+const fmt=s=>D(s).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+const cls=s=>{const d=days(s);return d<0?"off":d<=3?"soon":"ok"};
+const when=s=>{const d=days(s);return d<0?(-d)+(d===-1?" day out":" days out"):d===0?"Today!":d===1?"1 day left":d<=5?d+" days left":fmt(s)};
+function cards(kind){
+  const live=packs.filter(p=>p.kind===kind&&p.date&&p.status==="in_fridge").sort((a,b)=>a.date.localeCompare(b.date));
+  const byName={};live.forEach(p=>(byName[p.name]??=[]).push(p));
+  const out=[];Object.values(byName).forEach(list=>{for(let i=0;i<list.length;i+=2)out.push(list.slice(i,i+2))});
+  return out.sort((a,b)=>a[0].date.localeCompare(b[0].date));
+}
+function render(){
+  for(const k of["main","side"]){
+    const el=document.getElementById(k+"s");el.innerHTML="";
+    cards(k).forEach(c=>{
+      const d=document.createElement("div");d.className="card";
+      d.innerHTML=`<div class="name">${c[0].name}</div><div class="packs"></div>`;
+      c.forEach(p=>{const b=document.createElement("button");b.className="pack "+cls(p.date)+(p.plannedFor?" plan":"");
+        b.innerHTML=`<span>${when(p.date)}</span><span class="tag">${p.plannedFor?"🍽️ "+p.plannedFor:p.dateType==="use_by"?"Use by":"BB"}</span>`;
+        b.onclick=()=>open(p);d.querySelector(".packs").append(b)});
+      el.append(d);
+    });
+  }
+  const ex=document.getElementById("extras");ex.innerHTML="";
+  packs.filter(p=>!p.date&&p.status==="in_fridge").sort((a,b)=>a.added.localeCompare(b.added)).forEach(p=>{
+    const a=-days(p.added);const s=document.createElement("button");s.className="age"+(a>=7?" old":"");
+    s.innerHTML=`<b>${p.name}</b><span>${a} days old${a>=7?" ⚠️":""}</span>`;s.onclick=()=>open(p);ex.append(s)});
+  const mx=document.getElementById("misc");mx.innerHTML="";
+  const miscLive=packs.filter(p=>p.kind==="misc"&&p.status==="in_fridge").sort((a,b)=>a.date.localeCompare(b.date));
+  const warn=miscLive.filter(p=>days(p.date)<7);
+  warn.forEach(p=>{const b=document.createElement("button");b.className="pack "+cls(p.date);
+    b.innerHTML=`<span>${p.name}</span><span>${when(p.date)}</span>`;b.onclick=()=>open(p);mx.append(b)});
+  const okN=miscLive.length-warn.length;
+  document.getElementById("miscOk").textContent=okN?`+ ${okN} more, all OK`:"";
+  const live=packs.filter(p=>p.status==="in_fridge");
+  document.getElementById("cM").textContent=live.filter(p=>p.kind==="main").length;
+  document.getElementById("cS").textContent=live.filter(p=>p.kind==="side").length;
+  const show=pick||packs[0];
+  document.getElementById("rec").textContent=JSON.stringify(show,null,2);
+  const g=packs.filter(p=>p.status!=="in_fridge").length;
+  document.getElementById("gone").textContent=g?`Hidden so far: ${g}.`:"";
+  const old=packs.filter(p=>p.status!=="in_fridge").sort((a,b)=>b.left.localeCompare(a.left));
+  document.getElementById("nU").textContent=old.filter(p=>p.status==="used").length;
+  document.getElementById("nW").textContent=old.filter(p=>p.status==="thrown_away").length;
+  const wl=document.getElementById("wlist");wl.innerHTML="";
+  old.forEach(p=>{const r=document.createElement("div");r.className="row";
+    r.innerHTML=`<span>${p.name}</span><span>${fmt(p.left)} · <span class="${p.status==="used"?"u":"w"}">${p.status==="used"?"Used":"Wasted"}</span></span>`;wl.append(r)});
+}
+function open(p){pick=p;document.getElementById("sName").textContent=p.name;
+  document.getElementById("sDate").textContent=p.date?fmt(p.date):(-days(p.added))+" days old";
+  document.getElementById("sheet").hidden=false;render()}
+function finish(st){if(!pick)return;pick.status=st;pick.left="2026-10-07";
+  if(pick.kind==="misc"&&typeof autoShop==="function")autoShop(pick.name,st==="used"?"used up":"thrown away");document.getElementById("sheet").hidden=true;render()}
+document.getElementById("bUsed").onclick=()=>finish("used");
+document.getElementById("bBin").onclick=()=>finish("thrown_away");
+document.getElementById("bCancel").onclick=()=>{document.getElementById("sheet").hidden=true};
+function view(v){[["fridgeView","vF"],["wasteView","vW"],["shopView","vS"]].forEach(([a,b])=>{
+  document.getElementById(a).hidden=a!==v;document.getElementById(b).classList.toggle("on",a===v)})}
+document.getElementById("vF").onclick=()=>view("fridgeView");
+document.getElementById("vW").onclick=()=>view("wasteView");
+document.getElementById("vS").onclick=()=>{tab("A");addSub("s")};
+/* ---------- Meals mock ---------- */
+const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const dayDate=d=>"2026-10-"+String(5+DAYS.indexOf(d)).padStart(2,"0");
+let pending=null; const takeaway={};
+const outBy=(p,d)=>Math.round((D(dayDate(d))-D(p.date))/864e5);
+let selDay="Thu", selSlot="side";
+const live=()=>packs.filter(p=>p.status==="in_fridge");
+const slotOf=p=>!p.date?"veg":p.kind;
+function plan(p,day,sure){
+  if(!sure&&p.date&&p.date<dayDate(day)){pending={p,day};render();return}
+  pending=null;p.plannedFor=day;p.slot=slotOf(p);
+  selSlot=selSlot==="main"?"side":selSlot==="side"?"veg":"veg";render()}
+function unplan(p){delete p.plannedFor;delete p.slot;render()}
+function renderMeals(){
+  const dl=document.getElementById("dayList");dl.innerHTML="";
+  DAYS.forEach(d=>{
+    const b=document.createElement("button");b.className="day"+(d===selDay?" on":"");
+    const dd=new Date(dayDate(d)+"T00:00");
+    b.innerHTML=`<span class="dn">${d} <small>${dd.getDate()} Oct</small></span>`;
+    if(takeaway[d]){const c=document.createElement("div");c.className="chip2";
+      c.innerHTML=`<span><span class="slot">Main</span> 🥡 Takeaway</span>`;
+      const x=document.createElement("button");x.className="x";x.textContent="✕";x.setAttribute("aria-label","Remove takeaway");
+      x.onclick=e=>{e.stopPropagation();delete takeaway[d];render()};c.append(x);b.append(c)}
+    ["main","side","veg"].forEach(sl=>{
+      live().filter(p=>p.plannedFor===d&&p.slot===sl).forEach(p=>{
+        const late=p.date&&p.date<dayDate(d);
+        const c=document.createElement("div");c.className="chip2"+(late?" warn":"");
+        c.innerHTML=`<span><span class="slot">${sl==="veg"?"Veg":sl==="main"?"Main":"Side"}</span> ${p.name}${late?" ⚠️":""}</span>`;
+        const x=document.createElement("button");x.className="x";x.textContent="✕";x.setAttribute("aria-label","Remove "+p.name);
+        x.onclick=e=>{e.stopPropagation();unplan(p)};c.append(x);b.append(c)});
+    });
+    b.onclick=()=>{selDay=d;selSlot="main";pending=null;render()};
+    b.ondragover=e=>{e.preventDefault();b.classList.add("drop")};
+    b.ondragleave=()=>b.classList.remove("drop");
+    b.ondrop=e=>{e.preventDefault();const p=packs.find(q=>q.id==e.dataTransfer.getData("text"));selDay=d;if(p)plan(p,d)};
+    dl.append(b);
+  });
+  document.querySelectorAll("#mtabs .sb").forEach(t=>t.classList.toggle("on",t.dataset.s===selSlot));
+  document.getElementById("pickFor").textContent="Adding to "+selDay+" "+new Date(dayDate(selDay)+"T00:00").getDate()+" Oct";
+  const wb=document.getElementById("warnBar");wb.hidden=!pending;
+  if(pending){const n=outBy(pending.p,pending.day);
+    wb.innerHTML=`<span>⚠️ ${pending.p.name} will be ${n} day${n>1?"s":""} out by ${pending.day}</span><div class="btns"><button class="act alt" id="wYes">Add anyway</button><button class="act ghost" id="wNo">Cancel</button></div>`;
+    document.getElementById("wYes").onclick=()=>plan(pending.p,pending.day,true);
+    document.getElementById("wNo").onclick=()=>{pending=null;render()}}
+  const pl=document.getElementById("pickList");pl.innerHTML="";
+  if(selSlot==="main"){const t=document.createElement("button");t.className="item ta";
+    t.innerHTML=`<span>🥡 Takeaway</span>`;
+    t.onclick=()=>{takeaway[selDay]=true;pending=null;selDay=DAYS[(DAYS.indexOf(selDay)+1)%7];selSlot="main";render()};pl.append(t)}
+  const free=live().filter(p=>p.kind!=="misc"&&!p.plannedFor&&slotOf(p)===selSlot).sort((a,b)=>(a.date||a.added).localeCompare(b.date||b.added));
+  const byName={};free.forEach(p=>(byName[p.name]??=[]).push(p));
+  Object.values(byName).forEach(list=>{const p=list[0];
+    const it=document.createElement("button");it.className="item "+(p.date?cls(p.date):"nd");it.draggable=true;
+    it.innerHTML=`<span>${p.name}${list.length>1?" ×"+list.length:""}</span><span>${p.date?when(p.date):(-days(p.added))+"d old"}</span>`;
+    it.ondragstart=e=>e.dataTransfer.setData("text",p.id);
+    it.onclick=()=>plan(p,selDay);pl.append(it)});
+  if(!free.length)pl.insertAdjacentHTML("beforeend",'<div class="note">Nothing left here.</div>');
+  const ws=document.getElementById("weekSum");ws.innerHTML="";
+  DAYS.forEach(d=>{const items=live().filter(p=>p.plannedFor===d).sort((a,b)=>["main","side","veg"].indexOf(a.slot)-["main","side","veg"].indexOf(b.slot));
+    const r=document.createElement("div");r.className="wrow";
+    const names=(takeaway[d]?["🥡 Takeaway"]:[]).concat(items.map(p=>p.name));
+    r.innerHTML=`<b>${d}</b><span>${names.length?names.join(" + "):'<span class="note">—</span>'}</span>`;ws.append(r)});
+}
+document.querySelectorAll("#mtabs .sb").forEach(t=>t.onclick=()=>{selSlot=t.dataset.s;render()});
+document.getElementById("nextDay").onclick=()=>{selDay=DAYS[(DAYS.indexOf(selDay)+1)%7];selSlot="main";render()};
+function tab(t){
+  document.getElementById("mealsView").hidden=t!=="M";document.getElementById("addView").hidden=t!=="A";
+  document.getElementById("fridgeSub").hidden=t!=="F";
+  if(t==="F")view("fridgeView");else ["fridgeView","wasteView","shopView"].forEach(id=>document.getElementById(id).hidden=true);
+  ["F","M","A"].forEach(k=>document.getElementById("t"+k).classList.toggle("on",k===t))}
+document.getElementById("tF").onclick=()=>tab("F");
+document.getElementById("tM").onclick=()=>tab("M");
+document.getElementById("tA").onclick=()=>tab("A");
+/* ---------- Add tab: shopping list ---------- */
+let shop=[{n:"Milk",got:false},{n:"Chicken breasts",got:false},{n:"Peas",got:false},{n:"Garlic bread",got:false},{n:"Eggs",got:true},{n:"Bread",got:false},{n:"Cola",got:false,del:"2026-10-07"},{n:"Crisps",got:false,del:"2026-10-05"}];
+const SHOWDEL=d=>days(d)>=-1; /* deleted rows stay 1 day, then go */
+function addSub(w){document.getElementById("addFridge").hidden=w!=="f";document.getElementById("addShop").hidden=w!=="s";
+  document.getElementById("aF").classList.toggle("on",w==="f");document.getElementById("aS").classList.toggle("on",w==="s")}
+function renderShop(){
+  const ul=document.getElementById("shopList");ul.innerHTML="";
+  shop=shop.filter(i=>!i.del||SHOWDEL(i.del));
+  const order=[...shop.filter(i=>!i.got&&!i.del),...shop.filter(i=>i.got&&!i.del),...shop.filter(i=>i.del)];
+  order.forEach(i=>{const r=document.createElement("div");r.className="srow"+(i.del?" gone":i.got?" got":"");
+    const id="sh_"+shop.indexOf(i);
+    r.innerHTML=`<input type="checkbox" id="${id}" ${i.got?"checked":""}><label for="${id}">${i.n}${i.auto?` <span class="auto">🤖 auto · ${i.auto}</span>`:""}</label>`;
+    r.querySelector("input").onchange=e=>{i.got=e.target.checked;renderShop()};
+    if(i.del){const t=document.createElement("span");t.className="gonetag";t.textContent=days(i.del)===0?"gone tomorrow":"gone today";r.append(t)}
+    if(i.got||i.del){const u=document.createElement("button");u.className="undo";u.textContent="↩ Undo";u.onclick=()=>{i.got=false;delete i.del;renderShop()};r.append(u)}
+    const del=document.createElement("button");del.className="del";del.textContent="🗑️";del.setAttribute("aria-label","Delete "+i.n+" (not counted as bought)");
+    del.onclick=()=>{i.del="2026-10-07";renderShop()};if(!i.del)r.append(del);
+    ul.append(r)});
+  const left=shop.filter(i=>!i.got&&!i.del).length;
+  document.getElementById("shopCount").textContent=left?left+" to get":"All got ✅";
+  if(typeof renderQuick==="function")renderQuick();
+}
+const bought={main:["Sausages","Chicken","Gammon","Bacon","Salmon","Mince"],side:["Chips","Coleslaw","Garlic bread","Rice pot","Hash browns"],
+  veg:["Carrots","Potatoes","Peas","Broccoli","Onions","Mushrooms"],other:["Milk","Butter","Eggs","Bread","Ketchup","Mayo","Cheese"]};
+let qSel="main";
+function renderQuick(){
+  document.querySelectorAll("#qtabs .sb").forEach(t=>t.classList.toggle("on",t.dataset.q===qSel));
+  const box=document.getElementById("qchips");box.innerHTML="";
+  bought[qSel].forEach(n=>{const on=shop.some(i=>i.n===n&&!i.got);const b=document.createElement("button");
+    b.className="qc"+(on?" on":"");b.textContent=(on?"✓ ":"+ ")+n;
+    b.onclick=()=>{const ex=shop.find(i=>i.n===n);if(ex)ex.got=false;else shop.unshift({n,got:false});renderShop()};box.append(b)});
+}
+const hist={Sausages:[9,4],Chicken:[7,5],Gammon:[3,3],Bacon:[6,4],Salmon:[2,2],Mince:[5,1],Chips:[8,4],Coleslaw:[4,3],"Garlic bread":[5,5],"Rice pot":[3,2],"Hash browns":[2,1],
+  Carrots:[6,3],Potatoes:[8,4],Peas:[7,3],Broccoli:[4,4],Onions:[5,3],Mushrooms:[3,2],Milk:[12,5],Butter:[4,4],Eggs:[6,4],Bread:[10,4],Ketchup:[2,4],Mayo:[2,3],Cheese:[5,5]};
+let ideasOn=false;
+const tabName={main:"Mains",side:"Sides",veg:"Veg",other:"Other"};
+function renderIdeas(){const box=document.getElementById("ideaBox");box.hidden=!ideasOn;if(!ideasOn)return;
+  box.innerHTML=`<div class="tag">💡 ${tabName[qSel]} ideas · best rated, then most bought</div>`;
+  bought[qSel].map(n=>({n,c:hist[n][0],r:hist[n][1]})).sort((a,b)=>b.r-a.r||b.c-a.c).forEach(it=>{
+    const row=document.createElement("div");row.className="irow"+(it.r<=2?" low":"");
+    row.innerHTML=`<span><b>${it.n}</b><small>bought ${it.c}× · ${it.r<=2?"bored / didn't like":"rated "+it.r}</small></span>`;
+    const st=document.createElement("div");st.className="stars";
+    for(let k=1;k<=5;k++){const b=document.createElement("button");b.textContent="★";b.className=k<=it.r?"on":"";b.setAttribute("aria-label",k+" stars");
+      b.onclick=()=>{hist[it.n][1]=k;renderIdeas()};st.append(b)}
+    const add=document.createElement("button");add.className="qc";add.textContent="+";add.setAttribute("aria-label","Add "+it.n);
+    add.onclick=()=>{const ex=shop.find(i=>i.n===it.n);if(ex)ex.got=false;else shop.unshift({n:it.n,got:false});renderShop()};
+    row.append(st,add);box.append(row)});
+}
+document.getElementById("ideaBtn").onclick=()=>{ideasOn=!ideasOn;renderIdeas()};
+document.querySelectorAll("#qtabs .sb").forEach(t=>t.onclick=()=>{qSel=t.dataset.q;renderQuick();renderIdeas()});
+document.getElementById("aF").onclick=()=>addSub("f");
+document.getElementById("aS").onclick=()=>addSub("s");
+document.getElementById("shopForm").onsubmit=e=>{e.preventDefault();const f=document.getElementById("shopIn");
+  if(f.value.trim()){shop.unshift({n:f.value.trim(),got:false});f.value="";renderShop()}};
+document.getElementById("clearAll").onclick=()=>{document.getElementById("clrAsk").hidden=false;document.getElementById("clearAll").hidden=true};
+document.getElementById("clrNo").onclick=()=>{document.getElementById("clrAsk").hidden=true;document.getElementById("clearAll").hidden=false};
+document.getElementById("clrYes").onclick=()=>{shop=[];document.getElementById("clrAsk").hidden=true;document.getElementById("clearAll").hidden=false;renderShop()};
+document.getElementById("gotAll").onclick=()=>{shop.forEach(i=>i.got=true);renderShop()};
+document.getElementById("clearGot").onclick=()=>{shop=shop.filter(i=>!i.got);renderShop()};
+function autoShop(n,why){const ex=shop.find(i=>i.n===n&&!i.got);if(ex)return;
+  shop=shop.filter(i=>i.n!==n);shop.unshift({n,got:false,auto:why});renderShop()}
+packs.filter(p=>p.kind==="misc"&&p.status==="in_fridge"&&days(p.date)<0&&days(p.date)>=-2)
+  .forEach(p=>autoShop(p.name,-days(p.date)+(days(p.date)===-1?" day out":" days out")));
+renderShop();
+const _render=render;render=function(){_render();renderMeals()};
+document.getElementById("printBtn").onclick=()=>{const n=document.getElementById("printNote");n.hidden=!n.hidden};
+document.getElementById("printF").onclick=()=>{const n=document.getElementById("printFNote");n.hidden=!n.hidden};
+render();
+</script>
