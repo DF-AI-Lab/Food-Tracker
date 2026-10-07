@@ -47,7 +47,7 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
 button.act{font:inherit;font-weight:700;border:0;border-radius:8px;padding:10px 14px;cursor:pointer;background:var(--accent);color:var(--bg)}
 button.act.alt{background:var(--offbg);color:var(--off)}
 button.act.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
-.sub{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sub{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .sb{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:9px 6px;cursor:pointer;text-align:center}
 .sb.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column}
@@ -107,6 +107,19 @@ button.tab.on{background:var(--accent);color:var(--bg)}
 .srow.gone label{text-decoration:line-through;text-decoration-color:var(--off);text-decoration-thickness:2px;color:var(--muted);font-weight:600}
 .srow.gone input{visibility:hidden}
 .gonetag{font-size:11px;color:var(--off);font-weight:700;white-space:nowrap}
+.af{height:auto}
+.frz{height:auto;min-height:40vh}
+.frzck{display:flex;gap:8px;align-items:center;font-weight:700}
+.frzck input{width:20px;height:20px;accent-color:var(--accent)}
+.srow.old3{border-color:var(--soon)}
+.sform input.days{flex:0 0 64px;text-align:center}
+.or{align-self:center;color:var(--muted);font-size:13px}
+.datebox{font-weight:700;font-size:15px;padding:9px 10px;border-radius:6px;background:var(--bg);border:2px solid var(--line)}
+.datebox.ok{background:var(--okbg)} .datebox.soon{background:var(--soonbg)} .datebox.off{background:var(--offbg);border-color:var(--redline)}
+.packs2{display:flex;align-items:center;gap:10px;font-weight:700}
+.packs2 .undo{font-size:16px;padding:2px 12px}
+.act.big{padding:13px;font-size:16px}
+.done{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--okbg);border-radius:6px;padding:8px 10px;font-size:14px;font-weight:700}
 .sbot{border-top:1px solid var(--line);padding-top:8px}
 .wrow{display:grid;grid-template-columns:44px 1fr;gap:8px;font-size:14px;align-items:baseline}
 .wrow b{color:var(--accent)}
@@ -121,7 +134,23 @@ pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg)
 
   <div id="addView" class="col" style="gap:14px" hidden>
     <div class="sub two"><button class="sb" id="aF">🥶 Add to fridge</button><button class="sb on" id="aS">🛒 Shopping list</button></div>
-    <div id="addFridge" class="sheet" hidden><b>🥶 Add to fridge</b><div class="note">Next mock-up: usual-food buttons, typing, voice, date shortcut.</div></div>
+    <div id="addFridge" class="pane af" hidden>
+      <div class="mtabs" id="akind"><button class="sb on" data-k="main">🍖 Main</button><button class="sb" data-k="side">🥔 Side</button><button class="sb" data-k="misc">🧂 Misc</button></div>
+      <div class="tag">⭐ Usual · tap one</div>
+      <div class="qchips" id="usual"></div>
+      <div class="sform"><input id="afName" placeholder="Or type a food…" autocomplete="off"><button class="act ghost" id="mic" aria-label="Speak">🎤</button></div>
+      <div class="note" id="micNote" hidden></div>
+      <div class="tag">📅 Date · type DDMM (1211) or days to use</div>
+      <div class="sform"><input id="afDate" inputmode="numeric" maxlength="6" placeholder="DDMM" autocomplete="off">
+        <span class="or">or</span><input id="afDays" class="days" inputmode="numeric" maxlength="2" placeholder="days" autocomplete="off" aria-label="Days to use">
+        <button class="sb on" id="dtype">Use by</button></div>
+      <div class="qchips" id="quick"></div>
+      <div class="datebox" id="dateOut">No date picked yet</div>
+      <div class="packs2"><span>Packs</span><button class="undo" id="pMinus" aria-label="One less">−</button><b id="pN">1</b><button class="undo" id="pPlus" aria-label="One more">+</button></div>
+      <label class="frzck"><input type="checkbox" id="afFrz"> 🧊 Straight to freezer</label>
+      <button class="act big" id="afAdd">Add to fridge</button>
+      <div id="afDone" class="col" style="gap:6px"></div>
+    </div>
     <div id="addShop" class="pane shop">
       <div class="wkhead"><h2>🛒 Shopping list</h2><span class="tag" id="shopCount"></span></div>
       <div class="clr"><button class="undo" id="clearAll">🗑️ Clear all</button><span id="clrAsk" hidden>Sure? <button class="undo" id="clrYes">Yes, clear</button> <button class="undo" id="clrNo">No</button></span></div>
@@ -152,7 +181,7 @@ pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg)
     <div class="sheet"><b>🍽️ This week's meals</b><div id="weekSum" class="col" style="gap:6px"></div></div>
   </div>
 
-  <div class="sub" id="fridgeSub"><button class="sb on" id="vF">In fridge</button><button class="sb" id="vW">♻️ Used &amp; wasted</button><button class="sb" id="vS">🛒 Shopping list</button></div>
+  <div class="sub" id="fridgeSub"><button class="sb on" id="vF">🥶 Fridge</button><button class="sb" id="vZ">🧊 Freezer</button><button class="sb" id="vW">♻️ Used</button><button class="sb" id="vS">🛒 Shop</button></div>
 
   <div id="fridgeView" class="col" style="gap:16px">
   <div class="cols">
@@ -163,6 +192,12 @@ pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg)
   </div>
 
 
+  </div>
+
+  <div id="frzView" class="pane frz" hidden>
+    <div class="wkhead"><h2>🧊 Freezer · <span id="cZ"></span></h2></div>
+    <div class="note">Oldest first. Defrost moves it back to the fridge with a new use-by.</div>
+    <div class="scroll" id="frzList"></div>
   </div>
 
   <div id="wasteView" class="col" hidden>
@@ -180,6 +215,7 @@ pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg)
     <div class="btns">
       <button class="act" id="bUsed">✅ Used</button>
       <button class="act alt" id="bBin">🗑️ Thrown away</button>
+      <button class="act ghost" id="bFrz">🧊 Freeze</button>
       <button class="act ghost" id="bCancel">Cancel</button>
     </div>
   </div>
@@ -219,10 +255,13 @@ let packs=[
  {id:43,name:"Butter",kind:"misc",date:"2026-11-02",dateType:"best_before"},
  {id:44,name:"Ketchup",kind:"misc",date:"2027-03-01",dateType:"best_before"},
  {id:45,name:"Mayo",kind:"misc",date:"2026-12-12",dateType:"best_before"},
+ {id:50,name:"Mince",kind:"main",date:"2026-09-22",dateType:"use_by",status:"frozen",frozen:"2026-09-20"},
+ {id:51,name:"Chicken",kind:"main",date:"2026-10-03",dateType:"use_by",status:"frozen",frozen:"2026-10-01"},
+ {id:52,name:"Bread",kind:"misc",date:"2026-07-10",dateType:"best_before",status:"frozen",frozen:"2026-06-30"},
  {id:9,name:"Carrots",kind:"side",date:null,dateType:null,added:"2026-10-05"},
  {id:10,name:"Potatoes",kind:"side",date:null,dateType:null,added:"2026-09-29"},
  {id:11,name:"Peas",kind:"side",date:null,dateType:null,added:"2026-10-02"},
-].map(p=>({added:"2026-10-05",...p,status:"in_fridge",left:null}));
+].map(p=>({added:"2026-10-05",status:"in_fridge",...p,left:null}));
 packs.push({id:12,name:"Mince",kind:"main",date:"2026-10-04",dateType:"use_by",status:"used",added:"2026-09-30",left:"2026-10-03"},
  {id:13,name:"Yoghurt",kind:"side",date:null,dateType:null,status:"thrown_away",added:"2026-09-28",left:"2026-10-05"});
 let pick=null;
@@ -265,9 +304,9 @@ function render(){
   document.getElementById("cS").textContent=live.filter(p=>p.kind==="side").length;
   const show=pick||packs[0];
   document.getElementById("rec").textContent=JSON.stringify(show,null,2);
-  const g=packs.filter(p=>p.status!=="in_fridge").length;
+  const g=packs.filter(p=>p.status==="used"||p.status==="thrown_away").length;
   document.getElementById("gone").textContent=g?`Hidden so far: ${g}.`:"";
-  const old=packs.filter(p=>p.status!=="in_fridge").sort((a,b)=>b.left.localeCompare(a.left));
+  const old=packs.filter(p=>p.status==="used"||p.status==="thrown_away").sort((a,b)=>b.left.localeCompare(a.left));
   document.getElementById("nU").textContent=old.filter(p=>p.status==="used").length;
   document.getElementById("nW").textContent=old.filter(p=>p.status==="thrown_away").length;
   const wl=document.getElementById("wlist");wl.innerHTML="";
@@ -282,10 +321,23 @@ function finish(st){if(!pick)return;pick.status=st;pick.left="2026-10-07";
 document.getElementById("bUsed").onclick=()=>finish("used");
 document.getElementById("bBin").onclick=()=>finish("thrown_away");
 document.getElementById("bCancel").onclick=()=>{document.getElementById("sheet").hidden=true};
-function view(v){[["fridgeView","vF"],["wasteView","vW"],["shopView","vS"]].forEach(([a,b])=>{
+function view(v){[["fridgeView","vF"],["frzView","vZ"],["wasteView","vW"],["shopView","vS"]].forEach(([a,b])=>{
   document.getElementById(a).hidden=a!==v;document.getElementById(b).classList.toggle("on",a===v)})}
 document.getElementById("vF").onclick=()=>view("fridgeView");
 document.getElementById("vW").onclick=()=>view("wasteView");
+document.getElementById("vZ").onclick=()=>view("frzView");
+document.getElementById("bFrz").onclick=()=>{if(!pick)return;pick.status="frozen";pick.frozen="2026-10-07";delete pick.plannedFor;delete pick.slot;
+  document.getElementById("sheet").hidden=true;render()};
+function renderFrz(){const fl=document.getElementById("frzList");fl.innerHTML="";
+  const fz=packs.filter(p=>p.status==="frozen").sort((a,b)=>a.frozen.localeCompare(b.frozen));
+  document.getElementById("cZ").textContent=fz.length;
+  if(!fz.length)fl.innerHTML='<div class="note">Freezer is empty.</div>';
+  fz.forEach(p=>{const a=-days(p.frozen);const wk=a>=14?Math.floor(a/7)+" weeks":a+" day"+(a===1?"":"s");
+    const r=document.createElement("div");r.className="srow"+(a>=90?" old3":"");
+    r.innerHTML=`<label style="cursor:default">${p.kind==="main"?"🍖":p.kind==="side"?"🥔":"🧂"} ${p.name} <span class="tag">in ${D(p.frozen).toLocaleDateString("en-GB",{day:"numeric",month:"short"})} · ${wk}</span></label>`;
+    const b=document.createElement("button");b.className="undo";b.textContent="Defrost";
+    b.onclick=()=>{p.status="in_fridge";const d=new Date(T);d.setDate(d.getDate()+1);p.date=iso(d);p.dateType="use_by";delete p.frozen;render()};
+    r.append(b);fl.append(r)})}
 document.getElementById("vS").onclick=()=>{tab("A");addSub("s")};
 /* ---------- Meals mock ---------- */
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -354,7 +406,7 @@ document.getElementById("nextDay").onclick=()=>{selDay=DAYS[(DAYS.indexOf(selDay
 function tab(t){
   document.getElementById("mealsView").hidden=t!=="M";document.getElementById("addView").hidden=t!=="A";
   document.getElementById("fridgeSub").hidden=t!=="F";
-  if(t==="F")view("fridgeView");else ["fridgeView","wasteView","shopView"].forEach(id=>document.getElementById(id).hidden=true);
+  if(t==="F")view("fridgeView");else ["fridgeView","frzView","wasteView","shopView"].forEach(id=>document.getElementById(id).hidden=true);
   ["F","M","A"].forEach(k=>document.getElementById("t"+k).classList.toggle("on",k===t))}
 document.getElementById("tF").onclick=()=>tab("F");
 document.getElementById("tM").onclick=()=>tab("M");
@@ -423,8 +475,60 @@ function autoShop(n,why){const ex=shop.find(i=>i.n===n&&!i.got);if(ex)return;
 packs.filter(p=>p.kind==="misc"&&p.status==="in_fridge"&&days(p.date)<0&&days(p.date)>=-2)
   .forEach(p=>autoShop(p.name,-days(p.date)+(days(p.date)===-1?" day out":" days out")));
 renderShop();
-const _render=render;render=function(){_render();renderMeals()};
+const _render=render;render=function(){_render();renderMeals();renderFrz()};
 document.getElementById("printBtn").onclick=()=>{const n=document.getElementById("printNote");n.hidden=!n.hidden};
 document.getElementById("printF").onclick=()=>{const n=document.getElementById("printFNote");n.hidden=!n.hidden};
+/* ---------- Add to fridge ---------- */
+const usual={main:["Sausages","Chicken","Bacon","Gammon","Mince","Salmon"],side:["Coleslaw","Chips","Garlic bread","Carrots","Potatoes","Peas"],misc:["Milk","Cheese","Eggs","Butter","Yoghurt"]};
+const noDate=["Carrots","Potatoes","Peas","Onions","Broccoli","Mushrooms"];
+let afKind="main",afDate=null,afType="use_by",afN=1;
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const longFmt=s=>D(s).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+function parseDDMM(v){ // 1211 -> 12 Nov this year; never rolls to next year
+  if(!/^\d{4}(\d{2})?$/.test(v))return null;
+  const dd=+v.slice(0,2),mm=+v.slice(2,4),yy=v.length===6?2000+ +v.slice(4):T.getFullYear();
+  const d=new Date(yy,mm-1,dd);if(d.getDate()!==dd||d.getMonth()!==mm-1)return "bad";return iso(d)}
+function showDate(){const o=document.getElementById("dateOut");
+  if(afDate==="none"){o.className="datebox";o.textContent="No date · will show its age";return}
+  if(afDate==="bad"){o.className="datebox off";o.textContent="That's not a real date, check it";return}
+  if(!afDate){o.className="datebox";o.textContent="No date picked yet";return}
+  const d=days(afDate);o.className="datebox "+cls(afDate);
+  o.textContent=longFmt(afDate)+(d<0?" · out of date, check?":d===0?" · today":` · ${d} day${d>1?"s":""} left`)}
+function renderAF(){
+  document.querySelectorAll("#akind .sb").forEach(b=>b.classList.toggle("on",b.dataset.k===afKind));
+  const u=document.getElementById("usual");u.innerHTML="";
+  usual[afKind].forEach(n=>{const b=document.createElement("button");b.className="qc"+(document.getElementById("afName").value===n?" on":"");b.textContent=n;
+    b.onclick=()=>{document.getElementById("afName").value=n;if(noDate.includes(n)){afDate="none"}renderAF();showDate()};u.append(b)});
+  const q=document.getElementById("quick");q.innerHTML="";
+  if(afKind==="side"){const b=document.createElement("button");b.className="qc";b.textContent="No date";b.onclick=()=>{afDate="none";showDate()};q.append(b)}
+  document.getElementById("pN").textContent=afN;
+  document.getElementById("dtype").textContent=afType==="use_by"?"Use by":"Best before";
+}
+document.querySelectorAll("#akind .sb").forEach(b=>b.onclick=()=>{afKind=b.dataset.k;if(afDate==="none"&&afKind!=="side")afDate=null;renderAF();showDate()});
+document.getElementById("afDate").oninput=e=>{const v=e.target.value.replace(/\D/g,"");e.target.value=v;document.getElementById("afDays").value="";afDate=v.length>=4?parseDDMM(v):null;showDate()};
+document.getElementById("afDays").oninput=e=>{const v=e.target.value.replace(/\D/g,"");e.target.value=v;
+  document.getElementById("afDate").value="";
+  if(v===""){afDate=null}else{const d=new Date(T);d.setDate(d.getDate()+ +v);afDate=iso(d)}showDate()};
+document.getElementById("dtype").onclick=()=>{afType=afType==="use_by"?"best_before":"use_by";renderAF()};
+document.getElementById("pMinus").onclick=()=>{afN=Math.max(1,afN-1);renderAF()};
+document.getElementById("pPlus").onclick=()=>{afN++;renderAF()};
+document.getElementById("mic").onclick=()=>{const n=document.getElementById("micNote");n.hidden=false;n.textContent="🎤 Listening… (mock)";
+  setTimeout(()=>{n.textContent='Heard: "sausages use by friday" → Sausages · Fri 9 Oct. Check and tap Add.';afKind="main";
+    document.getElementById("afName").value="Sausages";afDate="2026-10-09";afType="use_by";renderAF();showDate()},900)};
+document.getElementById("afAdd").onclick=()=>{
+  const n=document.getElementById("afName").value.trim();const out=document.getElementById("afDone");
+  const err=m=>{out.insertAdjacentHTML("afterbegin",`<div class="note" style="color:var(--off)">${m}</div>`)};
+  if(!n)return err("Pick or type a food first.");
+  if(!afDate||afDate==="bad")return err(afKind==="side"?"Pick a date, or No date.":"Mains and misc need a date.");
+  const added=[];
+  for(let i=0;i<afN;i++){const p={id:Date.now()+i,name:n,kind:afKind,date:afDate==="none"?null:afDate,dateType:afDate==="none"?null:afType,status:"in_fridge",added:"2026-10-07",left:null};if(document.getElementById("afFrz").checked){p.status="frozen";p.frozen="2026-10-07"}packs.push(p);added.push(p)}
+  const row=document.createElement("div");row.className="done";
+  row.innerHTML=`<span>✓ ${n}${afN>1?" ×"+afN:""} · ${afDate==="none"?"no date":fmt(afDate)}</span>`;
+  const u=document.createElement("button");u.className="undo";u.textContent="↩ Undo";
+  u.onclick=()=>{packs=packs.filter(p=>!added.includes(p));row.remove();render()};row.append(u);out.prepend(row);
+  document.getElementById("afName").value="";document.getElementById("afDate").value="";document.getElementById("afDays").value="";afDate=null;afN=1;afType="use_by";
+  document.getElementById("micNote").hidden=true;renderAF();showDate();render()};
+renderAF();
+addSub("f");
 render();
 </script>
