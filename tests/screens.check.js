@@ -14,6 +14,12 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
   page.on("pageerror", e => errors.push(e.message));
   const step = async (name, fn) => { await fn(); console.log("ok -", name); };
   const text = sel => page.locator(sel).innerText();
+  // Saving is async: retry an assertion for up to 3s before failing.
+  const until = async fn => {
+    for (let i = 0; ; i++) {
+      try { return await fn(); } catch (e) { if (i >= 30) throw e; await page.waitForTimeout(100); }
+    }
+  };
 
   await page.goto(URL);
 
@@ -40,7 +46,7 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     await page.click("#plus");
     assert.equal(await text("#count"), "2");
     await page.click("#addBtn");
-    assert.match(await text("#addMsg"), /added/i);
+    await until(async () => assert.match(await text("#addMsg"), /added/i));
   });
 
   await step("add chicken by days box", async () => {
@@ -89,16 +95,16 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
   await step("tap pack -> Used, then Undo", async () => {
     await page.locator('#mains .card:has-text("Chicken") .pack').first().click();
     await page.click("#actUsed");
-    assert.equal(await page.locator('#mains .card:has-text("Chicken")').count(), 0);
+    await until(async () => assert.equal(await page.locator('#mains .card:has-text("Chicken")').count(), 0));
     await page.click("#undoBtn");
-    assert.equal(await page.locator('#mains .card:has-text("Chicken")').count(), 1);
+    await until(async () => assert.equal(await page.locator('#mains .card:has-text("Chicken")').count(), 1));
   });
 
   await step("thrown away shows in Used list", async () => {
     await page.locator('#mains .card:has-text("Chicken") .pack').first().click();
     await page.click("#actThrown");
     await page.click('[data-view="used"]');
-    assert.equal(await text("#wastedCount"), "1");
+    await until(async () => assert.equal(await text("#wastedCount"), "1"));
     assert.match(await text("#usedList"), /Chicken/);
   });
 
@@ -107,9 +113,9 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     await page.locator('#mains .card:has-text("Sausages") .pack').first().click();
     await page.click("#actFreeze");
     await page.click('[data-view="freezer"]');
-    assert.match(await text("#freezerList"), /Sausages/);
+    await until(async () => assert.match(await text("#freezerList"), /Sausages/));
     await page.click("#freezerList .defrost");
-    assert.equal(await page.locator("#freezerList .frz").count(), 0);
+    await until(async () => assert.equal(await page.locator("#freezerList .frz").count(), 0));
   });
 
   await step("saved after reload", async () => {
