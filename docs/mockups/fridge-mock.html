@@ -36,7 +36,8 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
 .scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain;padding-right:2px}
 .veg{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;border-top:2px dashed var(--line);padding-top:8px}
 .pane .card,.pane .age{background:var(--bg)}
-.today{font-family:var(--display);font-size:18px}
+.today{font-family:var(--display);font-size:18px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.today .pal button{padding:5px 9px;font-size:15px}
 .age{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
 .age b{font-weight:700} .age.old{background:var(--soonbg);color:var(--soon);border-color:transparent}
 .age:focus-visible{outline:2px solid var(--accent)}
@@ -124,12 +125,50 @@ button.tab.on{background:var(--accent);color:var(--bg)}
 .wrow{display:grid;grid-template-columns:44px 1fr;gap:8px;font-size:14px;align-items:baseline}
 .wrow b{color:var(--accent)}
 pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg);border-radius:6px;padding:10px;color:var(--fg)}
+
+/* ---- Floating tiles: shape + depth from the user's reference image (colours unchanged) ---- */
+:root{--shadow:0 6px 16px rgba(20,30,40,.12),0 1px 3px rgba(20,30,40,.08);--shadow-sm:0 3px 8px rgba(20,30,40,.10);--hi:rgba(255,255,255,.6);--tile:#ffffff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--shadow:0 10px 22px rgba(0,0,0,.45),0 2px 4px rgba(0,0,0,.3);--shadow-sm:0 4px 10px rgba(0,0,0,.4);--hi:rgba(255,255,255,.06);--tile:#2b3038}}
+:root[data-theme="dark"]{--shadow:0 10px 22px rgba(0,0,0,.45),0 2px 4px rgba(0,0,0,.3);--shadow-sm:0 4px 10px rgba(0,0,0,.4);--hi:rgba(255,255,255,.06);--tile:#2b3038}
+:root[data-skin="float"] .pane,:root[data-skin="float"] .sheet,:root[data-skin="float"] .stat,:root[data-skin="float"] .tabs{
+  border-radius:18px;border:0;box-shadow:var(--shadow),inset 0 1px 0 var(--hi)}
+:root[data-skin="float"] .cols,:root[data-skin="float"] .mgrid{gap:14px}
+:root[data-skin="float"] .scroll{gap:10px}
+:root[data-skin="float"] .card{border-radius:14px;border:0;box-shadow:var(--shadow-sm),inset 0 1px 0 var(--hi)}
+:root[data-skin="float"] .pack{border-radius:10px}
+:root[data-skin="float"] .sb,:root[data-skin="float"] .tab{border-radius:12px}
+:root[data-skin="float"] .sb{border:0;background:var(--surface);box-shadow:var(--shadow-sm),inset 0 1px 0 var(--hi)}
+:root[data-skin="float"] .sb.on{background:var(--fg)}
+:root[data-skin="float"] button.act{border-radius:12px;box-shadow:var(--shadow-sm)}
+:root[data-skin="float"] button.act.ghost{box-shadow:none}
+:root[data-skin="float"] .age,:root[data-skin="float"] .day,:root[data-skin="float"] .srow,:root[data-skin="float"] .item,:root[data-skin="float"] .qc,:root[data-skin="float"] .chip2,:root[data-skin="float"] .row{
+  border-radius:12px;border-color:transparent;box-shadow:var(--shadow-sm)}
+:root[data-skin="float"] .day.on{border-color:var(--accent)}
+:root[data-skin="float"] .datebox,:root[data-skin="float"] .sform input,:root[data-skin="float"] .warnbar{border-radius:12px}
+:root[data-skin="float"] .pane .card,:root[data-skin="float"] .pane .age,:root[data-skin="float"] .srow,:root[data-skin="float"] .day,:root[data-skin="float"] .item.nd,:root[data-skin="float"] .row{background:var(--tile)}
+
+:root[data-skin="float"] .veg{border-top:0;padding-top:4px}
+/* ---- Palettes from the user's swatches: #051F20 #0B2B26 #163832 #235347 #8EB69B #DAF1DE ---- */
+:root[data-pal="forest"][data-pal]{--bg:#051F20;--surface:#0B2B26;--tile:#163832;--fg:#DAF1DE;--muted:#8EB69B;--line:#235347;
+  --accent:#8EB69B;--ok:#8EB69B;--okbg:#2c6a4c;--soon:#f2c46b;--soonbg:#7a5a1a;--off:#ff9a8f;--offbg:#6b2323;--redline:#ff8f8f;--planline:#DAF1DE;
+  --shadow:0 10px 22px rgba(0,0,0,.5),0 2px 4px rgba(0,0,0,.35);--shadow-sm:0 4px 10px rgba(0,0,0,.45);--hi:rgba(218,241,222,.07);color-scheme:dark}
+:root[data-pal="forestlight"][data-pal]{--bg:#a9c9b2;--surface:#c2dcc8;--tile:#d7ebdb;--fg:#051F20;--muted:#163832;--line:#8EB69B;
+  --accent:#163832;--ok:#0B2B26;--okbg:#9fcfa9;--soon:#5e3c00;--soonbg:#e8c77c;--off:#7a1414;--offbg:#eab3ac;--redline:#8f1414;--planline:#051F20;
+  --shadow:0 8px 18px rgba(5,31,32,.22),0 1px 3px rgba(5,31,32,.14);--shadow-sm:0 3px 8px rgba(5,31,32,.18);--hi:rgba(255,255,255,.45);color-scheme:light}
+.pal{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.pal button{display:flex;align-items:center;gap:6px;font:inherit;font-weight:700;cursor:pointer;border:2px solid transparent;background:var(--surface);color:var(--fg);border-radius:12px;padding:6px 10px;box-shadow:var(--shadow-sm)}
+.pal button.on{border-color:var(--accent)}
+.pal i{display:inline-flex;width:28px;height:14px;border-radius:4px;overflow:hidden}
+.pal i b{flex:1}
+.skin{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.skin button{font:inherit;font-weight:700;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:8px;padding:5px 10px}
+.skin button.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 </style>
 
 <div class="phone">
   <div class="note"><b>Mock-up only.</b> Example food, "today" = Wed 7 Oct. Tap a date to mark it used or thrown away. White outline + 🍽️ = in the meal plan. Tap <b>🍽️ Meals</b> to try the planner.</div>
 
-  <div class="today">📅 Today · <b>Wed 7 Oct</b></div>
+  <div class="today"><span>📅 Today · <b>Wed 7 Oct</b></span><span class="pal"><button data-m="dark" aria-label="Dark mode">🌙</button><button data-m="light" aria-label="Light mode">☀️</button></span></div>
   <div class="tabs"><button class="tab on" id="tF">🥶 Fridge</button><button class="tab" id="tM">🍽️ Meals</button><button class="tab" id="tA">➕ Add</button></div>
 
   <div id="addView" class="col" style="gap:14px" hidden>
@@ -530,5 +569,10 @@ document.getElementById("afAdd").onclick=()=>{
   document.getElementById("micNote").hidden=true;renderAF();showDate();render()};
 renderAF();
 addSub("f");
+let P="forest",M="dark";const R=document.documentElement;R.setAttribute("data-skin","float");
+function look(){R.setAttribute("data-theme",M);
+  if(P==="forest")R.setAttribute("data-pal",M==="dark"?"forest":"forestlight");else R.removeAttribute("data-pal");
+    document.querySelectorAll(".pal [data-m]").forEach(b=>b.classList.toggle("on",b.dataset.m===M))}
+document.querySelectorAll(".pal [data-m]").forEach(b=>b.onclick=()=>{M=b.dataset.m;look()});look();
 render();
 </script>
