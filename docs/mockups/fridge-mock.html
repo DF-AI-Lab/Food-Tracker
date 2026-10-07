@@ -471,7 +471,7 @@ const usual={main:["Sausages","Chicken","Bacon","Gammon","Mince","Salmon"],
   side:["Chips","Coleslaw","Garlic bread","Rice pot","Hash browns"],
   veg:["Carrots","Potatoes","Peas","Broccoli","Onions","Mushrooms"],
   misc:["Milk","Cheese","Eggs","Butter","Yoghurt"]};
-let addState={kind:"main",packs:1,dateType:"use_by",lastAdded:[]};
+let addState={kind:"main",packs:1,dateType:"use_by",selectedDate:undefined};
 function parseDate(ddmm){
   if(!/^\d{4}$/.test(ddmm))return null;
   const dd=parseInt(ddmm.slice(0,2)),mm=parseInt(ddmm.slice(2,4));
@@ -489,26 +489,36 @@ function formatDate(d){
 }
 function updateDateOut(val){
   const dOut=document.getElementById("dateOut");
-  if(!val){dOut.textContent="Type 4 digits: day then month";return}
-  if(val.length<4){dOut.textContent="Type 4 digits: day then month";return}
+  if(!val){dOut.innerHTML="Type 4 digits: day then month";return}
+  if(val.length<4){dOut.innerHTML="Type 4 digits: day then month";return}
   const d=parseDate(val);
   if(!d){dOut.innerHTML="❌ Not a date";return}
   const isOutOfDate=d<T;
   const year=d.getFullYear();
   const dateStr=fmt(formatDate(d))+' '+year;
   if(isOutOfDate)dOut.innerHTML=`⚠️ ${dateStr} · out of date — check?`;
-  else{const futDays=Math.round((d-T)/864e5);dOut.textContent=`${dateStr} · ${futDays} days`}
+  else{const futDays=Math.round((d-T)/864e5);dOut.innerHTML=`${dateStr} · ${futDays} days`}
 }
-document.querySelectorAll("#kindBtns .sb").forEach(b=>b.onclick=()=>{
-  addState.kind=b.dataset.kind;
-  document.querySelectorAll("#kindBtns .sb").forEach(x=>x.classList.toggle("on",x===b));
-  if(addState.kind==="veg")addState.kind="side";
+const fDateInput=document.getElementById("fDate");
+if(fDateInput)fDateInput.addEventListener("input",e=>{updateDateOut(e.target.value)});
+document.querySelectorAll("#kindBtns .sb").forEach(b=>{
+  b.type="button";
+  b.onclick=()=>{
+    addState.kind=b.dataset.kind;
+    document.querySelectorAll("#kindBtns .sb").forEach(x=>x.classList.toggle("on",x===b));
+    if(addState.kind==="veg")addState.kind="side";
+    renderQuickPicks();
+  };
 });
 let usualSel="main";
-document.querySelectorAll("#usualTabs .sb").forEach(t=>t.onclick=()=>{
-  usualSel=t.dataset.u;
-  document.querySelectorAll("#usualTabs .sb").forEach(x=>x.classList.toggle("on",x===t));
-  renderUsual();
+document.querySelectorAll("#usualTabs .sb").forEach(t=>{
+  t.type="button";
+  t.onclick=()=>{
+    usualSel=t.dataset.u;
+    document.querySelectorAll("#usualTabs .sb").forEach(x=>x.classList.toggle("on",x===t));
+    renderUsual();
+    renderQuickPicks();
+  };
 });
 function renderUsual(){
   const box=document.getElementById("usualChips");box.innerHTML="";
@@ -528,15 +538,16 @@ function renderUsual(){
     box.append(b);
   });
 }
+document.getElementById("packMinus").type="button";
 document.getElementById("packMinus").onclick=()=>{
   if(addState.packs>1)addState.packs--;
   document.getElementById("packN").textContent=addState.packs;
 };
+document.getElementById("packPlus").type="button";
 document.getElementById("packPlus").onclick=()=>{
   if(addState.packs<9)addState.packs++;
   document.getElementById("packN").textContent=addState.packs;
 };
-document.getElementById("fDate").addEventListener("input",e=>{updateDateOut(e.target.value)});
 function renderQuickPicks(){
   const q=document.getElementById("quick");q.innerHTML="";
   const daysArr=[0,1,3,5,7];
@@ -552,7 +563,7 @@ function renderQuickPicks(){
       const year=d.getFullYear();
       const dateStr=fmt(formatDate(d))+' '+year;
       const futDays=Math.round((d-T)/864e5);
-      document.getElementById("dateOut").textContent=`${dateStr} · ${futDays} days`;
+      document.getElementById("dateOut").innerHTML=`${dateStr} · ${futDays} days`;
     };
     q.append(b);
   });
@@ -566,17 +577,20 @@ function renderQuickPicks(){
     q.append(noD);
   }
 }
+document.getElementById("dtUse").type="button";
 document.getElementById("dtUse").onclick=()=>{
   addState.dateType="use_by";
   document.getElementById("dtUse").classList.add("on");
   document.getElementById("dtBB").classList.remove("on");
 };
+document.getElementById("dtBB").type="button";
 document.getElementById("dtBB").onclick=()=>{
   addState.dateType="best_before";
   document.getElementById("dtBB").classList.add("on");
   document.getElementById("dtUse").classList.remove("on");
 };
 let lastAddIds=[];
+document.getElementById("addBtn").type="button";
 document.getElementById("addBtn").onclick=()=>{
   const name=document.getElementById("fName").value.trim();
   if(!name){document.getElementById("addMsg").textContent="Type a name first";return}
@@ -618,6 +632,7 @@ function renderAddMsg(){
     just.append(r);
   }
 }
+document.getElementById("undoAdd").type="button";
 document.getElementById("undoAdd").onclick=()=>{
   if(!lastAddIds.length)return;
   lastAddIds.forEach(id=>packs=packs.filter(p=>p.id!==id));
@@ -626,6 +641,7 @@ document.getElementById("undoAdd").onclick=()=>{
   render();
 };
 let micTimeout;
+document.getElementById("micBtn").type="button";
 document.getElementById("micBtn").onclick=()=>{
   const btn=document.getElementById("micBtn");
   btn.textContent="🎙️ Listening…";
