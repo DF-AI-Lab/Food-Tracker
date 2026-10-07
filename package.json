@@ -1,1 +1,8 @@
-{"name":"food-tracker","private":true,"scripts":{"test":"node --test tests/*.test.js"}}
+{
+  "name": "food-tracker",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check:screens": "node tests/screens.check.js"
+  }
+}
