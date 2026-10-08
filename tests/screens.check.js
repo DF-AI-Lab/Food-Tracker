@@ -183,10 +183,80 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     assert.match(await page.locator("body").innerText(), /Coming soon/i);
   });
 
+  await step("delete: red line + undo, not counted as used", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click('[data-kind="main"]');
+    await page.fill("#name", "Haggis");
+    await page.fill("#days", "3");
+    await page.click("#addBtn");
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    await until(async () => assert.equal(await page.locator('#mains .card:has-text("Haggis")').count(), 1));
+    await page.click('#mains .card:has-text("Haggis") .pack');
+    await page.click("#actDelete");
+    await until(async () => assert.equal(await page.locator('#mains .card:has-text("Haggis")').count(), 0));
+    const row = page.locator('#deletedList .gone:has-text("Haggis")');
+    assert.equal(await row.count(), 1);
+    const deco = await row.locator(".name").evaluate(e => getComputedStyle(e).textDecorationLine);
+    assert.match(deco, /line-through/);
+    await page.click('[data-view="used"]');
+    assert.doesNotMatch(await text("#usedList"), /Haggis/);
+    await page.click('[data-view="fridge"]');
+    await row.locator(".undo").click();
+    await until(async () => assert.equal(await page.locator('#mains .card:has-text("Haggis")').count(), 1));
+    assert.equal(await page.locator('#deletedList .gone').count(), 0);
+  });
+
+  await step("look: forest dark background", async () => {
+    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    assert.equal(bg, "rgb(5, 31, 32)");
+  });
+
+  await step("look: floating tiles (shadow + rounded, no hard border)", async () => {
+    const st = await page.locator("#mains .card").first().evaluate(e => {
+      const c = getComputedStyle(e);
+      return { shadow: c.boxShadow, radius: parseFloat(c.borderTopLeftRadius), border: c.borderTopWidth };
+    });
+    assert.notEqual(st.shadow, "none");
+    assert.ok(st.radius >= 12, "radius " + st.radius);
+    assert.equal(st.border, "0px");
+  });
+
+  await step("look: Mains | Sides are fixed boxes that scroll on their own", async () => {
+    for (const sel of ["#mains", "#sides", "#misc", "#veg"]) {
+      const oy = await page.locator(sel).evaluate(e => getComputedStyle(e).overflowY);
+      assert.equal(oy, "auto", sel + " overflowY");
+    }
+    const cols = page.locator("#fridgeView .column");
+    assert.equal(await cols.count(), 2);
+    const boxes = await cols.evaluateAll(els => els.map(e => e.getBoundingClientRect()));
+    assert.ok(Math.abs(boxes[0].top - boxes[1].top) < 2, "columns side by side");
+    assert.ok(Math.abs(boxes[0].height - boxes[1].height) < 2, "columns same fixed height");
+    assert.ok(boxes[0].height >= 300, "columns tall enough");
+    // misc sits in the bottom part of the Mains box, veg in the bottom of Sides
+    const mainsBox = await page.locator("#fridgeView .column").first().boundingBox();
+    const miscBox = await page.locator("#misc").boundingBox();
+    assert.ok(miscBox.y + miscBox.height <= mainsBox.y + mainsBox.height + 1, "misc inside mains box");
+  });
+
+  await step("look: Use by toggle sits on the date line", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    assert.ok(await page.locator('.date-line [data-dt="use_by"]').count() >= 1);
+    await page.click('[data-tab="fridge"]');
+  });
+
   await step("theme toggle", async () => {
     const before = await page.getAttribute("html", "data-theme");
     await page.click("#theme");
     assert.notEqual(await page.getAttribute("html", "data-theme"), before);
+  });
+
+  await step("look: light mode is mid sage, not pale", async () => {
+    assert.equal(await page.getAttribute("html", "data-theme"), "light");
+    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    assert.equal(bg, "rgb(169, 201, 178)");
   });
 
   await step("no page errors", async () => assert.deepEqual(errors, []));

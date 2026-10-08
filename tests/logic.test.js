@@ -306,3 +306,39 @@ test("CLAUDE_PROMPT explains the format", () => {
   assert.match(L.CLAUDE_PROMPT, /main/);
   assert.match(L.CLAUDE_PROMPT, /ask/i);
 });
+
+// ---------- delete (mistakes): not saved as used/wasted, kept 1 day for Undo ----------
+
+const delPack = (id, del) => ({ id, name: "Haggis", kind: "main", date: "2026-10-09", dateType: "use_by",
+  status: "deleted", added: "2026-10-01", left: null, frozen: null, del });
+
+test("markDeleted sets status deleted and the del date, without changing the original", () => {
+  const p = { ...delPack(1, null), status: "in_fridge" };
+  const d = L.markDeleted(p, TODAY);
+  assert.equal(d.status, "deleted");
+  assert.equal(d.del, TODAY);
+  assert.equal(p.status, "in_fridge");
+});
+
+test("deletedList shows deletes from today and yesterday, newest first", () => {
+  const packs = [delPack(1, "2026-10-06"), delPack(2, TODAY), delPack(3, "2026-10-05"),
+    { ...delPack(4, null), status: "in_fridge" }];
+  assert.deepEqual(L.deletedList(packs, TODAY).map(p => p.id), [2, 1]);
+});
+
+test("expiredDeletes lists deleted packs older than 1 day (to remove for good)", () => {
+  const packs = [delPack(1, "2026-10-06"), delPack(2, TODAY), delPack(3, "2026-10-05"), delPack(4, "2026-09-01")];
+  assert.deepEqual(L.expiredDeletes(packs, TODAY).map(p => p.id).sort(), [3, 4]);
+});
+
+test("deleted packs count nowhere: fridge, used & wasted, freezer, usuals", () => {
+  const packs = [delPack(1, TODAY)];
+  const v = L.fridgeView(packs, TODAY);
+  assert.equal(v.mainCount, 0);
+  assert.equal(v.mains.length, 0);
+  const u = L.usedSummary(packs, TODAY);
+  assert.equal(u.used + u.wasted, 0);
+  assert.equal(u.list.length, 0);
+  assert.equal(L.freezerList(packs, TODAY).length, 0);
+  assert.ok(!L.usuals(packs, "main").includes("Haggis"));
+});
