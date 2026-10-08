@@ -1,5 +1,18 @@
 # Food Tracker — V1 build handover
 
+## ▶ Latest (8 Oct 2026) — read this first
+
+- **Runs on the PC for now** (phone version = V2). Local Node server `server/server.js` serves the app at `http://127.0.0.1:5178`
+  and saves to **SQLite** at `../FoodTrackerData/food.db` (outside the app folder, daily backups, keeps 14). Starts silently with Windows (`windows/`).
+- **Kinds:** Main / Side / **Veg** / Misc. Veg shows in the Sides "no date" box with its age.
+- **No date** works for any kind and is remembered per food (margarine yes, eggs no).
+- **Photo inbox:** the `/check-my-food-photos` skill (`skills/`) reads `Food-Tracker/images/New`, asks about anything unclear,
+  returns JSON `{name, sub, date, price, bb?, packs?}` (1 photo = 1 entry, veg = name only), then moves photos to `images/Processed`.
+  Drag the file onto the app → Quick fill. The app fills kind from history; a new food shows Main/Side/Veg/Misc once.
+- Packs now also save `sub` (hidden for now) and `price`. Bought count is worked out from history; rating comes later (Ideas).
+- Fridge: **☑️ Select → 🧊 Freeze (N)** moves several packs at once.
+- Below is the original V1 handover; the points above override it where they differ.
+
 Read this first. Everything here was decided with the user; the details live on the
 [map](https://github.com/DF-AI-Lab/Food-Tracker/issues/1) and its closed tickets.
 
