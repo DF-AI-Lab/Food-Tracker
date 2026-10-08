@@ -3,10 +3,33 @@
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const fs = require("node:fs");
+const os = require("node:os");
+const { spawn } = require("node:child_process");
 
-const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-10-07";
+// The app now saves through the local SQLite server, so start one on a
+// throwaway data folder (never the real one).
+const PORT = 5199;
+const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "ft-screens-"));
+const URL = `http://localhost:${PORT}/index.html?today=2026-10-07`;
+
+async function startServer() {
+  const srv = spawn(process.execPath, [path.join(__dirname, "..", "server", "server.js")], {
+    env: { ...process.env, FT_PORT: String(PORT), FT_DATA_DIR: DATA_DIR },
+    stdio: "inherit",
+  });
+  for (let i = 0; i < 50; i++) {
+    try { if ((await fetch(`http://localhost:${PORT}/api/packs`)).ok) return srv; } catch (e) {}
+    await new Promise(r => setTimeout(r, 100));
+  }
+  srv.kill();
+  throw new Error("server did not start");
+}
+let server;
+process.on("exit", () => server && server.kill());
 
 (async () => {
+  server = await startServer();
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
@@ -65,11 +88,19 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     await page.fill("#name", "");
   });
 
-  await step("add veg with no date", async () => {
-    await page.click('[data-kind="side"]');
+  await step("kind buttons: Main / Side / Veg / Misc", async () => {
+    const kinds = await page.locator(".mtabs [data-kind]").evaluateAll(els => els.map(e => e.dataset.kind));
+    assert.deepEqual(kinds, ["main", "side", "veg", "misc"]);
+    assert.match(await page.locator('[data-kind="veg"]').innerText(), /Veg/);
+  });
+
+  await step("add veg: no date ticked for you", async () => {
+    await page.click('[data-kind="veg"]');
+    assert.equal(await page.isChecked("#noDate"), true);
+    assert.ok((await page.locator("#usuals .usual").allInnerTexts()).includes("Carrots"));
     await page.fill("#name", "Carrots");
-    await page.check("#noDate");
     await page.click("#addBtn");
+    await until(async () => assert.match(await text("#addMsg"), /added/i));
   });
 
   await step("main needs a date", async () => {
@@ -287,8 +318,54 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     assert.equal(bg, "rgb(169, 201, 178)");
   });
 
+  await step("no date: works for misc and is remembered per food", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click('[data-kind="misc"]');
+    assert.ok(await page.locator("#noDate").isVisible(), "no date shown for misc");
+    await page.fill("#name", "Margarine");
+    await page.check("#noDate");
+    await page.click("#addBtn");
+    await until(async () => assert.match(await text("#addMsg"), /added/i));
+    // next time: typing margarine ticks No date by itself
+    await page.click('[data-kind="misc"]');
+    assert.equal(await page.isChecked("#noDate"), false);
+    await page.fill("#name", "margarine");
+    await until(async () => assert.equal(await page.isChecked("#noDate"), true));
+    // eggs still need a date
+    await page.fill("#name", "Eggs");
+    await until(async () => assert.equal(await page.isChecked("#noDate"), false));
+    await page.click("#addBtn");
+    assert.match(await text("#addMsg"), /date/i);
+    await page.fill("#name", "");
+  });
+
+  await step("quick fill: drop a .json file onto the app", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="quick"]');
+    const json = '[{"name":"Leeks","kind":"veg","date":null},{"name":"Margarine","kind":"misc","date":null}]';
+    const dt = await page.evaluateHandle(j => {
+      const d = new DataTransfer();
+      d.items.add(new File([j], "fridge.json", { type: "application/json" }));
+      return d;
+    }, json);
+    await page.dispatchEvent("body", "dragover", { dataTransfer: dt });
+    await page.dispatchEvent("body", "drop", { dataTransfer: dt });
+    await until(async () => assert.equal(await page.locator("#qfList .qf-row").count(), 2));
+    assert.match(await page.inputValue("#qfText"), /Leeks/);
+    // Margarine is remembered as no-date, so both rows are ok
+    assert.equal(await page.locator("#qfList .qf-row input[type=checkbox]:checked").count(), 2);
+  });
+
+  await step("data is in the SQLite file outside the app folder", async () => {
+    const dbFile = path.join(DATA_DIR, "food.db");
+    assert.ok(fs.existsSync(dbFile), "food.db created in data folder");
+    assert.ok(!fs.existsSync(path.join(__dirname, "..", "food.db")), "no db inside the app folder");
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   await browser.close();
+  server.kill();
   console.log("ALL SCREEN CHECKS PASSED");
 })().catch(e => { console.error("FAIL:", e.message); process.exit(1); });
