@@ -31,3 +31,15 @@ When building or modifying code:
 Use the cheapest/simplest approach that reliably gets the job done.
 
 Do not use a more capable model unnecessarily. Keep token usage down, but do not sacrifice correctness just to save tokens.
+
+## Keeping every chat's work (branches)
+
+New chats start from the repo's **default branch**, so work left on a chat's own branch gets lost to the next chat.
+
+- **When I say I'm starting a new chat** (or "wrapping up", "done for now"):
+  1. Run the tests. If they fail, tell me and stop.
+  2. Commit and push everything.
+  3. Open a pull request from this chat's branch into the **default branch** and merge it.
+  4. Tell me in one line that it's merged, with the PR link.
+- **At the start of every chat:** check for other `claude/*` branches with commits not yet on the default branch. If there are any, tell me which and ask before merging them in.
+- Never leave work only on a chat branch at the end of a session without asking me first.
