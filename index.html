@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="top">
+    <div id="today">📅 Today · Loading...</div>
+    <button id="theme">🌙</button>
+  </div>
+
+  <div id="tabs">
+    <button data-tab="fridge" class="active">🥶 Fridge</button>
+    <button data-tab="meals">🍽️ Meals</button>
+    <button data-tab="add">➕ Add</button>
+  </div>
+
+  <!-- Fridge Tab -->
+  <div data-tab-pane="fridge" style="display:block;">
+    <div id="fridgeTabs">
+      <button data-view="fridge" class="active">🥶 Fridge</button>
+      <button data-view="freezer">🧊 Freezer</button>
+      <button data-view="used">♻️ Used</button>
+      <button data-view="shop">🛒 Shop</button>
+    </div>
+
+    <!-- Fridge View -->
+    <div data-view-pane="fridge" style="display:block;">
+      <div id="fridgeView">
+        <div class="column">
+          <div class="column-title">
+            🍖 Mains · <span id="mainCount">0</span>
+          </div>
+          <div id="mains"></div>
+          <div style="margin-top: 16px;">
+            <div class="column-title">🧂 Misc</div>
+            <div id="misc"></div>
+            <div id="miscOk" style="font-size: 0.9em; color: var(--muted); margin-top: 8px;"></div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="column-title">
+            🥔 Sides · <span id="sideCount">0</span>
+          </div>
+          <div id="sides"></div>
+          <div style="margin-top: 16px;">
+            <div class="column-title">🥕 Veg & misc – no date</div>
+            <div id="veg"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Freezer View -->
+    <div data-view-pane="freezer">
+      <div id="freezerList"></div>
+    </div>
+
+    <!-- Used View -->
+    <div data-view-pane="used">
+      <div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div style="text-align: center; padding: 12px; background-color: var(--surface); border-radius: 8px; border: 1px solid var(--line);">
+            <div style="font-size: 0.9em; color: var(--muted);">Used</div>
+            <div id="usedCount" style="font-size: 1.5em; font-weight: bold;">0</div>
+          </div>
+          <div style="text-align: center; padding: 12px; background-color: var(--surface); border-radius: 8px; border: 1px solid var(--line);">
+            <div style="font-size: 0.9em; color: var(--muted);">Wasted</div>
+            <div id="wastedCount" style="font-size: 1.5em; font-weight: bold;">0</div>
+          </div>
+        </div>
+        <div id="usedList"></div>
+      </div>
+    </div>
+
+    <!-- Shop View -->
+    <div data-view-pane="shop">
+      <div class="coming-soon">🛒 Shopping list — Coming soon</div>
+    </div>
+  </div>
+
+  <!-- Meals Tab -->
+  <div data-tab-pane="meals">
+    <div class="coming-soon">🍽️ Meals — Coming soon</div>
+  </div>
+
+  <!-- Add Tab -->
+  <div data-tab-pane="add">
+    <div id="subTabs">
+      <button data-sub="fridge" class="active">🥶 Add to fridge</button>
+      <button data-sub="quick">📋 Quick fill</button>
+      <button data-sub="shop">🛒 Shopping list</button>
+    </div>
+
+    <!-- Add to fridge (the existing form) -->
+    <div data-sub-pane="fridge" style="display:block;">
+    <div class="form-section">
+      <div class="kind-buttons">
+        <button data-kind="main" class="active">🍖 Main</button>
+        <button data-kind="side">🥔 Side</button>
+        <button data-kind="misc">🧂 Misc</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div id="usuals"></div>
+    </div>
+
+    <div class="form-section">
+      <input type="text" id="name" placeholder="Type a name...">
+      <button style="display: inline-block; padding: 8px 12px; margin-left: 8px; background-color: var(--surface); border: 1px solid var(--line); border-radius: 6px; cursor: not-allowed; opacity: 0.5;" disabled>🎤 Coming soon</button>
+    </div>
+
+    <div class="form-section">
+      <div style="margin-bottom: 8px; font-size: 0.9em; color: var(--muted);">Date</div>
+      <div class="date-line">
+        <input type="text" id="ddmm" placeholder="DDMM (e.g. 0910)" style="flex: 1;">
+        <span style="align-self: center; color: var(--muted);">OR</span>
+        <input type="text" id="days" placeholder="Days (e.g. 3)" style="flex: 1;">
+      </div>
+      <div class="date-type">
+        <button data-dt="use_by" class="active">Use by</button>
+        <button data-dt="best_before">Best before</button>
+      </div>
+      <div id="datePreview" style="padding: 8px; background-color: var(--surface); border-radius: 6px; min-height: 24px;"></div>
+      <label class="checkbox-label" style="display:none">
+        <input type="checkbox" id="noDate">
+        <span>No date (sides only)</span>
+      </label>
+    </div>
+
+    <div class="form-section">
+      <div style="margin-bottom: 8px; font-size: 0.9em; color: var(--muted);">Count</div>
+      <div class="count-control">
+        <button id="minus">−</button>
+        <span id="count">1</span>
+        <button id="plus">+</button>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="toFreezer">
+        <span>🧊 Straight to freezer</span>
+      </label>
+    </div>
+
+    <div class="form-section">
+      <button id="addBtn">Add</button>
+      <div id="addMsg"></div>
+    </div>
+    </div>
+
+    <!-- Quick fill (JSON pasted back from Claude) -->
+    <div data-sub-pane="quick" style="display:none;">
+      <div class="form-section">
+        <div class="qf-how">Photos → Claude → paste the JSON here</div>
+        <details>
+          <summary>Message for Claude</summary>
+          <pre id="qfPrompt"></pre>
+          <button id="qfCopy">📋 Copy</button>
+        </details>
+      </div>
+
+      <div class="form-section">
+        <textarea id="qfText" rows="6" placeholder="Paste the JSON from Claude here"></textarea>
+        <button id="qfCheck">Check</button>
+      </div>
+
+      <div id="qfMsg"></div>
+      <div id="qfList"></div>
+      <div class="form-section">
+        <button id="qfAdd" style="display:none;">Add ticked</button>
+      </div>
+    </div>
+
+    <!-- Shopping list -->
+    <div data-sub-pane="shop" style="display:none;">
+      <div class="coming-soon">🛒 Shopping list — Coming soon</div>
+    </div>
+  </div>
+
+  <!-- Sheet (modal for pack actions) -->
+  <div id="sheet">
+    <div class="sheet-content">
+      <div class="title"></div>
+      <div class="subtitle"></div>
+      <div class="sheet-actions">
+        <button id="actUsed">✅ Used</button>
+        <button id="actThrown">🗑️ Thrown away</button>
+        <button id="actFreeze">🧊 Freeze</button>
+      </div>
+      <button id="actCancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Undo bar -->
+  <div id="undoBar">
+    <button id="undoBtn">↩ Undo</button>
+  </div>
+
+  <script src="js/logic.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,665 @@
+:root {
+  --bg: #051F20;
+  --surface: #0B2B26;
+  --line: #235347;
+  --text: #DAF1DE;
+  --muted: #8EB69B;
+  --green: #2e7d4f;
+  --amber: #b7791f;
+  --red: #9b2c2c;
+  --redline: #e53e3e;
+}
+
+html[data-theme="light"] {
+  --bg: #8EB69B;
+  --surface: #DAF1DE;
+  --line: #235347;
+  --text: #051F20;
+  --muted: #235347;
+  --green: #2e7d4f;
+  --amber: #b7791f;
+  --red: #9b2c2c;
+  --redline: #e53e3e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  padding: 0;
+}
+
+input {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 8px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Top bar */
+#top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+#today {
+  flex: 1;
+}
+
+#theme {
+  padding: 6px 12px;
+  background-color: var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Tabs */
+#tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+[data-tab] {
+  padding: 8px 12px;
+  background-color: transparent;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid var(--line);
+}
+
+[data-tab].active {
+  background-color: var(--line);
+  border-color: var(--text);
+}
+
+/* Fridge view tabs */
+#fridgeTabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+[data-view] {
+  padding: 8px 12px;
+  background-color: transparent;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid var(--line);
+}
+
+[data-view].active {
+  background-color: var(--line);
+  border-color: var(--text);
+}
+
+/* Tab panes */
+[data-tab-pane], [data-view-pane] {
+  display: none;
+  padding: 12px;
+}
+
+[data-tab-pane].active, [data-view-pane].active {
+  display: block;
+}
+
+/* Fridge view */
+#fridgeView {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  height: calc(100vh - 200px);
+  overflow: hidden;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 8px;
+}
+
+.column-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card {
+  background-color: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+
+.card .name {
+  font-weight: bold;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.pack {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background-color: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  margin-bottom: 6px;
+  text-align: left;
+  word-wrap: break-word;
+}
+
+.pack.use-by-green {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.pack.use-by-amber {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.pack.use-by-red {
+  border-color: var(--redline);
+  color: var(--redline);
+  background-color: var(--red);
+}
+
+.misc-label {
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+/* Freezer view */
+.frz {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.frz.old {
+  border-color: var(--amber);
+}
+
+.emoji {
+  font-size: 1.5em;
+}
+
+.frz .name {
+  font-weight: bold;
+  flex: 1;
+}
+
+.frz .label {
+  font-size: 0.9em;
+  color: var(--muted);
+  margin: 0 8px;
+}
+
+.defrost {
+  padding: 6px 12px;
+  background-color: var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Used view */
+#usedList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  background-color: var(--surface);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.row .name {
+  font-weight: bold;
+}
+
+.row .date {
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+.row .status {
+  font-size: 0.9em;
+  padding: 4px 8px;
+  background-color: var(--line);
+  border-radius: 4px;
+}
+
+/* Add tab sub-tabs */
+#subTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+[data-sub] {
+  padding: 8px 12px;
+  background-color: transparent;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid var(--line);
+}
+
+[data-sub].active {
+  background-color: var(--line);
+  border-color: var(--text);
+}
+
+/* Quick fill */
+.qf-how {
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+details summary {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+#qfPrompt {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.85em;
+  margin: 0 0 8px;
+}
+
+#qfCopy {
+  padding: 6px 12px;
+  background-color: var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+textarea {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: inherit;
+  margin-bottom: 12px;
+}
+
+.qf-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.qf-row input[type="checkbox"] {
+  margin-top: 4px;
+}
+
+.qf-problem {
+  display: block;
+  width: 100%;
+  color: var(--redline);
+  font-size: 0.9em;
+}
+
+/* Add form */
+.form-section {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.kind-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+[data-kind] {
+  flex: 1;
+  padding: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+[data-kind].active {
+  background-color: var(--green);
+  border-color: var(--green);
+}
+
+#usuals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.usual {
+  padding: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.usual:hover {
+  background-color: var(--line);
+}
+
+#name {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.date-line {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#ddmm, #days {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+}
+
+.date-type {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+[data-dt] {
+  flex: 1;
+  padding: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+}
+
+[data-dt].active {
+  background-color: var(--line);
+  border-color: var(--text);
+}
+
+#datePreview {
+  padding: 8px;
+  background-color: var(--surface);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  min-height: 24px;
+}
+
+.preview-green {
+  color: var(--green);
+}
+
+.preview-amber {
+  color: var(--amber);
+}
+
+.preview-red {
+  color: var(--red);
+}
+
+.count-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  justify-content: center;
+}
+
+#minus, #plus {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#count {
+  width: 60px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+#addBtn, #qfAdd, #qfCheck {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--green);
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+#addMsg, #qfMsg {
+  padding: 8px;
+  background-color: var(--surface);
+  border-radius: 6px;
+  text-align: center;
+  min-height: 24px;
+  color: var(--green);
+}
+
+#addMsg.error {
+  color: var(--red);
+}
+
+/* Sheet (modal) */
+#sheet {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+
+#sheet.visible {
+  display: flex;
+}
+
+.sheet-content {
+  background-color: var(--surface);
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 300px;
+  width: 100%;
+}
+
+.sheet-content .title {
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 8px;
+}
+
+.sheet-content .subtitle {
+  color: var(--muted);
+  font-size: 0.9em;
+  margin-bottom: 16px;
+}
+
+.sheet-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sheet-actions button {
+  padding: 12px;
+  background-color: var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#actUsed {
+  background-color: var(--green);
+}
+
+#actThrown {
+  background-color: var(--red);
+}
+
+#actFreeze {
+  background-color: var(--amber);
+}
+
+#actCancel {
+  grid-column: 1 / -1;
+  background-color: var(--line);
+}
+
+/* Undo bar */
+#undoBar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--line);
+  padding: 12px;
+  text-align: center;
+  z-index: 50;
+}
+
+#undoBar.visible {
+  display: block;
+}
+
+#undoBtn {
+  padding: 8px 16px;
+  background-color: var(--green);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Coming soon */
+.coming-soon {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--muted);
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
