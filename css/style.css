@@ -12,7 +12,6 @@ html[data-theme="light"]{
   --accent:#163832;--ok:#0B2B26;--okbg:#9fcfa9;--soon:#5e3c00;--soonbg:#e8c77c;--off:#7a1414;--offbg:#eab3ac;--redline:#8f1414;--planline:#051F20;
   --shadow:0 8px 18px rgba(5,31,32,.22),0 1px 3px rgba(5,31,32,.14);--shadow-sm:0 3px 8px rgba(5,31,32,.18);--hi:rgba(255,255,255,.45);color-scheme:light;
 }
-*{box-sizing:content-box}
 body{margin:0}
 
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;padding-inline:16px;padding-block:16px 40px}
@@ -112,7 +111,6 @@ button.tab.on{background:var(--accent);color:var(--bg)}
 .srow.gone input{visibility:hidden}
 .gonetag{font-size:11px;color:var(--off);font-weight:700;white-space:nowrap}
 .af{height:auto}
-.frz{height:auto;min-height:40vh}
 .frzck{display:flex;gap:8px;align-items:center;font-weight:700}
 .frzck input{width:20px;height:20px;accent-color:var(--accent)}
 .srow.old3{border-color:var(--soon)}
@@ -153,3 +151,72 @@ button.act.ghost{box-shadow:none}
 .pal button.on{border-color:var(--accent)}
 .pal i{display:inline-flex;width:28px;height:14px;border-radius:4px;overflow:hidden}
 .pal i b{flex:1}
+
+/* ---- Real-app additions (same look, real behaviour) ---- */
+[data-tab-pane],[data-view-pane],[data-sub-pane]{display:flex;flex-direction:column;gap:16px;min-width:0}
+[data-sub-pane]{gap:14px}
+[data-tab-pane="add"]{gap:14px}
+#top{margin:0}
+.today b{font-weight:600}
+#fridgeView{display:grid}
+#mains,#sides{gap:8px;flex:2}
+#misc,#veg{gap:6px}
+#miscOk:empty{display:none}
+.pane h2{margin:0}
+button.sb,button.tab{font-family:inherit}
+.sb{font-family:var(--body)}
+button.act:disabled{opacity:.5;cursor:not-allowed}
+.pack{font-family:inherit}
+.pack b{font-weight:700}
+.age{font-family:inherit;color:var(--fg)}
+.age b{font-weight:700}
+#deletedList{display:flex;flex-direction:column;gap:6px}
+.srow.gone .name{flex:1;min-width:0;text-decoration:line-through;text-decoration-color:var(--off);text-decoration-thickness:2px;color:var(--muted);font-weight:600;overflow-wrap:anywhere}
+.srow.gone{flex-wrap:wrap;border-color:var(--redline)}
+.srow .name{font-weight:700;font-size:inherit}
+.srow .tag{margin-left:4px}
+.srow.old3{border-color:var(--soon)}
+.frzpane{height:auto;min-height:40vh}
+.srow .grow{flex:1;min-width:0}
+.row .st{font-weight:700}
+.row .st.u{color:var(--ok)}.row .st.w{color:var(--off)}
+.row .nm{font-weight:400}
+.stat{align-items:flex-start}
+.date-line{align-items:center}
+.date-line [data-dt]:not(.on){display:none}
+.date-line .sb{white-space:nowrap;padding:9px 10px;flex:none;font-size:13px}
+.datebox{border:2px solid transparent}
+.datebox.off{border-color:var(--redline)}
+.datebox{background:var(--bg)}
+.datebox.ok{background:var(--okbg)}.datebox.soon{background:var(--soonbg)}.datebox.off{background:var(--offbg)}
+.packs2 b{font-weight:700}
+#addMsg:not(:empty){background:var(--okbg);border-radius:12px;padding:8px 10px;font-size:14px;font-weight:700}
+#addMsg.error:not(:empty){background:var(--offbg);color:var(--off)}
+.noDate{display:flex;gap:8px;align-items:center;font-weight:700}
+.noDate input{width:20px;height:20px;accent-color:var(--accent)}
+.preview-green{color:var(--ok)}.preview-amber{color:var(--soon)}.preview-red{color:var(--off)}
+.qf-row{cursor:pointer;font-size:14px;flex-wrap:wrap}
+.qf-row span{min-width:0}
+.qf-problem{flex-basis:100%;font-size:12px;color:var(--off);font-weight:700}
+#qfList{display:flex;flex-direction:column;gap:8px}
+#qfList:empty,#qfMsg:empty{display:none}
+#qfMsg{font-weight:700;font-size:14px}
+textarea{font:inherit;width:100%;box-sizing:border-box;min-height:120px;resize:vertical;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+details{font-size:13px}
+summary{cursor:pointer;font-weight:700;color:var(--muted)}
+#qfPrompt{margin:8px 0;white-space:pre-wrap;max-height:200px;overflow:auto}
+.qf-how{font-weight:700}
+.coming-soon{align-items:flex-start}
+.sheet .note{margin:0}
+
+/* Pack-actions sheet: the mock's .sheet card on a dim backdrop */
+#sheet{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;padding:16px;box-sizing:border-box}
+#sheet .sheet{max-width:388px;margin:18vh auto 0;background:var(--surface)}
+#sheet .title{font-family:var(--display);font-size:18px}
+#sheet .subtitle{color:var(--muted);font-weight:600}
+#sheet .btns button{flex:1 1 40%}
+#undoBar{display:none;position:fixed;bottom:16px;right:16px;z-index:50}
+#undoBar .undo{background:var(--surface);color:var(--accent);padding:10px 16px;font-size:14px;box-shadow:var(--shadow)}
+#micNote:empty{display:none}
+[data-view-pane="used"]{gap:8px}
+#misc{flex:0 1 auto}

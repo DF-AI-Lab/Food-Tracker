@@ -31,30 +31,36 @@
     renderAll();
   }
 
-  function setupTheme() {
-    const stored = localStorage.getItem('theme');
-    let theme = stored || 'dark';
-    try {
-      document.documentElement.setAttribute('data-theme', theme);
-    } catch (e) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('.pal [data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === theme));
   }
 
-  function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    try {
-      localStorage.setItem('theme', next);
-    } catch (e) {
-      // ignore
-    }
+  function setupTheme() {
+    let stored = null;
+    try { stored = localStorage.getItem('theme'); } catch (e) { /* ignore */ }
+    applyTheme(stored === 'light' ? 'light' : 'dark');
+  }
+
+  function setTheme(theme) {
+    applyTheme(theme);
+    try { localStorage.setItem('theme', theme); } catch (e) { /* ignore */ }
   }
 
   function setupEventListeners() {
     // Theme
-    document.getElementById('theme').addEventListener('click', toggleTheme);
+    document.querySelectorAll('.pal [data-m]').forEach(btn => {
+      btn.addEventListener('click', () => setTheme(btn.dataset.m));
+    });
+
+    // Print + mic: coming soon
+    document.getElementById('printF').addEventListener('click', () => {
+      const n = document.getElementById('printFNote');
+      n.hidden = !n.hidden;
+    });
+    document.getElementById('mic').addEventListener('click', () => {
+      document.getElementById('micNote').textContent = '🎤 Voice input: coming soon';
+    });
 
     // Tabs
     document.querySelectorAll('[data-tab]').forEach(btn => {
@@ -86,11 +92,12 @@
 
     document.getElementById('addBtn').addEventListener('click', addPacks);
 
-    // Date type toggle
+    // Date type: one pill, a tap flips Use by / Best before
     document.querySelectorAll('[data-dt]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-dt]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        const other = document.querySelector(`[data-dt]:not([data-dt="${btn.dataset.dt}"])`);
+        btn.classList.remove('on');
+        other.classList.add('on');
         updateDatePreview();
       });
     });
@@ -120,11 +127,11 @@
   }
 
   function switchSub(sub) {
-    document.querySelectorAll('[data-sub]').forEach(b => b.classList.remove('active'));
-    document.querySelector(`[data-sub="${sub}"]`).classList.add('active');
+    document.querySelectorAll('[data-sub]').forEach(b => b.classList.remove('on'));
+    document.querySelector(`[data-sub="${sub}"]`).classList.add('on');
 
     document.querySelectorAll('[data-sub-pane]').forEach(p => p.style.display = 'none');
-    document.querySelector(`[data-sub-pane="${sub}"]`).style.display = 'block';
+    document.querySelector(`[data-sub-pane="${sub}"]`).style.display = '';
   }
 
   async function copyQuickFillPrompt() {
@@ -163,7 +170,7 @@
     const emojiMap = { main: '🍖', side: '🥔', misc: '🧂' };
     result.items.forEach(item => {
       const row = document.createElement('label');
-      row.className = 'qf-row';
+      row.className = 'srow qf-row';
 
       const box = document.createElement('input');
       box.type = 'checkbox';
@@ -235,11 +242,11 @@
   }
 
   function switchTab(tab) {
-    document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
-    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('on'));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('on');
 
     document.querySelectorAll('[data-tab-pane]').forEach(p => p.style.display = 'none');
-    document.querySelector(`[data-tab-pane="${tab}"]`).style.display = 'block';
+    document.querySelector(`[data-tab-pane="${tab}"]`).style.display = '';
 
     if (tab === 'fridge') {
       switchView('fridge');
@@ -249,11 +256,11 @@
   }
 
   function switchView(view) {
-    document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
-    document.querySelector(`[data-view="${view}"]`).classList.add('active');
+    document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('on'));
+    document.querySelector(`[data-view="${view}"]`).classList.add('on');
 
     document.querySelectorAll('[data-view-pane]').forEach(p => p.style.display = 'none');
-    document.querySelector(`[data-view-pane="${view}"]`).style.display = 'block';
+    document.querySelector(`[data-view-pane="${view}"]`).style.display = '';
 
     if (view === 'fridge') renderFridgeView();
     else if (view === 'freezer') renderFreezerView();
@@ -261,8 +268,8 @@
   }
 
   function selectKind(kind) {
-    document.querySelectorAll('[data-kind]').forEach(b => b.classList.remove('active'));
-    document.querySelector(`[data-kind="${kind}"]`).classList.add('active');
+    document.querySelectorAll('[data-kind]').forEach(b => b.classList.remove('on'));
+    document.querySelector(`[data-kind="${kind}"]`).classList.add('on');
     // "No date" is only for sides
     document.getElementById('noDate').closest('label').style.display = kind === 'side' ? '' : 'none';
     if (kind !== 'side') document.getElementById('noDate').checked = false;
@@ -271,13 +278,13 @@
   }
 
   function refreshUsuals() {
-    const kind = document.querySelector('[data-kind].active')?.dataset.kind || 'main';
+    const kind = document.querySelector('[data-kind].on')?.dataset.kind || 'main';
     const names = FT.usuals(packs, kind);
     const usuals = document.getElementById('usuals');
     usuals.innerHTML = '';
     names.forEach(name => {
       const btn = document.createElement('button');
-      btn.className = 'usual';
+      btn.className = 'qc usual';
       btn.textContent = name;
       btn.addEventListener('click', () => {
         document.getElementById('name').value = name;
@@ -294,9 +301,10 @@
     const days = document.getElementById('days').value;
     const noDate = document.getElementById('noDate').checked;
     const preview = document.getElementById('datePreview');
+    preview.className = 'datebox';
 
     if (noDate) {
-      preview.textContent = '';
+      preview.textContent = 'No date · will show its age';
       return;
     }
 
@@ -308,17 +316,17 @@
     }
 
     if (!date) {
-      preview.textContent = '';
+      preview.textContent = ddmm.length >= 4 ? "That's not a real date, check it" : 'No date picked yet';
+      if (ddmm.length >= 4) preview.className = 'datebox off';
       return;
     }
 
-    const formatted = FT.formatDate(date);
     const color = FT.colour(date, today);
     const daysLeft = FT.daysLeft(date, today);
 
-    let text = formatted;
+    let text = FT.formatDate(date) + ' ' + date.slice(0, 4);
     if (daysLeft < 0) {
-      text += ' — out of date, check?';
+      text += ' · out of date, check?';
     } else if (daysLeft === 0) {
       text += ' · today';
     } else {
@@ -326,7 +334,13 @@
     }
 
     preview.textContent = text;
-    preview.className = 'preview-' + color;
+    preview.className = 'datebox ' + { green: 'ok', amber: 'soon', red: 'off' }[color];
+  }
+
+  function setAddMsg(text, isError) {
+    const el = document.getElementById('addMsg');
+    el.textContent = text;
+    el.classList.toggle('error', !!isError);
   }
 
   function changeCount(delta) {
@@ -338,7 +352,7 @@
 
   function addPacks() {
     const name = document.getElementById('name').value;
-    const kind = document.querySelector('[data-kind].active')?.dataset.kind || 'main';
+    const kind = document.querySelector('[data-kind].on')?.dataset.kind || 'main';
     const noDate = document.getElementById('noDate').checked;
     const count = parseInt(document.getElementById('count').textContent) || 1;
     const toFreezer = document.getElementById('toFreezer').checked;
@@ -356,10 +370,10 @@
 
     // Validate and create packs synchronously
     try {
-      const newPacks = FT.makePacks({ name, kind, date, dateType: 'use_by', count, toFreezer }, today);
+      const newPacks = FT.makePacks({ name, kind, date, dateType: document.querySelector('[data-dt].on')?.dataset.dt || 'use_by', count, toFreezer }, today);
 
       // Set success message immediately
-      document.getElementById('addMsg').textContent = `✓ added ${count} × ${name}`;
+      setAddMsg(`✓ added ${count} × ${name}`);
       showUndoBar();
 
       // Store packs for database operations
@@ -387,12 +401,12 @@
           renderAll();
         } catch (dbErr) {
           // Database error - revert the success message
-          document.getElementById('addMsg').textContent = 'Error saving to database';
+          setAddMsg('Error saving to database', true);
         }
       })();
     } catch (err) {
       const msg = err.message || 'Error';
-      document.getElementById('addMsg').textContent = msg;
+      setAddMsg(msg, true);
     }
   }
 
@@ -405,7 +419,7 @@
 
     document.getElementById('sheet').style.display = 'block';
     document.getElementById('sheet').querySelector('.title').textContent = pack.name;
-    document.getElementById('sheet').querySelector('.subtitle').textContent = FT.formatDate(pack.date);
+    document.getElementById('sheet').querySelector('.subtitle').textContent = pack.date ? FT.formatDate(pack.date) : FT.ageLabel(pack.added, today);
   }
 
   function hideSheet() {
@@ -499,88 +513,79 @@
     }
   }
 
+  const STATUS_CLASS = { green: 'ok', amber: 'soon', red: 'off' };
+
+  function packButton(pack) {
+    const colour = FT.colour(pack.date, today);
+    const btn = document.createElement('button');
+    btn.className = 'pack ' + STATUS_CLASS[colour] + ' use-by-' + colour;
+    btn.dataset.id = pack.id;
+    return btn;
+  }
+
+  function renderCards(el, cards) {
+    el.innerHTML = '';
+    cards.forEach(card => {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'card';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'name';
+      nameEl.textContent = card.name;
+      cardEl.appendChild(nameEl);
+      const packsEl = document.createElement('div');
+      packsEl.className = 'packs';
+      card.packs.forEach(pack => {
+        const btn = packButton(pack);
+        const when = document.createElement('span');
+        when.textContent = FT.countdown(pack.date, today);
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = pack.dateType === 'best_before' ? 'BB' : 'USE BY';
+        btn.append(when, tag);
+        btn.addEventListener('click', () => showSheet(pack.id));
+        packsEl.appendChild(btn);
+      });
+      cardEl.appendChild(packsEl);
+      el.appendChild(cardEl);
+    });
+  }
+
   function renderFridgeView() {
     const view = FT.fridgeView(packs, today);
 
-    // Mains
-    const mainsEl = document.getElementById('mains');
     document.getElementById('mainCount').textContent = view.mainCount;
-    mainsEl.innerHTML = '';
-    view.mains.forEach(card => {
-      const cardEl = document.createElement('div');
-      cardEl.className = 'card';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'name';
-      nameEl.textContent = card.name;
-      cardEl.appendChild(nameEl);
-      card.packs.forEach(pack => {
-        const btn = document.createElement('button');
-        btn.className = 'pack';
-        btn.dataset.id = pack.id;
-        btn.textContent = FT.countdown(pack.date, today);
-        btn.classList.add('use-by-' + FT.colour(pack.date, today));
-        btn.addEventListener('click', () => showSheet(pack.id));
-        cardEl.appendChild(btn);
-      });
-      mainsEl.appendChild(cardEl);
-    });
+    renderCards(document.getElementById('mains'), view.mains);
+    document.getElementById('sideCount').textContent = view.sideCount;
+    renderCards(document.getElementById('sides'), view.sides);
 
-    // Misc
+    // Misc: name left, countdown right
     const miscEl = document.getElementById('misc');
     miscEl.innerHTML = '';
     view.misc.forEach(pack => {
-      const btn = document.createElement('button');
-      btn.className = 'pack';
-      btn.dataset.id = pack.id;
-      btn.textContent = pack.name + ' · ' + FT.countdown(pack.date, today);
-      btn.classList.add('use-by-' + FT.colour(pack.date, today));
+      const btn = packButton(pack);
+      const name = document.createElement('span');
+      name.textContent = pack.name;
+      const when = document.createElement('span');
+      when.textContent = FT.countdown(pack.date, today);
+      btn.append(name, when);
       btn.addEventListener('click', () => showSheet(pack.id));
       miscEl.appendChild(btn);
     });
+    document.getElementById('miscOk').textContent = view.miscOk > 0 ? `+ ${view.miscOk} more, all OK` : '';
 
-    // Misc OK
-    const miscOkEl = document.getElementById('miscOk');
-    if (view.miscOk > 0) {
-      miscOkEl.textContent = `+ ${view.miscOk} more, all OK`;
-    } else {
-      miscOkEl.textContent = '';
-    }
-
-    // Sides
-    const sidesEl = document.getElementById('sides');
-    document.getElementById('sideCount').textContent = view.sideCount;
-    sidesEl.innerHTML = '';
-    view.sides.forEach(card => {
-      const cardEl = document.createElement('div');
-      cardEl.className = 'card';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'name';
-      nameEl.textContent = card.name;
-      cardEl.appendChild(nameEl);
-      card.packs.forEach(pack => {
-        const btn = document.createElement('button');
-        btn.className = 'pack';
-        btn.dataset.id = pack.id;
-        btn.textContent = FT.countdown(pack.date, today);
-        btn.classList.add('use-by-' + FT.colour(pack.date, today));
-        btn.addEventListener('click', () => showSheet(pack.id));
-        cardEl.appendChild(btn);
-      });
-      sidesEl.appendChild(cardEl);
-    });
-
-    // Veg
+    // Veg & misc with no date: name left, age right
     const vegEl = document.getElementById('veg');
     vegEl.innerHTML = '';
     view.veg.forEach(pack => {
+      const old = FT.isOld(pack.added, today);
       const btn = document.createElement('button');
-      btn.className = 'pack';
+      btn.className = 'age' + (old ? ' old' : '');
       btn.dataset.id = pack.id;
-      let label = FT.ageLabel(pack.added, today);
-      if (FT.isOld(pack.added, today)) {
-        label += ' ⚠️';
-      }
-      btn.textContent = pack.name + ' · ' + label;
+      const name = document.createElement('b');
+      name.textContent = pack.name;
+      const age = document.createElement('span');
+      age.textContent = FT.ageLabel(pack.added, today) + (old ? ' ⚠️' : '');
+      btn.append(name, age);
       btn.addEventListener('click', () => showSheet(pack.id));
       vegEl.appendChild(btn);
     });
@@ -590,7 +595,7 @@
     deletedEl.innerHTML = '';
     FT.deletedList(packs, today).forEach(pack => {
       const rowEl = document.createElement('div');
-      rowEl.className = 'gone';
+      rowEl.className = 'srow gone';
       const nameEl = document.createElement('span');
       nameEl.className = 'name';
       nameEl.textContent = pack.name + (pack.date ? ' · ' + FT.formatDate(pack.date) : '');
@@ -616,21 +621,34 @@
   function renderFreezerView() {
     const list = FT.freezerList(packs, today);
     const freezerEl = document.getElementById('freezerList');
+    document.getElementById('freezerCount').textContent = list.length;
     freezerEl.innerHTML = '';
+    if (!list.length) {
+      freezerEl.innerHTML = '<div class="note">Freezer is empty.</div>';
+    }
 
     list.forEach(item => {
       const rowEl = document.createElement('div');
-      rowEl.className = 'frz';
-      if (item.old) rowEl.classList.add('old');
+      rowEl.className = 'srow frz' + (item.old ? ' old old3' : '');
 
-      // Kind emoji
       const emojiMap = { main: '🍖', side: '🥔', misc: '🧂' };
       const emoji = emojiMap[item.pack.kind] || '📦';
 
-      rowEl.innerHTML = `<span class="emoji">${emoji}</span><span class="name">${item.pack.name}</span><span class="label">${item.label}</span>`;
+      const label = document.createElement('label');
+      label.className = 'grow';
+      label.style.cursor = 'default';
+      label.append(`${emoji} `);
+      const nameEl = document.createElement('span');
+      nameEl.className = 'name';
+      nameEl.textContent = item.pack.name;
+      const tag = document.createElement('span');
+      tag.className = 'tag label';
+      tag.textContent = item.label;
+      label.append(nameEl, ' ', tag);
+      rowEl.appendChild(label);
 
       const btn = document.createElement('button');
-      btn.className = 'defrost';
+      btn.className = 'undo defrost';
       btn.textContent = 'Defrost';
       btn.addEventListener('click', async () => {
         const updated = FT.defrost(item.pack, today);
@@ -656,15 +674,28 @@
     summary.list.forEach(pack => {
       const rowEl = document.createElement('div');
       rowEl.className = 'row';
-      const status = pack.status === 'used' ? 'Used' : 'Wasted';
-      rowEl.innerHTML = `<span class="name">${pack.name}</span><span class="date">${FT.formatDate(pack.date)}</span><span class="status">${status}</span>`;
+      const used = pack.status === 'used';
+      const name = document.createElement('span');
+      name.className = 'name nm';
+      name.textContent = pack.name;
+      const right = document.createElement('span');
+      right.append(`${FT.formatDate(pack.left || pack.date)} · `);
+      const st = document.createElement('span');
+      st.className = 'status st ' + (used ? 'u' : 'w');
+      st.textContent = used ? 'Used' : 'Wasted';
+      right.appendChild(st);
+      rowEl.append(name, right);
       listEl.appendChild(rowEl);
     });
   }
 
   function renderAll() {
-    document.getElementById('today').textContent = '📅 Today · ' + FT.formatDate(today);
-    const activeView = document.querySelector('[data-view].active')?.dataset.view;
+    const todayEl = document.getElementById('today');
+    todayEl.textContent = '📅 Today · ';
+    const dateB = document.createElement('b');
+    dateB.textContent = FT.formatDate(today);
+    todayEl.appendChild(dateB);
+    const activeView = document.querySelector('[data-view].on')?.dataset.view;
     if (activeView === 'fridge') renderFridgeView();
     else if (activeView === 'freezer') renderFreezerView();
     else if (activeView === 'used') renderUsedView();
