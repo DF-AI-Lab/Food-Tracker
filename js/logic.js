@@ -145,6 +145,23 @@
     return { ...pack, status: "in_fridge", date: nextDay, dateType: "use_by", frozen: null };
   }
 
+  // Delete (a mistake): not saved as used or wasted. Kept for Undo until yesterday.
+  function markDeleted(pack, today) {
+    return { ...pack, status: "deleted", del: today };
+  }
+
+  // Deleted today or yesterday: shown in the Fridge list with Undo
+  function deletedList(packs, today) {
+    return packs
+      .filter(p => p.status === "deleted" && daysLeft(p.del, today) >= -1)
+      .sort((a, b) => b.del.localeCompare(a.del));
+  }
+
+  // Deleted before yesterday: remove from the database for good
+  function expiredDeletes(packs, today) {
+    return packs.filter(p => p.status === "deleted" && daysLeft(p.del, today) < -1);
+  }
+
   // Fridge view utilities
   function cards(packs, kind) {
     // Filter: in_fridge with a date and that kind
@@ -294,8 +311,9 @@
   }
 
   // Usuals
-  function usuals(packs, kind) {
+  function usuals(allPacks, kind) {
     const starters = STARTERS[kind] || [];
+    const packs = allPacks.filter(p => p.status !== "deleted");
 
     // Collect all names from packs of this kind (case-insensitive dedupe, keep first spelling)
     const nameMap = {};
@@ -438,6 +456,9 @@
     markThrown,
     freeze,
     defrost,
+    markDeleted,
+    deletedList,
+    expiredDeletes,
     cards,
     fridgeView,
     freezeAge,
