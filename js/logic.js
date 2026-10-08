@@ -558,10 +558,11 @@
   }
 
   // A finished misc pack goes on the list with a reason; other kinds don't
+  // Anything used goes on the shopping list; misc also when thrown away
   function autoOnFinish(pack, status) {
-    if (pack.kind !== "misc") return null;
+    if (pack.kind === "takeaway") return null;
     if (status === "used") return { name: pack.name, auto: "used up" };
-    if (status === "thrown_away") return { name: pack.name, auto: "thrown away" };
+    if (status === "thrown_away" && pack.kind === "misc") return { name: pack.name, auto: "thrown away" };
     return null;
   }
 

@@ -432,10 +432,13 @@ test("ideas: best rated first, then most bought; unrated counts as 3; low = 1-2 
     [["Chicken", 1, 5, false], ["Sausages", 2, 3, false], ["Mince", 3, 1, true]]);
 });
 
-test("autoOnFinish: misc used or thrown away goes on the list with a reason; others don't", () => {
+test("autoOnFinish: anything used goes on the list; misc also when thrown away", () => {
   assert.deepEqual(L.autoOnFinish(fp(1,"Milk","misc","2026-10-09"), "used"), { name: "Milk", auto: "used up" });
   assert.deepEqual(L.autoOnFinish(fp(1,"Milk","misc","2026-10-09"), "thrown_away"), { name: "Milk", auto: "thrown away" });
-  assert.equal(L.autoOnFinish(fp(1,"Ham","main","2026-10-09"), "used"), null);
+  // any food you use goes on the list; thrown-away mains/sides don't (you may not want them again)
+  assert.deepEqual(L.autoOnFinish(fp(1,"Ham","main","2026-10-09"), "used"), { name: "Ham", auto: "used up" });
+  assert.deepEqual(L.autoOnFinish(fp(1,"Peas","side",null), "used"), { name: "Peas", auto: "used up" });
+  assert.equal(L.autoOnFinish(fp(1,"Ham","main","2026-10-09"), "thrown_away"), null);
 });
 
 test("autoOutOfDate: misc packs 1-2 days out, not already on the list", () => {
