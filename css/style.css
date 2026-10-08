@@ -1,29 +1,64 @@
+/* Colour tokens. Dark is the default; light is set by data-theme="light" (the 🌙 button). */
 :root {
   --bg: #051F20;
   --surface: #0B2B26;
-  --line: #235347;
+  --tile: #163832;
   --text: #DAF1DE;
   --muted: #8EB69B;
-  --green: #2e7d4f;
-  --amber: #b7791f;
-  --red: #9b2c2c;
-  --redline: #e53e3e;
+  --line: #235347;
+  --accent: #8EB69B;
+  --ok-bg: #2c6a4c;
+  --soon-bg: #7a5a1a;
+  --off-bg: #6b2323;
+  --redline: #ff8f8f;
+  --shadow: 0 10px 22px rgba(0, 0, 0, .5), 0 2px 4px rgba(0, 0, 0, .35);
+  --shadow-sm: 0 4px 10px rgba(0, 0, 0, .45);
+  --hi: rgba(255, 255, 255, .07);
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] {
+  --bg: #051F20;
+  --surface: #0B2B26;
+  --tile: #163832;
+  --text: #DAF1DE;
+  --muted: #8EB69B;
+  --line: #235347;
+  --accent: #8EB69B;
+  --ok-bg: #2c6a4c;
+  --soon-bg: #7a5a1a;
+  --off-bg: #6b2323;
+  --redline: #ff8f8f;
+  --shadow: 0 10px 22px rgba(0, 0, 0, .5), 0 2px 4px rgba(0, 0, 0, .35);
+  --shadow-sm: 0 4px 10px rgba(0, 0, 0, .45);
+  --hi: rgba(255, 255, 255, .07);
+  color-scheme: dark;
 }
 
 html[data-theme="light"] {
-  --bg: #8EB69B;
-  --surface: #DAF1DE;
-  --line: #235347;
+  --bg: #a9c9b2;
+  --surface: #c2dcc8;
+  --tile: #d7ebdb;
   --text: #051F20;
-  --muted: #235347;
-  --green: #2e7d4f;
-  --amber: #b7791f;
-  --red: #9b2c2c;
-  --redline: #e53e3e;
+  --muted: #163832;
+  --line: #8EB69B;
+  --accent: #163832;
+  --ok-bg: #9fcfa9;
+  --soon-bg: #e8c77c;
+  --off-bg: #eab3ac;
+  --redline: #8f1414;
+  --shadow: 0 8px 18px rgba(5, 31, 32, .22);
+  --shadow-sm: 0 4px 10px rgba(5, 31, 32, .18);
+  --hi: rgba(255, 255, 255, .45);
+  color-scheme: light;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  background-color: var(--bg);
 }
 
 html, body {
@@ -36,10 +71,10 @@ body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.45;
   max-width: 480px;
   margin: 0 auto;
-  padding: 0;
+  padding: 12px 16px 40px;
 }
 
 button {
@@ -52,159 +87,209 @@ button {
   padding: 0;
 }
 
-input {
-  background: var(--surface);
+input, textarea {
+  background: var(--tile);
   color: var(--text);
-  border: 1px solid var(--line);
-  padding: 8px;
-  border-radius: 6px;
+  border: 0;
+  padding: 11px 12px;
+  border-radius: 12px;
   font-family: inherit;
-  font-size: inherit;
+  font-size: 16px;
 }
 
-/* Top bar */
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Top line: date left, theme button right */
 #top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  background-color: var(--surface);
-  border-bottom: 1px solid var(--line);
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 #today {
   flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #theme {
+  flex: none;
   padding: 6px 12px;
-  background-color: var(--line);
-  border-radius: 6px;
-  cursor: pointer;
+  background-color: var(--tile);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  font-size: 18px;
+  line-height: 1.2;
 }
 
-/* Tabs */
-#tabs {
-  display: flex;
+/* Tab rows: evenly spaced grid of floating buttons */
+#tabs, #fridgeTabs, #subTabs {
+  display: grid;
   gap: 8px;
-  padding: 12px;
-  background-color: var(--surface);
-  border-bottom: 1px solid var(--line);
-  overflow-x: auto;
+  margin-bottom: 12px;
 }
 
-[data-tab] {
-  padding: 8px 12px;
-  background-color: transparent;
-  border-radius: 6px;
+#tabs { grid-template-columns: repeat(3, 1fr); }
+#fridgeTabs { grid-template-columns: repeat(4, 1fr); }
+#subTabs { grid-template-columns: repeat(3, 1fr); }
+
+[data-tab], [data-view], [data-sub] {
+  padding: 10px 4px;
+  background-color: var(--tile);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
-  border: 1px solid var(--line);
 }
 
-[data-tab].active {
-  background-color: var(--line);
-  border-color: var(--text);
-}
-
-/* Fridge view tabs */
-#fridgeTabs {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  background-color: var(--surface);
-  border-bottom: 1px solid var(--line);
-  overflow-x: auto;
-}
-
-[data-view] {
-  padding: 8px 12px;
-  background-color: transparent;
-  border-radius: 6px;
-  white-space: nowrap;
-  cursor: pointer;
-  border: 1px solid var(--line);
-}
-
-[data-view].active {
-  background-color: var(--line);
-  border-color: var(--text);
+[data-tab].active, [data-view].active, [data-sub].active {
+  background-color: var(--accent);
+  color: var(--bg);
 }
 
 /* Tab panes */
 [data-tab-pane], [data-view-pane] {
   display: none;
-  padding: 12px;
+  padding: 0;
 }
 
 [data-tab-pane].active, [data-view-pane].active {
   display: block;
 }
 
-/* Fridge view */
+/* Fridge view: two fixed-height panels, each scrolls inside */
 #fridgeView {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  height: calc(100vh - 200px);
-  overflow: hidden;
+  gap: 14px;
 }
 
 .column {
+  height: 62vh;
+  min-height: 340px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  gap: 8px;
+  background-color: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--shadow), inset 0 1px 0 var(--hi);
+  padding: 8px;
+  overflow: hidden;
 }
 
 .column-title {
-  font-weight: bold;
-  margin-bottom: 8px;
+  flex: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 4px 4px 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+#mains, #sides {
+  flex: 2;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 4px 8px;
+}
+
+.lower {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 2px dashed var(--line);
+}
+
+#misc, #veg {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 4px 8px;
+}
+
+#mains > *, #sides > *, #misc > *, #veg > * {
+  flex-shrink: 0;
+}
+
+#miscOk {
+  flex: none;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .card {
-  background-color: var(--surface);
-  border-radius: 12px;
-  padding: 12px;
-  border: 1px solid var(--line);
+  background-color: var(--tile);
+  border: 0;
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
 }
 
 .card .name {
-  font-weight: bold;
-  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 15px;
   display: block;
 }
 
+/* Pack rows: small rounded, coloured by use-by status */
 .pack {
   display: block;
   width: 100%;
-  padding: 8px;
-  background-color: var(--surface);
-  border-radius: 8px;
-  border: 1px solid var(--line);
+  padding: 7px 9px;
+  background-color: var(--tile);
+  color: var(--text);
+  border: 2px solid transparent;
+  border-radius: 10px;
   cursor: pointer;
-  margin-bottom: 6px;
   text-align: left;
-  word-wrap: break-word;
+  font-weight: 700;
+  font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .pack.use-by-green {
-  border-color: var(--green);
-  color: var(--green);
+  background-color: var(--ok-bg);
 }
 
 .pack.use-by-amber {
-  border-color: var(--amber);
-  color: var(--amber);
+  background-color: var(--soon-bg);
 }
 
 .pack.use-by-red {
+  background-color: var(--off-bg);
   border-color: var(--redline);
-  color: var(--redline);
-  background-color: var(--red);
 }
 
 .misc-label {
@@ -213,19 +298,25 @@ input {
 }
 
 /* Freezer view */
+#freezerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .frz {
-  background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  background-color: var(--tile);
+  border-radius: 14px;
   padding: 12px;
   display: flex;
   align-items: center;
   gap: 12px;
   justify-content: space-between;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
 }
 
 .frz.old {
-  border-color: var(--amber);
+  background-color: var(--soon-bg);
 }
 
 .emoji {
@@ -233,8 +324,9 @@ input {
 }
 
 .frz .name {
-  font-weight: bold;
+  font-weight: 700;
   flex: 1;
+  min-width: 0;
 }
 
 .frz .label {
@@ -244,33 +336,111 @@ input {
 }
 
 .defrost {
-  padding: 6px 12px;
-  background-color: var(--line);
-  border-radius: 6px;
+  padding: 7px 12px;
+  background-color: var(--accent);
+  color: var(--bg);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
 }
 
-/* Used view */
-#usedList {
+/* Deleted (mistakes): red outline, struck-through name, Undo */
+#deletedList {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 14px;
+}
+
+#deletedList:empty {
+  margin-top: 0;
+}
+
+.gone {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background-color: var(--tile);
+  border: 2px solid var(--redline);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.gone .name {
+  flex: 1 1 150px;
+  min-width: 0;
+  font-weight: 700;
+  text-decoration: line-through;
+  text-decoration-color: var(--redline);
+  text-decoration-thickness: 2px;
+  overflow-wrap: anywhere;
+}
+
+.gonetag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--redline);
+  white-space: nowrap;
+}
+
+.gone .undo {
+  padding: 6px 10px;
+  background-color: var(--accent);
+  color: var(--bg);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Used view */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  text-align: center;
+  padding: 14px 12px;
+  background-color: var(--tile);
+  border-radius: 18px;
+  box-shadow: var(--shadow), inset 0 1px 0 var(--hi);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.stat-num {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+#usedList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .row {
-  background-color: var(--surface);
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
+  background-color: var(--tile);
+  padding: 10px 12px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .row .name {
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .row .date {
@@ -279,35 +449,18 @@ input {
 }
 
 .row .status {
-  font-size: 0.9em;
+  font-size: 12px;
+  font-weight: 700;
   padding: 4px 8px;
-  background-color: var(--line);
-  border-radius: 4px;
+  background-color: var(--surface);
+  border-radius: 8px;
 }
 
-/* Add tab sub-tabs */
-#subTabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  overflow-x: auto;
-}
-
+/* Add tab: sub-tabs and form */
 [data-sub] {
-  padding: 8px 12px;
-  background-color: transparent;
-  border-radius: 6px;
-  white-space: nowrap;
-  cursor: pointer;
-  border: 1px solid var(--line);
+  font-size: 13px;
 }
 
-[data-sub].active {
-  background-color: var(--line);
-  border-color: var(--text);
-}
-
-/* Quick fill */
 .qf-how {
   color: var(--muted);
   margin-bottom: 8px;
@@ -316,65 +469,59 @@ input {
 details summary {
   cursor: pointer;
   margin-bottom: 8px;
+  font-weight: 700;
 }
 
 #qfPrompt {
   white-space: pre-wrap;
   word-break: break-word;
-  background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px;
-  font-size: 0.85em;
+  background-color: var(--tile);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
   margin: 0 0 8px;
 }
 
 #qfCopy {
-  padding: 6px 12px;
-  background-color: var(--line);
-  border-radius: 6px;
+  padding: 8px 14px;
+  background-color: var(--tile);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
   cursor: pointer;
 }
 
 textarea {
   width: 100%;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px;
-  font-family: inherit;
-  font-size: inherit;
   margin-bottom: 12px;
 }
 
 .qf-row {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 10px;
+  gap: 10px;
+  padding: 10px 12px;
   margin-bottom: 8px;
-  background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background-color: var(--tile);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
   cursor: pointer;
 }
 
 .qf-row input[type="checkbox"] {
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .qf-problem {
   display: block;
   width: 100%;
   color: var(--redline);
-  font-size: 0.9em;
+  font-size: 13px;
 }
 
-/* Add form */
 .form-section {
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -382,38 +529,53 @@ textarea {
   border-bottom: none;
 }
 
+.field-label {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .kind-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
 [data-kind] {
   flex: 1;
-  padding: 8px;
-  background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  padding: 10px 6px;
+  background-color: var(--tile);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
+  font-weight: 700;
+  text-align: center;
   cursor: pointer;
 }
 
 [data-kind].active {
-  background-color: var(--green);
-  border-color: var(--green);
+  background-color: var(--accent);
+  color: var(--bg);
 }
 
+/* Usual buttons: small inline chips that wrap */
 #usuals {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
 
 .usual {
-  padding: 8px;
-  background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  display: inline-block;
+  width: auto;
+  padding: 7px 10px;
+  background-color: var(--tile);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -423,129 +585,155 @@ textarea {
 
 #name {
   width: 100%;
-  padding: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
+/* Date line: DDMM, OR, days, then the Use by / Best before toggle on the same row */
 .date-line {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
-#ddmm, #days {
-  flex: 1;
+#ddmm {
+  flex: 1 1 0;
   min-width: 0;
-  padding: 8px;
+  padding: 11px 8px;
 }
 
-.date-type {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-[data-dt] {
-  flex: 1;
-  padding: 8px;
-  background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  cursor: pointer;
+#days {
+  flex: 0 0 70px;
+  width: 70px;
+  min-width: 0;
+  padding: 11px 6px;
   text-align: center;
 }
 
+.or {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.date-type {
+  flex: none;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background-color: var(--tile);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
+}
+
+[data-dt] {
+  padding: 7px 7px;
+  background-color: transparent;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 [data-dt].active {
-  background-color: var(--line);
-  border-color: var(--text);
+  background-color: var(--accent);
+  color: var(--bg);
 }
 
 #datePreview {
-  padding: 8px;
-  background-color: var(--surface);
-  border-radius: 6px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 9px 10px;
   margin-bottom: 12px;
-  min-height: 24px;
+  border-radius: 12px;
+  background-color: var(--tile);
+  font-weight: 700;
+  font-size: 15px;
 }
 
-.preview-green {
-  color: var(--green);
+/* Colour comes from the preview class (set in app.js) */
+.preview-green, #datePreview.preview-green { background-color: var(--ok-bg); }
+.preview-amber, #datePreview.preview-amber { background-color: var(--soon-bg); }
+.preview-red, #datePreview.preview-red { background-color: var(--off-bg); }
+
+#datePreview.preview-red {
+  border: 2px solid var(--redline);
+  padding: 7px 8px;
 }
 
-.preview-amber {
-  color: var(--amber);
-}
-
-.preview-red {
-  color: var(--red);
+#datePreview:empty {
+  background-color: var(--tile);
+  border: 0;
+  padding: 9px 10px;
 }
 
 .count-control {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 12px;
   justify-content: center;
 }
 
 #minus, #plus {
-  width: 40px;
-  height: 40px;
-  padding: 8px;
-  background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
+  width: 44px;
+  height: 44px;
+  background-color: var(--tile);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
+  font-weight: 700;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 #count {
-  width: 60px;
+  min-width: 48px;
   text-align: center;
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 22px;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 12px;
-  cursor: pointer;
-}
-
-input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
   cursor: pointer;
 }
 
 #addBtn, #qfAdd, #qfCheck {
   width: 100%;
-  padding: 12px;
-  background-color: var(--green);
-  border-radius: 8px;
-  font-weight: bold;
+  padding: 13px;
+  background-color: var(--accent);
+  color: var(--bg);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+  font-size: 16px;
   cursor: pointer;
   margin-bottom: 12px;
 }
 
 #addMsg, #qfMsg {
-  padding: 8px;
-  background-color: var(--surface);
-  border-radius: 6px;
+  padding: 9px;
+  background-color: var(--tile);
+  border-radius: 12px;
   text-align: center;
   min-height: 24px;
-  color: var(--green);
+  font-weight: 700;
 }
 
 #addMsg.error {
-  color: var(--red);
+  color: var(--redline);
 }
 
-/* Sheet (modal) */
+/* Sheet (pack actions) */
 #sheet {
   display: none;
   position: fixed;
@@ -555,89 +743,95 @@ input[type="checkbox"] {
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 100;
-  justify-content: center;
-  align-items: center;
-}
-
-#sheet.visible {
-  display: flex;
 }
 
 .sheet-content {
   background-color: var(--surface);
-  padding: 24px;
-  border-radius: 16px;
-  max-width: 300px;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: var(--shadow), inset 0 1px 0 var(--hi);
+  max-width: 320px;
   width: 100%;
+  margin: 18vh auto 0;
 }
 
 .sheet-content .title {
-  font-weight: bold;
-  font-size: 1.2em;
-  margin-bottom: 8px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 20px;
+  margin-bottom: 4px;
 }
 
 .sheet-content .subtitle {
   color: var(--muted);
-  font-size: 0.9em;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 
 .sheet-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .sheet-actions button {
-  padding: 12px;
-  background-color: var(--line);
-  border-radius: 8px;
+  padding: 12px 8px;
+  background-color: var(--tile);
+  color: var(--text);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--hi);
+  font-weight: 700;
   cursor: pointer;
-  font-weight: bold;
 }
 
 #actUsed {
-  background-color: var(--green);
+  background-color: var(--ok-bg);
 }
 
-#actThrown {
-  background-color: var(--red);
+#actThrown, #actDelete {
+  background-color: var(--off-bg);
 }
 
 #actFreeze {
-  background-color: var(--amber);
+  background-color: var(--soon-bg);
 }
 
 #actCancel {
-  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  padding: 12px;
   background-color: var(--line);
+  color: var(--text);
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-/* Undo bar */
+/* Undo bar: floating strip at the bottom */
 #undoBar {
   display: none;
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--line);
-  padding: 12px;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  max-width: 448px;
+  margin: 0 auto;
+  background-color: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 10px;
   text-align: center;
   z-index: 50;
 }
 
-#undoBar.visible {
-  display: block;
-}
-
 #undoBtn {
-  padding: 8px 16px;
-  background-color: var(--green);
-  border-radius: 6px;
+  padding: 9px 18px;
+  background-color: var(--accent);
+  color: var(--bg);
+  border-radius: 12px;
+  font-weight: 700;
   cursor: pointer;
-  font-weight: bold;
 }
 
 /* Coming soon */
@@ -663,3 +857,12 @@ input[type="checkbox"] {
 .mb-2 {
   margin-bottom: 16px;
 }
+
+/* Undo: small floating pill, bottom right, so it never covers the form */
+#undoBar { left: auto; right: 16px; background: transparent; box-shadow: none; padding: 0; }
+#undoBtn { box-shadow: var(--shadow); }
+
+/* Name box and mic on one line */
+.form-section:has(#name) { display: flex; gap: 8px; align-items: center; }
+#name { flex: 1; min-width: 0; }
+.form-section:has(#name) button { margin-left: 0 !important; white-space: nowrap; }

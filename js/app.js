@@ -18,6 +18,14 @@
   async function init() {
     await DB.open();
     packs = await DB.all();
+    // Remove deletes that are older than yesterday (they can no longer be undone)
+    const expired = FT.expiredDeletes(packs, today);
+    try {
+      for (const pack of expired) await DB.remove(pack.id);
+      packs = packs.filter(p => !expired.includes(p));
+    } catch (e) {
+      // try again next time the app starts
+    }
     setupTheme();
     setupEventListeners();
     renderAll();
@@ -91,6 +99,7 @@
     document.getElementById('actUsed').addEventListener('click', actUsed);
     document.getElementById('actThrown').addEventListener('click', actThrown);
     document.getElementById('actFreeze').addEventListener('click', actFreeze);
+    document.getElementById('actDelete').addEventListener('click', actDelete);
     document.getElementById('actCancel').addEventListener('click', hideSheet);
 
     // Undo
@@ -310,6 +319,10 @@
     let text = formatted;
     if (daysLeft < 0) {
       text += ' — out of date, check?';
+    } else if (daysLeft === 0) {
+      text += ' · today';
+    } else {
+      text += ' · ' + daysLeft + (daysLeft === 1 ? ' day left' : ' days left');
     }
 
     preview.textContent = text;
@@ -440,6 +453,19 @@
     renderAll();
   }
 
+  async function actDelete() {
+    if (!selectedPackId) return;
+    const pack = packs.find(p => p.id === selectedPackId);
+    const beforeState = JSON.parse(JSON.stringify(pack));
+    const updated = FT.markDeleted(pack, today);
+    await DB.put(updated);
+    Object.assign(pack, updated);
+    lastAction = { type: 'update', packId: selectedPackId, before: beforeState };
+    hideSheet();
+    showUndoBar();
+    renderAll();
+  }
+
   function showUndoBar() {
     clearTimeout(undoTimeout);
     document.getElementById('undoBar').style.display = 'block';
@@ -557,6 +583,33 @@
       btn.textContent = pack.name + ' · ' + label;
       btn.addEventListener('click', () => showSheet(pack.id));
       vegEl.appendChild(btn);
+    });
+
+    // Deleted today or yesterday: red line, with Undo
+    const deletedEl = document.getElementById('deletedList');
+    deletedEl.innerHTML = '';
+    FT.deletedList(packs, today).forEach(pack => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'gone';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'name';
+      nameEl.textContent = pack.name + (pack.date ? ' · ' + FT.formatDate(pack.date) : '');
+      const tagEl = document.createElement('span');
+      tagEl.className = 'gonetag';
+      tagEl.textContent = 'deleted · gone tomorrow';
+      const undoEl = document.createElement('button');
+      undoEl.className = 'undo';
+      undoEl.textContent = '↩ Undo';
+      undoEl.addEventListener('click', async () => {
+        const restored = { ...pack, status: 'in_fridge' };
+        delete restored.del;
+        await DB.put(restored);
+        const i = packs.findIndex(p => p.id === pack.id);
+        if (i !== -1) packs[i] = restored;
+        renderAll();
+      });
+      rowEl.append(nameEl, tagEl, undoEl);
+      deletedEl.appendChild(rowEl);
     });
   }
 
