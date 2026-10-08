@@ -397,3 +397,50 @@ test("takeaway records never show up as food", () => {
   assert.ok(!L.usuals(packs, "main").some(n => /takeaway/i.test(n)));
   assert.equal(L.usedSummary(packs, TODAY).list.length, 0);
 });
+
+// ---------- shopping list ----------
+
+const si = (id, name, extra = {}) => ({ id, name, got: false, del: null, auto: null, added: "2026-10-07", ...extra });
+
+test("shopOrder: to-get first (newest first), then got, then deleted from today/yesterday; older deletes hidden", () => {
+  const items = [si(1, "Milk", { added: "2026-10-05" }), si(2, "Eggs", { got: true }), si(3, "Bread", { added: "2026-10-07" }),
+    si(4, "Cola", { del: "2026-10-07" }), si(5, "Crisps", { del: "2026-10-05" })];
+  assert.deepEqual(L.shopOrder(items, TODAY).map(i => i.name), ["Bread", "Milk", "Eggs", "Cola"]);
+  assert.deepEqual(L.expiredShopDeletes(items, TODAY).map(i => i.id), [5]);
+});
+
+test("timesBought counts packs of that name (not deleted, not takeaway)", () => {
+  const packs = [fp(1,"Milk","misc","2026-10-01",{status:"used"}), fp(2,"Milk","misc","2026-10-09"),
+    fp(3,"Milk","misc","2026-10-09",{status:"deleted"}), L.makeTakeaway("2026-10-08")];
+  assert.equal(L.timesBought(packs, "Milk"), 2);
+});
+
+test("boughtBefore: names by tab, most bought first (veg = undated sides, other = misc)", () => {
+  const packs = [fp(1,"Chicken","main","2026-10-01"), fp(2,"Sausages","main","2026-10-01"), fp(3,"Sausages","main","2026-10-02"),
+    fp(4,"Peas","side",null), fp(5,"Chips","side","2026-10-20"), fp(6,"Milk","misc","2026-10-09")];
+  assert.deepEqual(L.boughtBefore(packs, "main"), ["Sausages", "Chicken"]);
+  assert.deepEqual(L.boughtBefore(packs, "side"), ["Chips"]);
+  assert.deepEqual(L.boughtBefore(packs, "veg"), ["Peas"]);
+  assert.deepEqual(L.boughtBefore(packs, "other"), ["Milk"]);
+});
+
+test("ideas: best rated first, then most bought; unrated counts as 3; low = 1-2 stars", () => {
+  const packs = [fp(1,"Sausages","main","2026-10-01"), fp(2,"Sausages","main","2026-10-01"), fp(3,"Chicken","main","2026-10-01"),
+    fp(4,"Mince","main","2026-10-01"), fp(5,"Mince","main","2026-10-01"), fp(6,"Mince","main","2026-10-01")];
+  const rows = L.ideas(packs, { Chicken: 5, Mince: 1 }, "main");
+  assert.deepEqual(rows.map(r => [r.name, r.count, r.rating, r.low]),
+    [["Chicken", 1, 5, false], ["Sausages", 2, 3, false], ["Mince", 3, 1, true]]);
+});
+
+test("autoOnFinish: misc used or thrown away goes on the list with a reason; others don't", () => {
+  assert.deepEqual(L.autoOnFinish(fp(1,"Milk","misc","2026-10-09"), "used"), { name: "Milk", auto: "used up" });
+  assert.deepEqual(L.autoOnFinish(fp(1,"Milk","misc","2026-10-09"), "thrown_away"), { name: "Milk", auto: "thrown away" });
+  assert.equal(L.autoOnFinish(fp(1,"Ham","main","2026-10-09"), "used"), null);
+});
+
+test("autoOutOfDate: misc packs 1-2 days out, not already on the list", () => {
+  const packs = [fp(1,"Eggs","misc","2026-10-06"), fp(2,"Cheese","misc","2026-10-05"), fp(3,"Butter","misc","2026-10-04"),
+    fp(4,"Yoghurt","misc","2026-10-06"), fp(5,"Ham","main","2026-10-06")];
+  const items = [si(1, "Yoghurt")];
+  assert.deepEqual(L.autoOutOfDate(packs, items, TODAY), [{ name: "Eggs", auto: "1 day out" }, { name: "Cheese", auto: "2 days out" }]);
+});

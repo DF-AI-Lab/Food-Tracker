@@ -321,6 +321,85 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     await page.click('[data-tab="fridge"]');
   });
 
+  const openShop = async () => { await page.click('[data-tab="add"]'); await page.click('[data-sub="shop"]'); };
+  const shopRow = name => page.locator(`#shopList .srow:has-text("${name}")`);
+
+  await step("shopping: type, tick + undo, delete with red line + undo", async () => {
+    await openShop();
+    await page.fill("#shopIn", "Bread");
+    await page.press("#shopIn", "Enter");
+    await until(async () => assert.equal(await shopRow("Bread").count(), 1));
+    await shopRow("Bread").locator("input[type=checkbox]").check();
+    await until(async () => assert.match(await shopRow("Bread").getAttribute("class"), /\bgot\b/));
+    assert.match(await shopRow("Bread").locator("label").evaluate(e => getComputedStyle(e).textDecorationLine), /line-through/);
+    await shopRow("Bread").locator(".undo").click();
+    await until(async () => assert.doesNotMatch(await shopRow("Bread").getAttribute("class"), /\bgot\b/));
+    await shopRow("Bread").locator(".del").click();
+    await until(async () => assert.match(await shopRow("Bread").getAttribute("class"), /\bgone\b/));
+    assert.match(await shopRow("Bread").innerText(), /gone tomorrow/i);
+    await shopRow("Bread").locator(".undo").click();
+    await until(async () => assert.doesNotMatch(await shopRow("Bread").getAttribute("class"), /\bgone\b/));
+  });
+
+  await step("shopping: bought-before chips, got all, clear crossed out", async () => {
+    await page.click('#qtabs [data-q="main"]');
+    await page.click('#qchips .qc:has-text("Sausages")');
+    await until(async () => assert.equal(await shopRow("Sausages").count(), 1));
+    await page.click("#gotAll");
+    await until(async () => assert.equal(await page.locator("#shopList .srow:not(.got):not(.gone)").count(), 0));
+    await page.click("#clearGot");
+    await until(async () => assert.equal(await page.locator("#shopList .srow.got").count(), 0));
+  });
+
+  await step("shopping: clear all asks Sure? first", async () => {
+    await page.fill("#shopIn", "Jam");
+    await page.press("#shopIn", "Enter");
+    await until(async () => assert.equal(await shopRow("Jam").count(), 1));
+    await page.click("#clearAll");
+    assert.ok(await page.locator("#clrAsk").isVisible());
+    await page.click("#clrNo");
+    assert.equal(await shopRow("Jam").count(), 1);
+    await page.click("#clearAll");
+    await page.click("#clrYes");
+    await until(async () => assert.equal(await page.locator("#shopList .srow").count(), 0));
+  });
+
+  await step("shopping: ideas with star ratings, low ones sink", async () => {
+    await page.click('#qtabs [data-q="main"]');
+    await page.click("#ideaBtn");
+    await until(async () => assert.ok(await page.locator("#ideaBox .irow").count() >= 2));
+    await page.locator('#ideaBox .irow:has-text("Sausages") .stars button').first().click();
+    await until(async () => {
+      const last = page.locator("#ideaBox .irow").last();
+      assert.match(await last.innerText(), /Sausages/);
+      assert.match(await last.getAttribute("class"), /\blow\b/);
+    });
+  });
+
+  await step("shopping: misc used -> auto-added with a reason", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click('[data-kind="misc"]');
+    await page.fill("#name", "Ketchup");
+    await page.fill("#days", "5");
+    await page.click("#addBtn");
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    await until(async () => assert.match(await text("#misc"), /Ketchup/));
+    await page.locator("#misc").getByText("Ketchup").click();
+    await page.click("#actUsed");
+    await openShop();
+    await until(async () => assert.match(await shopRow("Ketchup").innerText(), /auto · used up/i));
+  });
+
+  await step("shopping: fridge Shop button opens the list, and it is saved", async () => {
+    await page.reload();
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="shop"]');
+    await until(async () => assert.equal(await shopRow("Ketchup").count(), 1));
+    assert.ok(await page.locator("#shopList").isVisible());
+  });
+
   await step("theme toggle", async () => {
     const before = await page.getAttribute("html", "data-theme");
     await page.click("#theme");
