@@ -342,3 +342,58 @@ test("deleted packs count nowhere: fridge, used & wasted, freezer, usuals", () =
   assert.equal(L.freezerList(packs, TODAY).length, 0);
   assert.ok(!L.usuals(packs, "main").includes("Haggis"));
 });
+
+// ---------- meal planner ----------
+
+const fp = (id, name, kind, date, extra = {}) => ({ id, name, kind, date, dateType: date ? "use_by" : null,
+  status: "in_fridge", added: "2026-10-03", left: null, frozen: null, ...extra });
+
+test("weekDays gives Mon..Sun of today's week", () => {
+  assert.deepEqual(L.weekDays(TODAY), ["2026-10-05","2026-10-06","2026-10-07","2026-10-08","2026-10-09","2026-10-10","2026-10-11"]);
+  assert.equal(L.weekDays("2026-10-11")[0], "2026-10-05"); // Sunday belongs to the week starting Monday
+});
+
+test("mealPick: one row per food, soonest unplanned pack, with count; veg = undated sides", () => {
+  const packs = [fp(1,"Sausages","main","2026-10-10"), fp(2,"Sausages","main","2026-10-08"),
+    fp(3,"Chicken","main","2026-10-12"), fp(4,"Gammon","main","2026-10-06", { plannedFor: "2026-10-08", slot: "main" }),
+    fp(5,"Coleslaw","side","2026-10-09"), fp(6,"Peas","side",null, { added: "2026-10-01" }),
+    fp(7,"Milk","misc","2026-10-09"), fp(8,"Bacon","main","2026-10-09", { status: "frozen" })];
+  const mains = L.mealPick(packs, "main");
+  assert.deepEqual(mains.map(r => [r.name, r.pack.id, r.count]), [["Sausages", 2, 2], ["Chicken", 3, 1]]);
+  assert.deepEqual(L.mealPick(packs, "side").map(r => r.name), ["Coleslaw"]);
+  assert.deepEqual(L.mealPick(packs, "veg").map(r => r.name), ["Peas"]);
+});
+
+test("planPack / unplanPack set and clear the day and slot", () => {
+  const p = fp(1, "Sausages", "main", "2026-10-10");
+  const q = L.planPack(p, "2026-10-09", "main");
+  assert.equal(q.plannedFor, "2026-10-09"); assert.equal(q.slot, "main"); assert.equal(p.plannedFor, undefined);
+  const r = L.unplanPack(q);
+  assert.equal(r.plannedFor, null); assert.equal(r.slot, null);
+});
+
+test("outByDay: how many days out of date a pack is on a planned day (0 if fine)", () => {
+  assert.equal(L.outByDay(fp(1,"Salmon","main","2026-10-06"), "2026-10-09"), 3);
+  assert.equal(L.outByDay(fp(1,"Salmon","main","2026-10-09"), "2026-10-09"), 0);
+  assert.equal(L.outByDay(fp(1,"Peas","side",null), "2026-10-09"), 0);
+});
+
+test("dayMeals lists a day's plan as main, side, veg; takeaway counts as the main", () => {
+  const packs = [fp(1,"Peas","side",null, { plannedFor: "2026-10-09", slot: "veg" }),
+    fp(2,"Coleslaw","side","2026-10-10", { plannedFor: "2026-10-09", slot: "side" }),
+    fp(3,"Chicken","main","2026-10-12", { plannedFor: "2026-10-09", slot: "main" }),
+    fp(4,"Ham","main","2026-10-12", { plannedFor: "2026-10-09", slot: "main", status: "used" }),
+    L.makeTakeaway("2026-10-10")];
+  assert.deepEqual(L.dayMeals(packs, "2026-10-09").map(p => p.name), ["Chicken", "Coleslaw", "Peas"]);
+  const sat = L.dayMeals(packs, "2026-10-10");
+  assert.equal(sat.length, 1); assert.equal(sat[0].kind, "takeaway"); assert.equal(sat[0].slot, "main");
+});
+
+test("takeaway records never show up as food", () => {
+  const packs = [L.makeTakeaway("2026-10-10")];
+  const v = L.fridgeView(packs, TODAY);
+  assert.equal(v.mainCount + v.sideCount, 0);
+  assert.equal(L.mealPick(packs, "main").length, 0);
+  assert.ok(!L.usuals(packs, "main").some(n => /takeaway/i.test(n)));
+  assert.equal(L.usedSummary(packs, TODAY).list.length, 0);
+});
