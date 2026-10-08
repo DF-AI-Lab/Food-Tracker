@@ -2,7 +2,20 @@
 
 A phone-first household fridge app: add food fast (taps, typing, voice, photo inbox), see what's going off, plan meals, and print an A4 sheet for the fridge.
 
-**Status:** planning. Nothing is built yet.
+**Status:** core V1 working on the PC (plain screens). Pretty look and phone install come next.
+
+## Run it on your PC
+
+1. Download this branch (Code → Download ZIP) and unzip it.
+2. Double-click `index.html`. It opens in Chrome.
+3. Press F12, then the phone icon, to see it at phone size.
+
+Your food is saved in Chrome on that PC.
+
+## Tests
+
+- `npm test`: logic tests (dates, countdowns, cards, usual buttons)
+- `npm run check:screens`: clicks through the real page in Chrome (needs Playwright)
 
 - 🗺️ **Plan and decisions:** [Map: Food Tracker V1 spec](https://github.com/DF-AI-Lab/Food-Tracker/issues/1)
 - 📄 **Original brief:** [docs/project-brief.md](docs/project-brief.md)
@@ -22,3 +35,8 @@ In a new Claude Code session:
 ```
 /anthropic-skills:wayfinder https://github.com/DF-AI-Lab/Food-Tracker/issues/1
 ```
+
+## Run it on your PC
+
+See [`windows/SETUP.md`](windows/SETUP.md). Install Node.js once, then double-click `windows/install.vbs`.
+Your data lives in `FoodTrackerData/food.db`, next to the app folder (not inside it).
