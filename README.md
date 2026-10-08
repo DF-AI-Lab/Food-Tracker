@@ -35,3 +35,8 @@ In a new Claude Code session:
 ```
 /anthropic-skills:wayfinder https://github.com/DF-AI-Lab/Food-Tracker/issues/1
 ```
+
+## Run it on your PC
+
+See [`windows/SETUP.md`](windows/SETUP.md). Install Node.js once, then double-click `windows/install.vbs`.
+Your data lives in `FoodTrackerData/food.db`, next to the app folder (not inside it).

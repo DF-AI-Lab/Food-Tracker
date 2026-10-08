@@ -1,67 +1,45 @@
 (function() {
-  let db;
+  // Packs are saved by the local server (server/server.js) in a SQLite file
+  async function call(method, url, body) {
+    const res = await fetch(url, {
+      method,
+      headers: body === undefined ? {} : { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`${method} ${url} failed: ${res.status}`);
+    return res.json();
+  }
+
+  function withoutId(pack) {
+    const { id, ...rest } = pack;
+    return rest;
+  }
 
   const DB = {
     async open() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open("food-tracker", 1);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => {
-          db = req.result;
-          resolve(db);
-        };
-        req.onupgradeneeded = (e) => {
-          const database = e.target.result;
-          if (!database.objectStoreNames.contains("packs")) {
-            database.createObjectStore("packs", { keyPath: "id", autoIncrement: true });
-          }
-        };
-      });
+      // Nothing to open: the server holds the database
     },
 
     async all() {
-      const store = db.transaction("packs", "readonly").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
+      return call("GET", "/api/packs");
     },
 
     async add(pack) {
-      const store = db.transaction("packs", "readwrite").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.add(pack);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
+      const { id } = await call("POST", "/api/packs", withoutId(pack));
+      return id;
     },
 
     async put(pack) {
-      const store = db.transaction("packs", "readwrite").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.put(pack);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
+      const { id } = await call("PUT", `/api/packs/${pack.id}`, withoutId(pack));
+      return id;
     },
 
     async get(id) {
-      const store = db.transaction("packs", "readonly").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.get(id);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
+      return call("GET", `/api/packs/${id}`);
     },
 
     async remove(id) {
-      const store = db.transaction("packs", "readwrite").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.delete(id);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
+      return call("DELETE", `/api/packs/${id}`);
     }
   };
 

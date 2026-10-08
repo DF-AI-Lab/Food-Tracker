@@ -59,8 +59,8 @@ button.act.ghost{background:transparent;color:var(--muted);border:1px solid var(
 button.tab{font:inherit;border:0;background:transparent;cursor:pointer}
 button.tab.on{background:var(--accent);color:var(--bg)}
 .mgrid{display:grid;grid-template-columns:44% 1fr;gap:10px}
-.mtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.mtabs .sb{padding:7px 2px;font-size:12px}
+.mtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mtabs .sb{padding:7px 2px;font-size:12px;white-space:nowrap}
 .day{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:4px;background:var(--bg);border:2px solid var(--line);border-radius:6px;padding:7px 8px}
 .day.on{border-color:var(--accent)} .day.drop{border-style:dashed;border-color:var(--accent)}
 .day .dn{font-weight:700;font-size:13px} .day .dn small{color:var(--muted);font-weight:600}

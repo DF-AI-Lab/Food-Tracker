@@ -6,7 +6,7 @@ here = fso.GetParentFolderName(WScript.ScriptFullName)
 sh.Run "wscript """ & here & "\start-server.vbs""", 0, True
 WScript.Sleep 1500
 
-url = "http://localhost:5178"
+url = "http://127.0.0.1:5178"
 browsers = Array( _
   sh.ExpandEnvironmentStrings("%ProgramFiles%") & "\Google\Chrome\Application\chrome.exe", _
   sh.ExpandEnvironmentStrings("%ProgramFiles(x86)%") & "\Google\Chrome\Application\chrome.exe", _

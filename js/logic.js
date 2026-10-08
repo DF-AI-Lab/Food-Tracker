@@ -2,9 +2,11 @@
   // Constants
   const STARTERS = {
     main: ["Chicken", "Mince", "Sausages", "Gammon"],
-    side: ["Dauphinoise potatoes", "Cauliflower cheese", "Roast potatoes", "Potatoes", "Jacket potatoes", "Carrots", "Broccoli", "Sweetcorn cobs"],
+    side: ["Dauphinoise potatoes", "Cauliflower cheese", "Roast potatoes", "Potatoes", "Jacket potatoes", "Sweetcorn cobs"],
+    veg: ["Carrots", "Onions", "Broccoli", "Peppers", "Mushrooms", "Leeks", "Cabbage"],
     misc: ["Milk", "Eggs", "Margarine", "Butter"]
   };
+  const KINDS = ["main", "side", "veg", "misc"];
 
   // Date utilities
   function addDays(iso, n) {
@@ -101,11 +103,11 @@
 
   // Pack creation
   function makePacks(spec, today) {
-    const { name, kind, date, dateType, count, toFreezer } = spec;
+    const { name, kind, date, dateType, count, toFreezer, noDate } = spec;
 
     // Validation
     if (!name || !name.trim()) throw new Error("Empty name");
-    if ((kind === "main" || kind === "misc") && !date) throw new Error(`${kind} needs a date`);
+    if ((kind === "main" || kind === "misc") && !date && !noDate) throw new Error(`${kind} needs a date`);
 
     const trimmedName = name.trim();
     const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
@@ -160,6 +162,19 @@
   // Deleted before yesterday: remove from the database for good
   function expiredDeletes(packs, today) {
     return packs.filter(p => p.status === "deleted" && daysLeft(p.del, today) < -1);
+  }
+
+  // Remembered "no date" per food: the latest pack (not deleted) of that name decides
+  function rememberedNoDate(allPacks, name) {
+    const key = String(name ?? "").trim().toLowerCase();
+    if (!key) return false;
+    let latest = null;
+    for (const p of allPacks || []) {
+      if (p.status === "deleted") continue;
+      if (String(p.name ?? "").trim().toLowerCase() !== key) continue;
+      if (!latest || p.added > latest.added || (p.added === latest.added && p.id > latest.id)) latest = p;
+    }
+    return !!latest && (latest.date === null || latest.date === undefined || latest.date === "");
   }
 
   // Fridge view utilities
@@ -224,28 +239,29 @@
       .filter(p => p.status === "in_fridge" && p.kind === "misc" && (!p.date || daysLeft(p.date, today) >= 7))
       .length;
 
-    // Veg: in-fridge with no date, sorted by added oldest first
+    // Mains with no date: listed under the mains, oldest first
+    const mainsNoDate = packs
+      .filter(p => p.status === "in_fridge" && p.kind === "main" && !p.date)
+      .sort((a, b) => a.added.localeCompare(b.added));
+
+    // Veg box: veg (dated or not) plus undated sides, oldest first
     const veg = packs
-      .filter(p => p.status === "in_fridge" && !p.date && (p.kind === "side" || p.kind === "main"))
+      .filter(p => p.status === "in_fridge" && (p.kind === "veg" || (p.kind === "side" && !p.date)))
       .sort((a, b) => a.added.localeCompare(b.added));
 
-    // Actually, looking at the test, veg should be for undated side packs
-    const vegFixed = packs
-      .filter(p => p.status === "in_fridge" && p.kind === "side" && !p.date)
-      .sort((a, b) => a.added.localeCompare(b.added));
+    // Count mains: all in-fridge mains (dated + undated)
+    const mainCount = packs.filter(p => p.status === "in_fridge" && p.kind === "main").length;
 
-    // Count mains: in-fridge dated mains
-    const mainCount = packs.filter(p => p.status === "in_fridge" && p.kind === "main" && p.date).length;
-
-    // Count sides: in-fridge sides (dated + undated)
-    const sideCount = packs.filter(p => p.status === "in_fridge" && p.kind === "side").length;
+    // Count sides: in-fridge sides and veg (dated + undated)
+    const sideCount = packs.filter(p => p.status === "in_fridge" && (p.kind === "side" || p.kind === "veg")).length;
 
     return {
       mains,
+      mainsNoDate,
       sides,
       misc,
       miscOk,
-      veg: vegFixed,
+      veg,
       mainCount,
       sideCount
     };
@@ -374,12 +390,13 @@
   const CLAUDE_PROMPT = [
     "I'm sending you photos of my fridge and freezer. Please:",
     "- Read each food item and its use-by or best-before date from the photos.",
-    "- For each item choose a kind: \"main\" (meat, fish or a main meal), \"side\" (sides and veg), or \"misc\" (milk, eggs, butter, sauces etc).",
-    "- If you are unsure of the kind, or can't read a date clearly, ASK me before giving the JSON. Never guess a date.",
-    "- Write dates as YYYY-MM-DD. Veg with no date: use null.",
+    "- For each item choose a kind: \"main\" (meat, fish or a main meal), \"side\" (ready-made sides like chips, potatoes or dauphinoise), \"veg\" (fresh veg and fruit), or \"misc\" (milk, eggs, butter, sauces etc).",
+    "- Items that never carry a date (e.g. margarine, ketchup): use \"date\":null and \"noDate\":true.",
+    "- Otherwise never guess a date. If you can't read a date clearly, or you are unsure of the kind, ASK me before giving the JSON.",
+    "- Write dates as YYYY-MM-DD.",
     "- If the same item has several packs with the same date, make one row with \"packs\".",
     "- Reply with only a JSON array in a ```json block, like this:",
-    "[{\"name\":\"Sausages\",\"kind\":\"main\",\"date\":\"2026-10-10\",\"dateType\":\"use_by\",\"packs\":2},{\"name\":\"Carrots\",\"kind\":\"side\",\"date\":null}]",
+    "[{\"name\":\"Sausages\",\"kind\":\"main\",\"date\":\"2026-10-10\",\"dateType\":\"use_by\",\"packs\":2},{\"name\":\"Carrots\",\"kind\":\"veg\",\"date\":null},{\"name\":\"Margarine\",\"kind\":\"misc\",\"date\":null,\"noDate\":true}]",
     "Keep it short and plain English."
   ].join("\n");
 
@@ -389,31 +406,34 @@
     return !isNaN(d) && d.toISOString().split("T")[0] === s;
   }
 
-  function quickFillRow(row) {
+  function quickFillRow(row, allPacks = []) {
     const r = row || {};
     const rawName = String(r.name ?? "").trim();
     const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
     let kind = String(r.kind ?? "").trim().toLowerCase();
-    if (kind === "veg" || kind === "vegetable") kind = "side";
+    if (kind === "vegetable") kind = "veg";
 
     const hasDate = r.date !== null && r.date !== undefined && String(r.date).trim() !== "";
     const date = hasDate ? String(r.date).trim() : null;
     const dateType = hasDate ? (r.dateType === "best_before" ? "best_before" : "use_by") : null;
+
+    // No date is fine for sides and veg, for foods marked noDate, or for foods remembered with no date
+    const noDate = !hasDate && (r.noDate === true || kind === "side" || kind === "veg" || rememberedNoDate(allPacks, name));
 
     const count = Math.min(20, Math.max(1, parseInt(r.packs ?? r.count ?? 1, 10) || 1));
     const toFreezer = r.freezer === true || r.toFreezer === true;
 
     let problem = null;
     if (!name) problem = "Needs a name";
-    else if (!["main", "side", "misc"].includes(kind)) problem = "Kind must be main, side or misc";
+    else if (!KINDS.includes(kind)) problem = "Kind must be main, side, veg or misc";
     else if (hasDate && !isRealDate(date)) problem = "Date must look like 2026-10-10";
-    else if ((kind === "main" || kind === "misc") && !hasDate) problem = "Needs a date";
+    else if (!hasDate && !noDate) problem = "Needs a date";
 
-    return { name, kind, date, dateType, count, toFreezer, ok: problem === null, problem };
+    return { name, kind, date, dateType, count, toFreezer, noDate, ok: problem === null, problem };
   }
 
-  function parseQuickFill(text, today) {
+  function parseQuickFill(text, today, allPacks = []) {
     const raw = String(text || "").trim();
     if (!raw) return { error: "Paste the JSON from Claude first", items: [] };
 
@@ -437,7 +457,7 @@
     const list = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
     if (list.length === 0) return { error: "No food found in that", items: [] };
 
-    return { error: null, items: list.map(quickFillRow) };
+    return { error: null, items: list.map(row => quickFillRow(row, allPacks)) };
   }
 
   // Export
@@ -465,7 +485,9 @@
     freezerList,
     usedSummary,
     STARTERS,
+    KINDS,
     usuals,
+    rememberedNoDate,
     parseQuickFill,
     CLAUDE_PROMPT
   };
