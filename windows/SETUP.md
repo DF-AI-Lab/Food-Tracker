@@ -4,7 +4,8 @@
 
 1. **Install Node.js:** go to <https://nodejs.org>, download the **LTS** version, and install it with the default options.
 2. Open this `windows` folder and **double-click `install.vbs`**.
-3. You'll see "All set!" and a **Food Tracker** icon on your desktop.
+3. You'll see "All set!"
+4. **Make the icon:** in Chrome go to `127.0.0.1:5178`, then open **⋮ → Cast, save and share → Create shortcut…**, tick **Open as window**, and click **Create**.
 
 ## Every day
 
