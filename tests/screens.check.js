@@ -247,6 +247,34 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     await page.click('[data-tab="fridge"]');
   });
 
+  await step("exact mock: fonts, labels and small details", async () => {
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    const font = await page.locator("#today").evaluate(e => getComputedStyle(e).fontFamily);
+    assert.match(font, /Fredoka/);
+    const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    assert.match(bodyFont, /Nunito Sans/);
+    // packs show the countdown on the left and USE BY / BB tag on the right
+    const tag = page.locator("#mains .pack .tag").first();
+    assert.match(await tag.innerText(), /^(USE BY|BB|🍽️ \w+)$/i);
+    // print button sits in the Mains header
+    assert.equal(await page.locator(".column:first-child .pbtn").count(), 1);
+    // moon + sun buttons
+    assert.equal(await page.locator("#top button").count(), 2);
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    assert.match(await page.locator("body").innerText(), /USUAL · TAP ONE/i);
+    assert.match(await page.locator("body").innerText(), /Packs/);
+    await page.fill("#ddmm", "");
+    await page.fill("#days", "");
+    assert.match(await text("#datePreview"), /No date picked yet/);
+    // the mic sits on the same line as the name box
+    const nb = await page.locator("#name").boundingBox();
+    const mic = await page.locator("#mic").boundingBox();
+    assert.ok(Math.abs(nb.y - mic.y) < 6, "mic on the name line");
+    await page.click('[data-tab="fridge"]');
+  });
+
   await step("theme toggle", async () => {
     const before = await page.getAttribute("html", "data-theme");
     await page.click("#theme");
