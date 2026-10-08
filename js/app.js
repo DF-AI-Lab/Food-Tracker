@@ -7,6 +7,12 @@
   let selDay = today;
   let selSlot = 'main';
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
+  // Shopping list state
+  let shop = [];          // shopping items, saved in DB.shop
+  let ratings = {};       // idea ratings: name -> 1..5, saved in DB.ratings
+  let shopTab = 'main';   // "bought before" tab: main | side | veg | other
+  let ideasOn = false;
+  const autoBusy = new Set();
 
   function getToday() {
     const params = new URLSearchParams(window.location.search);
@@ -27,6 +33,17 @@
     try {
       for (const pack of expired) await DB.remove(pack.id);
       packs = packs.filter(p => !expired.includes(p));
+    } catch (e) {
+      // try again next time the app starts
+    }
+    // Shopping list and idea ratings
+    shop = await DB.shop.all();
+    for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
+    // Shop items deleted before yesterday are removed for good
+    const expiredShop = FT.expiredShopDeletes(shop, today);
+    try {
+      for (const item of expiredShop) await DB.shop.remove(item.id);
+      shop = shop.filter(i => !expiredShop.includes(i));
     } catch (e) {
       // try again next time the app starts
     }
@@ -71,9 +88,12 @@
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
 
-    // Fridge views
+    // Fridge views (Shop opens the shopping list on the Add tab)
     document.querySelectorAll('[data-view]').forEach(btn => {
-      btn.addEventListener('click', () => switchView(btn.dataset.view));
+      btn.addEventListener('click', () => {
+        if (btn.dataset.view === 'shop') openShopList();
+        else switchView(btn.dataset.view);
+      });
     });
 
     // Kind selection
@@ -144,6 +164,25 @@
     document.getElementById('qfCopy').addEventListener('click', copyQuickFillPrompt);
     document.getElementById('qfCheck').addEventListener('click', checkQuickFill);
     document.getElementById('qfAdd').addEventListener('click', addQuickFill);
+
+    // Shopping list
+    document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
+    document.getElementById('clearAll').addEventListener('click', () => setClearAsk(true));
+    document.getElementById('clrNo').addEventListener('click', () => setClearAsk(false));
+    document.getElementById('clrYes').addEventListener('click', clearAllShop);
+    document.getElementById('gotAll').addEventListener('click', gotAllShop);
+    document.getElementById('clearGot').addEventListener('click', clearGotShop);
+    document.getElementById('ideaBtn').addEventListener('click', () => {
+      ideasOn = !ideasOn;
+      renderIdeas();
+    });
+    document.querySelectorAll('#qtabs [data-q]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        shopTab = btn.dataset.q;
+        renderQuick();
+        renderIdeas();
+      });
+    });
   }
 
   function switchSub(sub) {
@@ -152,6 +191,13 @@
 
     document.querySelectorAll('[data-sub-pane]').forEach(p => p.style.display = 'none');
     document.querySelector(`[data-sub-pane="${sub}"]`).style.display = '';
+
+    if (sub === 'shop') renderShop();
+  }
+
+  function openShopList() {
+    switchTab('add');
+    switchSub('shop');
   }
 
   async function copyQuickFillPrompt() {
@@ -457,7 +503,8 @@
     const updated = FT.markUsed(pack, today);
     await DB.put(updated);
     Object.assign(pack, updated);
-    lastAction = { type: 'update', packId: selectedPackId, before: beforeState };
+    const shopItem = await autoAddFinished(updated, 'used');
+    lastAction = { type: 'update', packId: selectedPackId, before: beforeState, shopId: shopItem ? shopItem.id : null };
     hideSheet();
     showUndoBar();
     renderAll();
@@ -470,7 +517,8 @@
     const updated = FT.markThrown(pack, today);
     await DB.put(updated);
     Object.assign(pack, updated);
-    lastAction = { type: 'update', packId: selectedPackId, before: beforeState };
+    const shopItem = await autoAddFinished(updated, 'thrown_away');
+    lastAction = { type: 'update', packId: selectedPackId, before: beforeState, shopId: shopItem ? shopItem.id : null };
     hideSheet();
     showUndoBar();
     renderAll();
@@ -527,6 +575,8 @@
           packs[packIndex] = restoredPack;
           await DB.put(restoredPack);
         }
+        // Undoing Used / Thrown away also takes off the item it added to the list
+        if (lastAction.shopId) await removeShopItems(shop.filter(i => i.id === lastAction.shopId));
       }
     } finally {
       lastAction = null;
@@ -577,6 +627,7 @@
   }
 
   function renderFridgeView() {
+    autoAddOutOfDate();
     const view = FT.fridgeView(packs, today);
 
     document.getElementById('mainCount').textContent = view.mainCount;
@@ -944,6 +995,276 @@
     if (activeView === 'fridge') renderFridgeView();
     else if (activeView === 'freezer') renderFreezerView();
     else if (activeView === 'used') renderUsedView();
+  }
+
+  // ---- Shopping list ----
+
+  const TAB_NAME = { main: 'Mains', side: 'Sides', veg: 'Veg', other: 'Other' };
+
+  function capitalise(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  // Is this name on the list (to get: not got, not deleted)?
+  function onShopList(name) {
+    const key = name.toLowerCase();
+    return shop.some(i => !i.got && !i.del && i.name.toLowerCase() === key);
+  }
+
+  async function saveShop(item) {
+    try {
+      await DB.shop.put(item);
+    } catch (e) {
+      // not saved: the list still shows the change until the next start
+    }
+  }
+
+  async function addShopItem(name, auto = null) {
+    const item = { name, got: false, del: null, auto, added: today };
+    item.id = await DB.shop.add(item);
+    shop.push(item);
+    renderShop();
+    return item;
+  }
+
+  // Add an item with a reason, unless it is already to get
+  async function autoAdd(name, auto) {
+    const key = name.toLowerCase();
+    if (autoBusy.has(key) || onShopList(name)) return null;
+    autoBusy.add(key);
+    try {
+      return await addShopItem(name, auto);
+    } catch (e) {
+      return null;
+    } finally {
+      autoBusy.delete(key);
+    }
+  }
+
+  // A finished misc pack goes on the list with a reason (returns the new item or null)
+  async function autoAddFinished(pack, status) {
+    const auto = FT.autoOnFinish(pack, status);
+    return auto ? autoAdd(auto.name, auto.auto) : null;
+  }
+
+  // Misc packs 1-2 days out of date go on the list (once each)
+  async function autoAddOutOfDate() {
+    for (const row of FT.autoOutOfDate(packs, shop, today)) {
+      await autoAdd(row.name, row.auto);
+    }
+  }
+
+  async function addTypedShopItem(e) {
+    e.preventDefault();
+    const input = document.getElementById('shopIn');
+    const name = capitalise(input.value.trim());
+    if (!name) return;
+    input.value = '';
+    if (!onShopList(name)) await addShopItem(name);
+    renderShop();
+  }
+
+  // Bought-before chip or Ideas "+": add it, or un-get it if it is crossed out
+  async function tapShopName(name) {
+    if (onShopList(name)) return;
+    const key = name.toLowerCase();
+    const crossed = shop.find(i => !i.del && i.got && i.name.toLowerCase() === key);
+    if (crossed) {
+      crossed.got = false;
+      await saveShop(crossed);
+      renderShop();
+    } else {
+      await addShopItem(name);
+    }
+  }
+
+  async function removeShopItems(items) {
+    for (const item of items) {
+      try {
+        await DB.shop.remove(item.id);
+      } catch (e) {
+        continue; // not removed: it stays on the list
+      }
+      shop = shop.filter(i => i !== item);
+    }
+    renderShop();
+  }
+
+  function setClearAsk(asking) {
+    document.getElementById('clrAsk').hidden = !asking;
+    document.getElementById('clearAll').hidden = asking;
+  }
+
+  async function clearAllShop() {
+    setClearAsk(false);
+    await removeShopItems(shop.slice());
+  }
+
+  async function clearGotShop() {
+    await removeShopItems(shop.filter(i => i.got));
+  }
+
+  async function gotAllShop() {
+    for (const item of shop) {
+      if (item.got || item.del) continue;
+      item.got = true;
+      await saveShop(item);
+    }
+    renderShop();
+  }
+
+  function shopRow(item) {
+    const gone = !!item.del;
+    const row = document.createElement('div');
+    row.className = 'srow' + (gone ? ' gone' : item.got ? ' got' : '');
+
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = item.got;
+    const label = document.createElement('label');
+    label.textContent = item.name;
+    if (item.auto) {
+      const auto = document.createElement('span');
+      auto.className = 'auto';
+      auto.textContent = '🤖 auto · ' + item.auto;
+      label.append(' ', auto);
+    }
+    if (gone) {
+      box.disabled = true;
+    } else {
+      box.id = 'sh_' + item.id;
+      label.htmlFor = box.id;
+      box.addEventListener('change', async () => {
+        item.got = box.checked;
+        await saveShop(item);
+        renderShop();
+      });
+    }
+    row.append(box, label);
+
+    if (gone) {
+      const tag = document.createElement('span');
+      tag.className = 'gonetag';
+      tag.textContent = FT.daysLeft(item.del, today) === 0 ? 'gone tomorrow' : 'gone today';
+      row.appendChild(tag);
+    }
+    if (gone || item.got) {
+      const undo = document.createElement('button');
+      undo.className = 'undo';
+      undo.textContent = '↩ Undo';
+      undo.addEventListener('click', async () => {
+        item.got = false;
+        item.del = null;
+        await saveShop(item);
+        renderShop();
+      });
+      row.appendChild(undo);
+    }
+    if (!gone) {
+      const del = document.createElement('button');
+      del.className = 'del';
+      del.textContent = '🗑️';
+      del.setAttribute('aria-label', 'Delete ' + item.name + ' (not counted as bought)');
+      del.addEventListener('click', async () => {
+        item.del = today;
+        await saveShop(item);
+        renderShop();
+      });
+      row.appendChild(del);
+    }
+    return row;
+  }
+
+  function renderQuick() {
+    document.querySelectorAll('#qtabs [data-q]').forEach(t => t.classList.toggle('on', t.dataset.q === shopTab));
+    const box = document.getElementById('qchips');
+    box.innerHTML = '';
+    const names = FT.boughtBefore(packs, shopTab);
+    if (names.length === 0) {
+      const none = document.createElement('div');
+      none.className = 'note';
+      none.textContent = 'Nothing bought in this tab yet.';
+      box.appendChild(none);
+    }
+    names.forEach(name => {
+      const on = onShopList(name);
+      const btn = document.createElement('button');
+      btn.className = 'qc' + (on ? ' on' : '');
+      btn.textContent = (on ? '✓ ' : '+ ') + name;
+      btn.addEventListener('click', () => tapShopName(name));
+      box.appendChild(btn);
+    });
+  }
+
+  function renderShop() {
+    const listEl = document.getElementById('shopList');
+    listEl.innerHTML = '';
+    FT.shopOrder(shop, today).forEach(item => listEl.appendChild(shopRow(item)));
+    const left = shop.filter(i => !i.got && !i.del).length;
+    document.getElementById('shopCount').textContent = left ? left + ' to get' : 'All got ✅';
+    renderQuick();
+    renderIdeas();
+  }
+
+  async function rateIdea(name, k) {
+    ratings[name] = k;
+    try {
+      await DB.ratings.put({ name, rating: k });
+    } catch (e) {
+      // not saved: the star still shows until the next start
+    }
+    renderIdeas();
+  }
+
+  function ideaRow(row) {
+    const el = document.createElement('div');
+    el.className = 'irow' + (row.low ? ' low' : '');
+
+    const text = document.createElement('span');
+    const name = document.createElement('b');
+    name.textContent = row.name;
+    const info = document.createElement('small');
+    info.textContent = 'bought ' + row.count + '× · ' + (row.low ? "bored / didn't like" : 'rated ' + row.rating);
+    text.append(name, info);
+
+    const stars = document.createElement('div');
+    stars.className = 'stars';
+    for (let k = 1; k <= 5; k++) {
+      const star = document.createElement('button');
+      star.textContent = '★';
+      star.className = k <= row.rating ? 'on' : '';
+      star.setAttribute('aria-label', k + ' stars');
+      star.addEventListener('click', () => rateIdea(row.name, k));
+      stars.appendChild(star);
+    }
+
+    const add = document.createElement('button');
+    add.className = 'qc';
+    add.textContent = '+';
+    add.setAttribute('aria-label', 'Add ' + row.name);
+    add.addEventListener('click', () => tapShopName(row.name));
+
+    el.append(text, stars, add);
+    return el;
+  }
+
+  function renderIdeas() {
+    const box = document.getElementById('ideaBox');
+    box.innerHTML = '';
+    box.hidden = !ideasOn;
+    if (!ideasOn) return;
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.textContent = '💡 ' + TAB_NAME[shopTab] + ' ideas · best rated, then most bought';
+    box.appendChild(tag);
+    const rows = FT.ideas(packs, ratings, shopTab);
+    if (rows.length === 0) {
+      const none = document.createElement('div');
+      none.className = 'note';
+      none.textContent = 'Nothing bought in this tab yet.';
+      box.appendChild(none);
+    }
+    rows.forEach(row => box.appendChild(ideaRow(row)));
   }
 
   // Start

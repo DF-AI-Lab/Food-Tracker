@@ -77,10 +77,6 @@
       <div id="usedList" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
 
-    <!-- Shop View -->
-    <div data-view-pane="shop" style="display:none;">
-      <div class="sheet coming-soon"><b>🛒 Shopping list — Coming soon</b><div class="note">On the ideas list for after V1.</div></div>
-    </div>
   </div>
 
   <!-- Meals Tab -->
@@ -169,7 +165,19 @@
 
     <!-- Shopping list -->
     <div data-sub-pane="shop" style="display:none;">
-      <div class="sheet coming-soon"><b>🛒 Shopping list — Coming soon</b><div class="note">On the ideas list for after V1.</div></div>
+      <div id="addShop" class="pane shop">
+        <div class="wkhead"><h2>🛒 Shopping list</h2><span class="tag" id="shopCount"></span></div>
+        <div class="clr"><button class="undo" id="clearAll">🗑️ Clear all</button><span id="clrAsk" hidden>Sure? <button class="undo" id="clrYes">Yes, clear</button> <button class="undo" id="clrNo">No</button></span></div>
+        <form id="shopForm" class="sform"><input id="shopIn" placeholder="Add an item…" autocomplete="off"><button class="act" type="submit">Add</button></form>
+        <div class="quick">
+          <div class="tag">⭐ Bought before · tap to add</div>
+          <div class="qtabs" id="qtabs"><button class="sb on" data-q="main">🍖 Mains</button><button class="sb" data-q="side">🥔 Sides</button><button class="sb" data-q="veg">🥕 Veg</button><button class="sb" data-q="other">🧂 Other</button></div>
+          <div class="qchips" id="qchips"></div>
+        </div>
+        <div class="scroll" id="shopList"></div>
+        <div class="btns sbot"><button class="act" id="gotAll">✅ Got all</button><button class="act ghost" id="clearGot">Clear crossed out</button><button class="act ghost idea" id="ideaBtn">💡 Ideas</button></div>
+        <div id="ideaBox" class="ideas" hidden></div>
+      </div>
     </div>
   </div>
 </div>

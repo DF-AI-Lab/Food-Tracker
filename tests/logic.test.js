@@ -444,3 +444,8 @@ test("autoOutOfDate: misc packs 1-2 days out, not already on the list", () => {
   const items = [si(1, "Yoghurt")];
   assert.deepEqual(L.autoOutOfDate(packs, items, TODAY), [{ name: "Eggs", auto: "1 day out" }, { name: "Cheese", auto: "2 days out" }]);
 });
+
+test("autoOutOfDate: an item you deleted is not added back", () => {
+  const packs = [fp(1,"Eggs","misc","2026-10-06")];
+  assert.deepEqual(L.autoOutOfDate(packs, [si(1, "Eggs", { del: TODAY })], TODAY), []);
+});

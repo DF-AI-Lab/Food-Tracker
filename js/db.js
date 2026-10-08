@@ -1,10 +1,26 @@
 (function() {
   let db;
 
+  // One set of helpers per store: all / get / add / put / remove
+  function store(name) {
+    const run = (mode, fn) => new Promise((resolve, reject) => {
+      const req = fn(db.transaction(name, mode).objectStore(name));
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve(req.result);
+    });
+    return {
+      all: () => run("readonly", s => s.getAll()),
+      get: (key) => run("readonly", s => s.get(key)),
+      add: (value) => run("readwrite", s => s.add(value)),
+      put: (value) => run("readwrite", s => s.put(value)),
+      remove: (key) => run("readwrite", s => s.delete(key))
+    };
+  }
+
   const DB = {
     async open() {
       return new Promise((resolve, reject) => {
-        const req = indexedDB.open("food-tracker", 1);
+        const req = indexedDB.open("food-tracker", 2);
         req.onerror = () => reject(req.error);
         req.onsuccess = () => {
           db = req.result;
@@ -15,54 +31,22 @@
           if (!database.objectStoreNames.contains("packs")) {
             database.createObjectStore("packs", { keyPath: "id", autoIncrement: true });
           }
+          if (!database.objectStoreNames.contains("shop")) {
+            database.createObjectStore("shop", { keyPath: "id", autoIncrement: true });
+          }
+          if (!database.objectStoreNames.contains("ratings")) {
+            database.createObjectStore("ratings", { keyPath: "name" });
+          }
         };
       });
     },
 
-    async all() {
-      const store = db.transaction("packs", "readonly").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
-    },
+    // Packs (the fridge): DB.all, DB.get, DB.add, DB.put, DB.remove
+    ...store("packs"),
 
-    async add(pack) {
-      const store = db.transaction("packs", "readwrite").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.add(pack);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
-    },
-
-    async put(pack) {
-      const store = db.transaction("packs", "readwrite").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.put(pack);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
-    },
-
-    async get(id) {
-      const store = db.transaction("packs", "readonly").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.get(id);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
-    },
-
-    async remove(id) {
-      const store = db.transaction("packs", "readwrite").objectStore("packs");
-      return new Promise((resolve, reject) => {
-        const req = store.delete(id);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
-    }
+    // Shopping list items and idea ratings ({ name, rating })
+    shop: store("shop"),
+    ratings: store("ratings")
   };
 
   window.DB = DB;

@@ -208,7 +208,7 @@ details{font-size:13px}
 summary{cursor:pointer;font-weight:700;color:var(--muted)}
 #qfPrompt{margin:8px 0;white-space:pre-wrap;max-height:200px;overflow:auto}
 .qf-how{font-weight:700}
-.coming-soon{align-items:flex-start}
+#ideaBox[hidden]{display:none}
 .sheet .note{margin:0}
 
 /* Pack-actions sheet: the mock's .sheet card on a dim backdrop */

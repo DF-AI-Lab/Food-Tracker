@@ -499,6 +499,89 @@
       .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
   }
 
+  // Shopping list
+  // Order: to get (newest first), then crossed out, then deleted today or yesterday
+  function byNewest(a, b) {
+    return b.added.localeCompare(a.added) || b.id - a.id;
+  }
+
+  function shopOrder(items, today) {
+    const toGet = items.filter(i => !i.got && !i.del).sort(byNewest);
+    const got = items.filter(i => i.got && !i.del).sort(byNewest);
+    const gone = items.filter(i => i.del && daysLeft(i.del, today) >= -1).sort(byNewest);
+    return [...toGet, ...got, ...gone];
+  }
+
+  // Deleted before yesterday: remove from the database for good
+  function expiredShopDeletes(items, today) {
+    return items.filter(i => i.del && daysLeft(i.del, today) < -1);
+  }
+
+  // Packs with this name (not deleted, not takeaway), any kind
+  function timesBought(packs, name) {
+    const key = name.toLowerCase();
+    return packs.filter(p => p.status !== "deleted" && p.kind !== "takeaway" &&
+      String(p.name).toLowerCase() === key).length;
+  }
+
+  // Packs that belong to one tab of "bought before"
+  function inShopTab(p, tab) {
+    if (p.status === "deleted" || p.kind === "takeaway") return false;
+    if (tab === "main") return p.kind === "main";
+    if (tab === "side") return p.kind === "side" && !!p.date;
+    if (tab === "veg") return p.kind === "side" && !p.date;
+    if (tab === "other") return p.kind === "misc";
+    return false;
+  }
+
+  // Unique names for a tab, most bought first, then alphabetical
+  function boughtBefore(packs, tab) {
+    const seen = new Map(); // lower name -> { name, count }
+    for (const p of packs) {
+      if (!inShopTab(p, tab)) continue;
+      const key = p.name.toLowerCase();
+      if (!seen.has(key)) seen.set(key, { name: p.name, count: 0 });
+      seen.get(key).count++;
+    }
+    return [...seen.values()]
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .map(e => e.name);
+  }
+
+  // Ideas for a tab: best rated first, then most bought. Unrated counts as 3; 1-2 stars = low
+  function ideas(packs, ratings, tab) {
+    const rows = boughtBefore(packs, tab).map(name => {
+      const rating = ratings[name] ?? 3;
+      return { name, count: timesBought(packs, name), rating, low: rating <= 2 };
+    });
+    return rows.sort((a, b) => b.rating - a.rating || b.count - a.count);
+  }
+
+  // A finished misc pack goes on the list with a reason; other kinds don't
+  function autoOnFinish(pack, status) {
+    if (pack.kind !== "misc") return null;
+    if (status === "used") return { name: pack.name, auto: "used up" };
+    if (status === "thrown_away") return { name: pack.name, auto: "thrown away" };
+    return null;
+  }
+
+  // Misc packs 1 or 2 days out of date, not already on the list (deleted items don't count)
+  function autoOutOfDate(packs, items, today) {
+    const out = [];
+    const seen = new Set();
+    for (const p of packs) {
+      if (p.status !== "in_fridge" || p.kind !== "misc" || !p.date) continue;
+      const days = daysLeft(p.date, today);
+      if (days !== -1 && days !== -2) continue;
+      const key = p.name.toLowerCase();
+      if (seen.has(key)) continue;
+      if (items.some(i => i.name.toLowerCase() === key)) continue; // deleted items count too, so a delete sticks
+      seen.add(key);
+      out.push({ name: p.name, auto: days === -1 ? "1 day out" : "2 days out" });
+    }
+    return out;
+  }
+
   // Export
   const FT = {
     addDays,
@@ -533,7 +616,14 @@
     unplanPack,
     outByDay,
     makeTakeaway,
-    dayMeals
+    dayMeals,
+    shopOrder,
+    expiredShopDeletes,
+    timesBought,
+    boughtBefore,
+    ideas,
+    autoOnFinish,
+    autoOutOfDate
   };
 
   if (typeof module !== "undefined") {
