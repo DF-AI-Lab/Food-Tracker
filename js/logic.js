@@ -440,6 +440,65 @@
     return { error: null, items: list.map(quickFillRow) };
   }
 
+  // Meal planner
+  const SLOT_ORDER = { main: 0, side: 1, veg: 2 };
+
+  // Mon..Sun of the week that contains today
+  function weekDays(today) {
+    const dow = (new Date(today + "T00:00:00Z").getUTCDay() + 6) % 7; // Mon = 0
+    const monday = addDays(today, -dow);
+    return [0, 1, 2, 3, 4, 5, 6].map(i => addDays(monday, i));
+  }
+
+  // Packs that can be picked for a slot: one row per food, soonest pack first
+  function mealPick(packs, slot) {
+    const free = packs.filter(p =>
+      p.status === "in_fridge" && !p.plannedFor && p.kind !== "misc" && p.kind !== "takeaway" &&
+      (slot === "veg" ? p.kind === "side" && !p.date : p.kind === slot && !!p.date)
+    );
+
+    const sortKey = p => (slot === "veg" ? p.added : p.date);
+    const byKey = (a, b) => sortKey(a).localeCompare(sortKey(b)) || a.id - b.id;
+
+    const groups = new Map();
+    for (const p of free.sort(byKey)) {
+      const key = p.name.toLowerCase();
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    }
+
+    return [...groups.values()]
+      .map(list => ({ name: list[0].name, pack: list[0], count: list.length }))
+      .sort((a, b) => byKey(a.pack, b.pack));
+  }
+
+  function planPack(pack, dayIso, slot) {
+    return { ...pack, plannedFor: dayIso, slot };
+  }
+
+  function unplanPack(pack) {
+    return { ...pack, plannedFor: null, slot: null };
+  }
+
+  // Days a pack is out of date on a planned day (0 if fine or undated)
+  function outByDay(pack, dayIso) {
+    if (!pack.date) return 0;
+    return Math.max(0, daysLeft(dayIso, pack.date));
+  }
+
+  function makeTakeaway(dayIso) {
+    return { name: "Takeaway", kind: "takeaway", status: "plan", plannedFor: dayIso, slot: "main",
+      date: null, dateType: null, added: dayIso, left: null, frozen: null };
+  }
+
+  // A day's plan: planned fridge packs and takeaways, main then side then veg
+  function dayMeals(packs, dayIso) {
+    return packs
+      .filter(p => p.plannedFor === dayIso &&
+        (p.status === "in_fridge" || (p.kind === "takeaway" && p.status === "plan")))
+      .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
+  }
+
   // Export
   const FT = {
     addDays,
@@ -467,7 +526,14 @@
     STARTERS,
     usuals,
     parseQuickFill,
-    CLAUDE_PROMPT
+    CLAUDE_PROMPT,
+    weekDays,
+    mealPick,
+    planPack,
+    unplanPack,
+    outByDay,
+    makeTakeaway,
+    dayMeals
   };
 
   if (typeof module !== "undefined") {

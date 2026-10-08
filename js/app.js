@@ -3,6 +3,10 @@
   let today = getToday();
   let lastAction = null;
   let undoTimeout = null;
+  // Meal planner state
+  let selDay = today;
+  let selSlot = 'main';
+  let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
 
   function getToday() {
     const params = new URLSearchParams(window.location.search);
@@ -112,6 +116,22 @@
     // Undo
     document.getElementById('undoBtn').addEventListener('click', async () => {
       await undo();
+    });
+
+    // Meals: print is coming soon, slot tabs, next day
+    document.getElementById('printWeek').addEventListener('click', () => {
+      const n = document.getElementById('printWeekNote');
+      n.hidden = !n.hidden;
+    });
+    document.querySelectorAll('#mtabs .sb').forEach(btn => {
+      btn.addEventListener('click', () => { selSlot = btn.dataset.s; renderMeals(); });
+    });
+    document.getElementById('nextDay').addEventListener('click', () => {
+      const days = FT.weekDays(today);
+      selDay = days[(days.indexOf(selDay) + 1) % 7];
+      selSlot = 'main';
+      pendingPlan = null;
+      renderMeals();
     });
 
     // Add tab sub-tabs
@@ -252,6 +272,8 @@
       switchView('fridge');
     } else if (tab === 'add') {
       refreshUsuals();
+    } else if (tab === 'meals') {
+      renderMeals();
     }
   }
 
@@ -541,6 +563,10 @@
         const tag = document.createElement('span');
         tag.className = 'tag';
         tag.textContent = pack.dateType === 'best_before' ? 'BB' : 'USE BY';
+        if (plannedThisWeek(pack)) {
+          btn.classList.add('plan');
+          tag.textContent = '🍽️ ' + shortDay(pack.plannedFor);
+        }
         btn.append(when, tag);
         btn.addEventListener('click', () => showSheet(pack.id));
         packsEl.appendChild(btn);
@@ -687,6 +713,225 @@
       rowEl.append(name, right);
       listEl.appendChild(rowEl);
     });
+  }
+
+  // ---- Meals: week planner ----
+
+  const SLOT_LABEL = { main: 'Main', side: 'Side', veg: 'Veg' };
+
+  function shortDay(iso) {
+    return FT.formatDate(iso).split(' ')[0];
+  }
+
+  function plannedThisWeek(pack) {
+    return !!pack.plannedFor && FT.weekDays(today).includes(pack.plannedFor);
+  }
+
+  async function savePack(updated) {
+    await DB.put(updated);
+    const i = packs.findIndex(p => p.id === updated.id);
+    if (i !== -1) packs[i] = updated;
+  }
+
+  function renderMeals() {
+    const dayListEl = document.getElementById('dayList');
+    dayListEl.innerHTML = '';
+    FT.weekDays(today).forEach(day => {
+      const btn = document.createElement('button');
+      btn.className = 'day' + (day === selDay ? ' on' : '');
+      const dn = document.createElement('span');
+      dn.className = 'dn';
+      dn.append(shortDay(day) + ' ');
+      const date = document.createElement('small');
+      date.textContent = FT.formatDate(day).split(' ').slice(1).join(' ');
+      dn.appendChild(date);
+      btn.appendChild(dn);
+      FT.dayMeals(packs, day).forEach(item => btn.appendChild(mealChip(item, day)));
+      btn.addEventListener('click', () => {
+        selDay = day;
+        selSlot = 'main';
+        pendingPlan = null;
+        renderMeals();
+      });
+      dayListEl.appendChild(btn);
+    });
+
+    document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
+    document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
+    renderWarnBar();
+    renderPickList();
+    renderWeekSummary();
+  }
+
+  function mealChip(item, day) {
+    const isTakeaway = item.kind === 'takeaway';
+    const late = !isTakeaway && FT.outByDay(item, day) > 0;
+
+    const chip = document.createElement('div');
+    chip.className = 'chip2' + (late ? ' warn' : '');
+    const label = document.createElement('span');
+    const slot = document.createElement('span');
+    slot.className = 'slot';
+    slot.textContent = isTakeaway ? 'Main' : SLOT_LABEL[item.slot];
+    label.append(slot, ' ' + (isTakeaway ? '🥡 Takeaway' : item.name) + (late ? ' ⚠️' : ''));
+
+    const x = document.createElement('button');
+    x.className = 'x';
+    x.textContent = '✕';
+    x.setAttribute('aria-label', 'Remove ' + item.name);
+    x.addEventListener('click', e => {
+      e.stopPropagation();
+      removeMeal(item);
+    });
+    chip.append(label, x);
+    return chip;
+  }
+
+  function renderWarnBar() {
+    const bar = document.getElementById('warnBar');
+    bar.innerHTML = '';
+    bar.hidden = !pendingPlan;
+    if (!pendingPlan) return;
+
+    const { pack, day, slot } = pendingPlan;
+    const n = FT.outByDay(pack, day);
+    const text = document.createElement('span');
+    text.textContent = `⚠️ ${pack.name} will be ${n} day${n > 1 ? 's' : ''} out by ${shortDay(day)}`;
+
+    const btns = document.createElement('div');
+    btns.className = 'btns';
+    const yes = document.createElement('button');
+    yes.className = 'act alt';
+    yes.id = 'wYes';
+    yes.textContent = 'Add anyway';
+    yes.addEventListener('click', () => planMeal(pack, day, slot));
+    const no = document.createElement('button');
+    no.className = 'act ghost';
+    no.id = 'wNo';
+    no.textContent = 'Cancel';
+    no.addEventListener('click', () => {
+      pendingPlan = null;
+      renderMeals();
+    });
+    btns.append(yes, no);
+    bar.append(text, btns);
+  }
+
+  function renderPickList() {
+    const listEl = document.getElementById('pickList');
+    listEl.innerHTML = '';
+
+    if (selSlot === 'main') {
+      const ta = document.createElement('button');
+      ta.className = 'item ta';
+      const label = document.createElement('span');
+      label.textContent = '🥡 Takeaway';
+      ta.appendChild(label);
+      ta.addEventListener('click', addTakeaway);
+      listEl.appendChild(ta);
+    }
+
+    const rows = FT.mealPick(packs, selSlot);
+    rows.forEach(row => {
+      const p = row.pack;
+      const btn = document.createElement('button');
+      btn.className = 'item ' + (p.date ? STATUS_CLASS[FT.colour(p.date, today)] : 'nd');
+      const name = document.createElement('span');
+      name.textContent = row.name + (row.count > 1 ? ' ×' + row.count : '');
+      const when = document.createElement('span');
+      when.textContent = p.date ? FT.countdown(p.date, today) : FT.daysLeft(today, p.added) + 'd old';
+      btn.append(name, when);
+      btn.addEventListener('click', () => choosePick(p));
+      listEl.appendChild(btn);
+    });
+
+    if (rows.length === 0) {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Nothing left here.';
+      listEl.appendChild(note);
+    }
+  }
+
+  function renderWeekSummary() {
+    const el = document.getElementById('weekSum');
+    el.innerHTML = '';
+    FT.weekDays(today).forEach(day => {
+      const row = document.createElement('div');
+      row.className = 'wrow';
+      const d = document.createElement('b');
+      d.textContent = shortDay(day);
+      const list = document.createElement('span');
+      const names = FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? '🥡 Takeaway' : p.name));
+      if (names.length) {
+        list.textContent = names.join(' + ');
+      } else {
+        const none = document.createElement('span');
+        none.className = 'note';
+        none.textContent = '—';
+        list.appendChild(none);
+      }
+      row.append(d, list);
+      el.appendChild(row);
+    });
+  }
+
+  // Tap a food: warn first if it will be out of date on that day
+  async function choosePick(pack) {
+    if (FT.outByDay(pack, selDay) > 0) {
+      pendingPlan = { pack, day: selDay, slot: selSlot };
+      renderMeals();
+      return;
+    }
+    await planMeal(pack, selDay, selSlot);
+  }
+
+  async function planMeal(pack, day, slot) {
+    pendingPlan = null;
+    try {
+      await savePack(FT.planPack(pack, day, slot));
+    } catch (e) {
+      // not saved: leave the picker as it was
+      renderMeals();
+      return;
+    }
+    selSlot = slot === 'main' ? 'side' : 'veg';
+    renderMeals();
+    renderAll();
+  }
+
+  async function addTakeaway() {
+    const day = selDay;
+    if (!FT.dayMeals(packs, day).some(p => p.kind === 'takeaway')) {
+      try {
+        const takeaway = FT.makeTakeaway(day);
+        takeaway.id = await DB.add(takeaway);
+        packs.push(takeaway);
+      } catch (e) {
+        renderMeals();
+        return;
+      }
+    }
+    const days = FT.weekDays(today);
+    selDay = days[(days.indexOf(day) + 1) % 7];
+    selSlot = 'main';
+    pendingPlan = null;
+    renderMeals();
+  }
+
+  async function removeMeal(item) {
+    try {
+      if (item.kind === 'takeaway') {
+        await DB.remove(item.id);
+        packs = packs.filter(p => p.id !== item.id);
+      } else {
+        await savePack(FT.unplanPack(item));
+      }
+    } catch (e) {
+      // not removed: the list stays as it was
+    }
+    renderMeals();
+    renderAll();
   }
 
   function renderAll() {

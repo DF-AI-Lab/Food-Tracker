@@ -71,6 +71,7 @@ button.tab.on{background:var(--accent);color:var(--bg)}
 .item.ok{background:var(--okbg)} .item.soon{background:var(--soonbg)} .item.off{background:var(--offbg);border-color:var(--redline)} .item.nd{background:var(--bg);border-color:var(--line)}
 .item span:last-child{font-weight:600;opacity:.8}
 .warnbar{display:flex;flex-direction:column;gap:6px;background:var(--offbg);border:2px solid var(--redline);border-radius:6px;padding:8px;font-size:13px;font-weight:700}
+.warnbar[hidden]{display:none}
 .warnbar .btns button{padding:7px 10px;font-size:13px}
 .item.ta{background:var(--bg);border-color:var(--accent);white-space:nowrap;padding:5px 8px}
 .wkhead{display:flex;justify-content:space-between;align-items:center}
