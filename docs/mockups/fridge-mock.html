@@ -75,6 +75,7 @@ button.tab.on{background:var(--accent);color:var(--bg)}
 .wkhead{display:flex;justify-content:space-between;align-items:center}
 .pbtn{font:inherit;font-size:16px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:6px;padding:5px 7px;color:var(--fg)}
 .sub.two{grid-template-columns:1fr 1fr}
+.sub.three{grid-template-columns:repeat(3,1fr)}
 .shop{height:62vh}
 .sform{display:flex;gap:8px}
 .sform input{flex:1;min-width:0;font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:9px 10px}
@@ -172,7 +173,8 @@ pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg)
   <div class="tabs"><button class="tab on" id="tF">🥶 Fridge</button><button class="tab" id="tM">🍽️ Meals</button><button class="tab" id="tA">➕ Add</button></div>
 
   <div id="addView" class="col" style="gap:14px" hidden>
-    <div class="sub two"><button class="sb" id="aF">🥶 Add to fridge</button><button class="sb on" id="aS">🛒 Shopping list</button></div>
+    <div class="sub three"><button class="sb" id="aF">🥶 Add to fridge</button><button class="sb" id="aQ">📋 Quick fill</button><button class="sb on" id="aS">🛒 Shopping list</button></div>
+    <div id="addQuick" class="sheet" hidden><b>📋 Quick fill</b><div class="note">Placeholder: copy how the built app's Quick fill works.</div></div>
     <div id="addFridge" class="pane af" hidden>
       <div class="mtabs" id="akind"><button class="sb on" data-k="main">🍖 Main</button><button class="sb" data-k="side">🥔 Side</button><button class="sb" data-k="misc">🧂 Misc</button></div>
       <div class="tag">⭐ Usual · tap one</div>
@@ -454,7 +456,7 @@ document.getElementById("tA").onclick=()=>tab("A");
 /* ---------- Add tab: shopping list ---------- */
 let shop=[{n:"Milk",got:false},{n:"Chicken breasts",got:false},{n:"Peas",got:false},{n:"Garlic bread",got:false},{n:"Eggs",got:true},{n:"Bread",got:false},{n:"Cola",got:false,del:"2026-10-07"},{n:"Crisps",got:false,del:"2026-10-05"}];
 const SHOWDEL=d=>days(d)>=-1; /* deleted rows stay 1 day, then go */
-function addSub(w){document.getElementById("addFridge").hidden=w!=="f";document.getElementById("addShop").hidden=w!=="s";
+function addSub(w){document.getElementById("addFridge").hidden=w!=="f";document.getElementById("addShop").hidden=w!=="s";document.getElementById("addQuick").hidden=w!=="q";document.getElementById("aQ").classList.toggle("on",w==="q");
   document.getElementById("aF").classList.toggle("on",w==="f");document.getElementById("aS").classList.toggle("on",w==="s")}
 function renderShop(){
   const ul=document.getElementById("shopList");ul.innerHTML="";
@@ -502,6 +504,7 @@ function renderIdeas(){const box=document.getElementById("ideaBox");box.hidden=!
 document.getElementById("ideaBtn").onclick=()=>{ideasOn=!ideasOn;renderIdeas()};
 document.querySelectorAll("#qtabs .sb").forEach(t=>t.onclick=()=>{qSel=t.dataset.q;renderQuick();renderIdeas()});
 document.getElementById("aF").onclick=()=>addSub("f");
+document.getElementById("aQ").onclick=()=>addSub("q");
 document.getElementById("aS").onclick=()=>addSub("s");
 document.getElementById("shopForm").onsubmit=e=>{e.preventDefault();const f=document.getElementById("shopIn");
   if(f.value.trim()){shop.unshift({n:f.value.trim(),got:false});f.value="";renderShop()}};
