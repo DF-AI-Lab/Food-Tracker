@@ -2,8 +2,8 @@
   // Constants
   const STARTERS = {
     main: ["Chicken", "Mince", "Sausages", "Gammon"],
-    side: ["Dauphinoise potatoes", "Cauliflower cheese", "Roast potatoes", "Potatoes", "Jacket potatoes", "Sweetcorn cobs"],
-    veg: ["Carrots", "Onions", "Broccoli", "Peppers", "Mushrooms", "Leeks", "Cabbage"],
+    side: ["Dauphinoise potatoes", "Cauliflower cheese", "Roast potatoes", "Jacket potatoes", "Sweetcorn cobs"],
+    veg: ["Carrots", "Onions", "Broccoli", "Peppers", "Mushrooms", "Leeks", "Cabbage", "Potatoes"],
     misc: ["Milk", "Eggs", "Margarine", "Butter"]
   };
   const KINDS = ["main", "side", "veg", "misc"];
@@ -103,7 +103,7 @@
 
   // Pack creation
   function makePacks(spec, today) {
-    const { name, kind, date, dateType, count, toFreezer, noDate } = spec;
+    const { name, kind, date, dateType, count, toFreezer, noDate, sub, price } = spec;
 
     // Validation
     if (!name || !name.trim()) throw new Error("Empty name");
@@ -122,7 +122,9 @@
         status: toFreezer ? "frozen" : "in_fridge",
         added: today,
         left: null,
-        frozen: toFreezer ? today : null
+        frozen: toFreezer ? today : null,
+        sub: sub || null,
+        price: (typeof price === "number" ? price : null)
       };
       packs.push(pack);
     }
@@ -175,6 +177,29 @@
       if (!latest || p.added > latest.added || (p.added === latest.added && p.id > latest.id)) latest = p;
     }
     return !!latest && (latest.date === null || latest.date === undefined || latest.date === "");
+  }
+
+  // Remembered kind per food: the latest pack (not deleted) decides, else the starter lists
+  function rememberedKind(allPacks, name) {
+    const key = String(name ?? "").trim().toLowerCase();
+    if (!key) return null;
+    let latest = null;
+    for (const p of allPacks || []) {
+      if (p.status === "deleted") continue;
+      if (String(p.name ?? "").trim().toLowerCase() !== key) continue;
+      if (!latest || p.added > latest.added || (p.added === latest.added && p.id > latest.id)) latest = p;
+    }
+    if (latest) return latest.kind;
+    const starter = KINDS.find(k => (STARTERS[k] || []).some(s => s.toLowerCase() === key));
+    return starter || null;
+  }
+
+  // How many packs of this food were ever added (not counting deleted ones)
+  function boughtCount(allPacks, name) {
+    const key = String(name ?? "").trim().toLowerCase();
+    if (!key) return 0;
+    return (allPacks || []).filter(p =>
+      p.status !== "deleted" && String(p.name ?? "").trim().toLowerCase() === key).length;
   }
 
   // Fridge view utilities
@@ -389,14 +414,19 @@
   // Quick fill (JSON pasted back from Claude)
   const CLAUDE_PROMPT = [
     "I'm sending you photos of my fridge and freezer. Please:",
-    "- Read each food item and its use-by or best-before date from the photos.",
-    "- For each item choose a kind: \"main\" (meat, fish or a main meal), \"side\" (ready-made sides like chips, potatoes or dauphinoise), \"veg\" (fresh veg and fruit), or \"misc\" (milk, eggs, butter, sauces etc).",
-    "- Items that never carry a date (e.g. margarine, ketchup): use \"date\":null and \"noDate\":true.",
-    "- Otherwise never guess a date. If you can't read a date clearly, or you are unsure of the kind, ASK me before giving the JSON.",
-    "- Write dates as YYYY-MM-DD.",
-    "- If the same item has several packs with the same date, make one row with \"packs\".",
+    "- Make one entry per photo (one food item each).",
+    "- \"name\": the short main name, e.g. \"Chicken\".",
+    "- \"sub\": the full packet name as printed, e.g. \"Asda chicken breasts 500g\".",
+    "- \"date\": YYYY-MM-DD. Use the use-by date, else the best before date. Ignore \"display until\".",
+    "- \"price\": a number only if a price is printed, e.g. 3.5 (no £ sign).",
+    "- \"bb\": true only if the date is a best before date.",
+    "- \"packs\": only if there is more than one pack with the same date.",
+    "- Fresh veg or fruit (\"veg\"): name only, no date, e.g. {\"name\":\"Carrots\"}.",
+    "- Items that never have a date (e.g. margarine, ketchup): leave out the date and add \"noDate\":true.",
+    "- Do not add a \"kind\" field. The app works out the kind itself.",
+    "- Never guess. If you can't read a date clearly, or you are unsure of the name, ASK me before giving the JSON.",
     "- Reply with only a JSON array in a ```json block, like this:",
-    "[{\"name\":\"Sausages\",\"kind\":\"main\",\"date\":\"2026-10-10\",\"dateType\":\"use_by\",\"packs\":2},{\"name\":\"Carrots\",\"kind\":\"veg\",\"date\":null},{\"name\":\"Margarine\",\"kind\":\"misc\",\"date\":null,\"noDate\":true}]",
+    "[{\"name\":\"Chicken\",\"sub\":\"Asda chicken breasts\",\"date\":\"2026-10-12\",\"price\":3.5},{\"name\":\"Milk\",\"sub\":\"Cravendale 2L\",\"date\":\"2026-10-15\",\"bb\":true},{\"name\":\"Mince\",\"sub\":\"Tesco beef mince 5%\",\"date\":\"2026-10-10\",\"packs\":3},{\"name\":\"Carrots\"}]",
     "Keep it short and plain English."
   ].join("\n");
 
@@ -406,31 +436,53 @@
     return !isNaN(d) && d.toISOString().split("T")[0] === s;
   }
 
+  // "3.5", 3.5 or "£3.50" give a number; anything else (or negative) gives null
+  function parsePrice(v) {
+    if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? v : null;
+    if (typeof v !== "string") return null;
+    const s = v.trim().replace(/^£\s*/, "");
+    if (!/^\d+(\.\d+)?$/.test(s)) return null;
+    return parseFloat(s);
+  }
+
   function quickFillRow(row, allPacks = []) {
     const r = row || {};
     const rawName = String(r.name ?? "").trim();
     const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    const sub = String(r.sub ?? "").trim() || null;
+    const price = parsePrice(r.price);
 
+    // Kind: given in the row, else remembered for this food (no kind yet = ask the user)
     let kind = String(r.kind ?? "").trim().toLowerCase();
     if (kind === "vegetable") kind = "veg";
+    const kindGiven = kind !== "";
+    if (!kindGiven) kind = rememberedKind(allPacks, name) || "";
+    const needsKind = kind === "";
 
-    const hasDate = r.date !== null && r.date !== undefined && String(r.date).trim() !== "";
+    // Date: bb or dateType best_before → best before, else use by
+    const sentDate = r.date !== null && r.date !== undefined && String(r.date).trim() !== "";
+    const forcedNoDate = kind === "veg" || rememberedNoDate(allPacks, name);
+    const hasDate = sentDate && !forcedNoDate;
     const date = hasDate ? String(r.date).trim() : null;
-    const dateType = hasDate ? (r.dateType === "best_before" ? "best_before" : "use_by") : null;
+    const dateType = hasDate ? (r.bb === true || r.dateType === "best_before" ? "best_before" : "use_by") : null;
 
     // No date is fine for sides and veg, for foods marked noDate, or for foods remembered with no date
-    const noDate = !hasDate && (r.noDate === true || kind === "side" || kind === "veg" || rememberedNoDate(allPacks, name));
+    const noDate = forcedNoDate || (!hasDate && (r.noDate === true || kind === "side"));
 
     const count = Math.min(20, Math.max(1, parseInt(r.packs ?? r.count ?? 1, 10) || 1));
     const toFreezer = r.freezer === true || r.toFreezer === true;
 
     let problem = null;
     if (!name) problem = "Needs a name";
+    else if (needsKind) problem = "Pick a kind";
     else if (!KINDS.includes(kind)) problem = "Kind must be main, side, veg or misc";
     else if (hasDate && !isRealDate(date)) problem = "Date must look like 2026-10-10";
     else if (!hasDate && !noDate) problem = "Needs a date";
 
-    return { name, kind, date, dateType, count, toFreezer, noDate, ok: problem === null, problem };
+    return {
+      name, sub, price, kind, date, dateType, count, toFreezer, noDate,
+      ok: problem === null, problem, needsKind, raw: row
+    };
   }
 
   function parseQuickFill(text, today, allPacks = []) {
@@ -488,6 +540,9 @@
     KINDS,
     usuals,
     rememberedNoDate,
+    rememberedKind,
+    boughtCount,
+    quickFillRow,
     parseQuickFill,
     CLAUDE_PROMPT
   };

@@ -41,6 +41,7 @@ If `New` is empty, say "No new photos 👍" and stop.
 | `price` | A number, only if a price is printed on the label. Never guess. | `3.5` |
 | `bb` | `true` only when the date is a best before | `true` |
 | `packs` | Only when the photo shows **more than one** of the same pack | `3` |
+| `noDate` | `true` only when a packet clearly has **no date printed anywhere** (some margarine tubs, ketchup). Leave out `date`. | `true` |
 
 Leave out any field you don't have. Don't write `null` for it.
 
