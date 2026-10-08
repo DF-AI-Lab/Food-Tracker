@@ -273,9 +273,9 @@ test("parseQuickFill copes with code fences, extra text and {items:[...]}", () =
   assert.equal(r.items[0].name, "Eggs");
 });
 
-test("parseQuickFill: veg means a side, freezer flag kept", () => {
+test("parseQuickFill: veg kept as veg, freezer flag kept", () => {
   const r = L.parseQuickFill('[{"name":"Peas","kind":"veg","date":null},{"name":"Mince","kind":"main","date":"2026-10-09","freezer":true}]', TODAY);
-  assert.equal(r.items[0].kind, "side");
+  assert.equal(r.items[0].kind, "veg");
   assert.equal(r.items[0].ok, true);
   assert.equal(r.items[1].toFreezer, true);
 });
@@ -291,7 +291,7 @@ test("parseQuickFill flags bad rows but keeps the good ones", () => {
   assert.equal(r.error, null);
   assert.deepEqual(r.items.map(i => i.ok), [false, false, false, false, true]);
   assert.match(r.items[0].problem, /date/i);
-  assert.match(r.items[1].problem, /main, side or misc/i);
+  assert.match(r.items[1].problem, /main, side, veg or misc/i);
   assert.equal(r.items[4].count, 20); // capped
 });
 
@@ -451,4 +451,204 @@ test("autoOutOfDate: misc packs 1-2 days out, not already on the list", () => {
 test("autoOutOfDate: an item you deleted is not added back", () => {
   const packs = [fp(1,"Eggs","misc","2026-10-06")];
   assert.deepEqual(L.autoOutOfDate(packs, [si(1, "Eggs", { del: TODAY })], TODAY), []);
+});
+
+// ---------- Veg as its own kind ----------
+
+test("STARTERS has a veg list; kinds are main, side, veg, misc", () => {
+  assert.ok(Array.isArray(L.STARTERS.veg) && L.STARTERS.veg.length >= 4);
+  assert.ok(L.STARTERS.veg.includes("Carrots"));
+  assert.deepEqual(L.KINDS, ["main", "side", "veg", "misc"]);
+});
+
+test("makePacks: veg needs no date", () => {
+  const [p] = L.makePacks({ name: "onions", kind: "veg", date: null, count: 1 }, TODAY);
+  assert.equal(p.kind, "veg");
+  assert.equal(p.date, null);
+  assert.equal(p.dateType, null);
+});
+
+test("fridgeView: veg goes in the veg box (with undated sides), oldest first, and counts as a side", () => {
+  const v = L.fridgeView([
+    pk(1, "Coleslaw", "side", "2026-10-09"),
+    pk(2, "Carrots", "veg", null, { added: "2026-10-05" }),
+    pk(3, "Onions", "veg", null, { added: "2026-09-27" }),
+    pk(4, "Peas", "side", null, { added: "2026-10-01" }),
+    pk(5, "Leeks", "veg", "2026-10-12", { added: "2026-10-06" }),
+  ], TODAY);
+  assert.deepEqual(v.veg.map(p => p.name), ["Onions", "Peas", "Carrots", "Leeks"]);
+  assert.deepEqual(v.sides.map(c => c.name), ["Coleslaw"]);
+  assert.equal(v.sideCount, 5);
+});
+
+// ---------- "No date" for any kind, remembered per food ----------
+
+test("makePacks: any kind may skip the date when noDate is set", () => {
+  const [m] = L.makePacks({ name: "Margarine", kind: "misc", date: null, count: 1, noDate: true }, TODAY);
+  assert.equal(m.date, null);
+  const [c] = L.makePacks({ name: "Pie", kind: "main", date: null, count: 1, noDate: true }, TODAY);
+  assert.equal(c.date, null);
+  // without noDate, mains and misc still need a date
+  assert.throws(() => L.makePacks({ name: "Eggs", kind: "misc", date: null, count: 1 }, TODAY));
+});
+
+test("rememberedNoDate: true when the latest pack of that food had no date", () => {
+  const packs = [
+    pk(1, "Margarine", "misc", null, { added: "2026-10-01" }),
+    pk(2, "Eggs", "misc", "2026-10-20", { added: "2026-10-01" }),
+    pk(3, "Ham", "main", null, { added: "2026-09-01", status: "used" }),
+    pk(4, "Ham", "main", "2026-10-09", { added: "2026-10-03" }),
+  ];
+  assert.equal(L.rememberedNoDate(packs, "margarine"), true);   // any case
+  assert.equal(L.rememberedNoDate(packs, " Margarine "), true); // trims
+  assert.equal(L.rememberedNoDate(packs, "Eggs"), false);
+  assert.equal(L.rememberedNoDate(packs, "Ham"), false);        // latest has a date again
+  assert.equal(L.rememberedNoDate(packs, "Butter"), false);     // never seen
+});
+
+test("fridgeView: undated mains listed separately (oldest first) and counted", () => {
+  const v = L.fridgeView([
+    pk(1, "Chicken", "main", "2026-10-09"),
+    pk(2, "Pie", "main", null, { added: "2026-10-04" }),
+    pk(3, "Quiche", "main", null, { added: "2026-10-02" }),
+    pk(4, "Margarine", "misc", null),
+  ], TODAY);
+  assert.deepEqual(v.mains.map(c => c.name), ["Chicken"]);
+  assert.deepEqual(v.mainsNoDate.map(p => p.name), ["Quiche", "Pie"]);
+  assert.equal(v.mainCount, 3);
+  assert.equal(v.miscOk, 1);
+});
+
+// ---------- Quick fill: veg + no date ----------
+
+test("parseQuickFill: veg is its own kind ('vegetable' too)", () => {
+  const r = L.parseQuickFill(`[{"name":"carrots","kind":"veg","date":null},{"name":"Leeks","kind":"vegetable"}]`, TODAY);
+  assert.deepEqual(r.items.map(i => [i.name, i.kind, i.ok]), [["Carrots", "veg", true], ["Leeks", "veg", true]]);
+});
+
+test("parseQuickFill: main/misc with no date is ok when noDate:true or remembered", () => {
+  const packs = [pk(1, "Margarine", "misc", null)];
+  const r = L.parseQuickFill(`[
+    {"name":"margarine","kind":"misc","date":null},
+    {"name":"Ketchup","kind":"misc","date":null,"noDate":true},
+    {"name":"Eggs","kind":"misc","date":null}
+  ]`, TODAY, packs);
+  assert.deepEqual(r.items.map(i => [i.name, i.ok, i.noDate]), [
+    ["Margarine", true, true],
+    ["Ketchup", true, true],
+    ["Eggs", false, false],
+  ]);
+  assert.equal(r.items[2].problem, "Needs a date");
+});
+
+test("CLAUDE_PROMPT mentions veg and noDate", () => {
+  assert.match(L.CLAUDE_PROMPT, /"veg"/);
+  assert.match(L.CLAUDE_PROMPT, /noDate/);
+});
+
+// ---------- Photo check JSON: name, sub, date, price (+ bb, packs) ----------
+
+test("Potatoes is a veg starter, not a side", () => {
+  assert.ok(L.STARTERS.veg.includes("Potatoes"));
+  assert.ok(!L.STARTERS.side.includes("Potatoes"));
+});
+
+test("rememberedKind: latest pack's kind, else the starter lists, else null", () => {
+  const packs = [
+    pk(1, "Halloumi", "side", "2026-10-09", { added: "2026-09-01" }),
+    pk(2, "halloumi", "misc", "2026-10-20", { added: "2026-10-01" }),
+    pk(3, "Quiche", "main", "2026-10-09", { status: "deleted" }),
+  ];
+  assert.equal(L.rememberedKind(packs, "HALLOUMI "), "misc");
+  assert.equal(L.rememberedKind(packs, "Chicken"), "main");   // starter
+  assert.equal(L.rememberedKind(packs, "potatoes"), "veg");   // starter, any case
+  assert.equal(L.rememberedKind(packs, "Quiche"), null);      // deleted packs don't count
+  assert.equal(L.rememberedKind(packs, "Dragonfruit"), null);
+});
+
+test("boughtCount: packs ever added with that name (not deleted)", () => {
+  const packs = [
+    pk(1, "Chicken", "main", "2026-10-09", { status: "used" }),
+    pk(2, "chicken", "main", "2026-10-12"),
+    pk(3, "Chicken", "main", "2026-10-12", { status: "frozen" }),
+    pk(4, "Chicken", "main", "2026-10-12", { status: "deleted" }),
+  ];
+  assert.equal(L.boughtCount(packs, "Chicken"), 3);
+  assert.equal(L.boughtCount(packs, "Eggs"), 0);
+});
+
+test("quick fill: photo JSON with no kind uses the remembered kind", () => {
+  const r = L.parseQuickFill(`[
+    {"name":"Chicken","sub":"Asda chicken breasts","date":"2026-10-12","price":3.5},
+    {"name":"Milk","sub":"Cravendale 2L","date":"2026-10-15","bb":true},
+    {"name":"Mince","sub":"Tesco beef mince 5%","date":"2026-10-10","packs":3}
+  ]`, TODAY, []);
+  assert.deepEqual(r.items.map(i => [i.name, i.kind, i.date, i.dateType, i.count, i.sub, i.price, i.ok]), [
+    ["Chicken", "main", "2026-10-12", "use_by", 1, "Asda chicken breasts", 3.5, true],
+    ["Milk", "misc", "2026-10-15", "best_before", 1, "Cravendale 2L", null, true],
+    ["Mince", "main", "2026-10-10", "use_by", 3, "Tesco beef mince 5%", null, true],
+  ]);
+});
+
+test("quick fill: a new food asks for its kind, then works once picked", () => {
+  const r = L.parseQuickFill(`[{"name":"Halloumi","date":"2026-10-20"}]`, TODAY, []);
+  const item = r.items[0];
+  assert.equal(item.ok, false);
+  assert.equal(item.needsKind, true);
+  assert.equal(item.problem, "Pick a kind");
+  const fixed = L.quickFillRow({ ...item.raw, kind: "misc" }, []);
+  assert.equal(fixed.ok, true);
+  assert.equal(fixed.kind, "misc");
+  assert.equal(fixed.needsKind, false);
+});
+
+test("quick fill: veg and remembered no-date foods ignore any date sent", () => {
+  const packs = [pk(1, "Margarine", "misc", null)];
+  const r = L.parseQuickFill(`[
+    {"name":"Potatoes","date":"2026-10-30"},
+    {"name":"Margarine","sub":"Flora 500g","date":"2027-01-01"},
+    {"name":"Leeks"}
+  ]`, TODAY, packs);
+  assert.deepEqual(r.items.map(i => [i.name, i.kind, i.date, i.dateType, i.noDate, i.ok]), [
+    ["Potatoes", "veg", null, null, true, true],
+    ["Margarine", "misc", null, null, true, true],
+    ["Leeks", "veg", null, null, true, true],
+  ]);
+});
+
+test("quick fill: price reads numbers and '£3.50', ignores junk", () => {
+  const r = L.parseQuickFill(`[
+    {"name":"Chicken","date":"2026-10-12","price":"£3.50"},
+    {"name":"Chicken","date":"2026-10-12","price":"cheap"},
+    {"name":"Chicken","date":"2026-10-12","price":-2}
+  ]`, TODAY);
+  assert.deepEqual(r.items.map(i => i.price), [3.5, null, null]);
+});
+
+test("makePacks keeps sub and price on every pack (null when missing)", () => {
+  const out = L.makePacks({ name: "Chicken", kind: "main", date: "2026-10-12", count: 2, sub: "Asda chicken breasts", price: 3.5 }, TODAY);
+  assert.deepEqual(out.map(p => [p.sub, p.price]), [["Asda chicken breasts", 3.5], ["Asda chicken breasts", 3.5]]);
+  const [p] = L.makePacks({ name: "Eggs", kind: "misc", date: "2026-10-20", count: 1 }, TODAY);
+  assert.equal(p.sub, null);
+  assert.equal(p.price, null);
+});
+
+test("CLAUDE_PROMPT asks for name, sub, date, price, bb and packs", () => {
+  for (const word of ['"name"', '"sub"', '"date"', '"price"', '"bb"', '"packs"']) {
+    assert.ok(L.CLAUDE_PROMPT.includes(word), word);
+  }
+});
+
+// ---------- merge: the Veg kind works in meals and shopping ----------
+
+test("mealPick veg slot includes veg-kind packs as well as undated sides", () => {
+  const packs = [fp(1,"Carrots","veg",null,{ added: "2026-10-02" }), fp(2,"Peas","side",null,{ added: "2026-10-01" }),
+    fp(3,"Leeks","veg","2026-10-12",{ added: "2026-10-04" }), fp(4,"Coleslaw","side","2026-10-09")];
+  assert.deepEqual(L.mealPick(packs, "veg").map(r => r.name), ["Peas", "Carrots", "Leeks"]);
+  assert.deepEqual(L.mealPick(packs, "side").map(r => r.name), ["Coleslaw"]);
+});
+
+test("boughtBefore veg tab includes veg-kind packs", () => {
+  const packs = [fp(1,"Carrots","veg",null), fp(2,"Carrots","veg",null), fp(3,"Peas","side",null)];
+  assert.deepEqual(L.boughtBefore(packs, "veg"), ["Carrots", "Peas"]);
 });

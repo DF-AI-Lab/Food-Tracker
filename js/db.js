@@ -1,52 +1,64 @@
 (function() {
-  let db;
-
-  // One set of helpers per store: all / get / add / put / remove
-  function store(name) {
-    const run = (mode, fn) => new Promise((resolve, reject) => {
-      const req = fn(db.transaction(name, mode).objectStore(name));
-      req.onerror = () => reject(req.error);
-      req.onsuccess = () => resolve(req.result);
+  // Everything is saved by the local server (server/server.js) in a SQLite file
+  async function call(method, url, body) {
+    const res = await fetch(url, {
+      method,
+      headers: body === undefined ? {} : { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body)
     });
+    if (!res.ok) throw new Error(`${method} ${url} failed: ${res.status}`);
+    return res.json();
+  }
+
+  function withoutId(item) {
+    const { id, ...rest } = item;
+    return rest;
+  }
+
+  // all / get / add / put / remove for one collection (packs or shop)
+  function store(name) {
+    const base = `/api/${name}`;
     return {
-      all: () => run("readonly", s => s.getAll()),
-      get: (key) => run("readonly", s => s.get(key)),
-      add: (value) => run("readwrite", s => s.add(value)),
-      put: (value) => run("readwrite", s => s.put(value)),
-      remove: (key) => run("readwrite", s => s.delete(key))
+      async all() {
+        return call("GET", base);
+      },
+      async get(id) {
+        return call("GET", `${base}/${id}`);
+      },
+      async add(item) {
+        const { id } = await call("POST", base, withoutId(item));
+        return id;
+      },
+      async put(item) {
+        const { id } = await call("PUT", `${base}/${item.id}`, withoutId(item));
+        return id;
+      },
+      async remove(id) {
+        return call("DELETE", `${base}/${id}`);
+      }
     };
   }
 
   const DB = {
     async open() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open("food-tracker", 2);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => {
-          db = req.result;
-          resolve(db);
-        };
-        req.onupgradeneeded = (e) => {
-          const database = e.target.result;
-          if (!database.objectStoreNames.contains("packs")) {
-            database.createObjectStore("packs", { keyPath: "id", autoIncrement: true });
-          }
-          if (!database.objectStoreNames.contains("shop")) {
-            database.createObjectStore("shop", { keyPath: "id", autoIncrement: true });
-          }
-          if (!database.objectStoreNames.contains("ratings")) {
-            database.createObjectStore("ratings", { keyPath: "name" });
-          }
-        };
-      });
+      // Nothing to open: the server holds the database
     },
 
     // Packs (the fridge): DB.all, DB.get, DB.add, DB.put, DB.remove
     ...store("packs"),
 
-    // Shopping list items and idea ratings ({ name, rating })
+    // Shopping list items
     shop: store("shop"),
-    ratings: store("ratings")
+
+    // Idea ratings, one per food name: { name, rating }
+    ratings: {
+      async all() {
+        return call("GET", "/api/ratings");
+      },
+      async put(r) {
+        return call("PUT", `/api/ratings/${encodeURIComponent(r.name)}`, r);
+      }
+    }
   };
 
   window.DB = DB;

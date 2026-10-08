@@ -33,6 +33,10 @@
 
     <!-- Fridge View -->
     <div data-view-pane="fridge">
+      <div class="selbar">
+        <button type="button" class="sb" id="selectBtn">☑️ Select</button>
+        <button type="button" class="act" id="freezeSel" style="display:none">🧊 Freeze (0)</button>
+      </div>
       <div id="fridgeView" class="cols">
         <div class="pane column">
           <div class="wkhead">
@@ -51,7 +55,7 @@
           <h2>🥔 Sides · <span id="sideCount">0</span></h2>
           <div id="sides" class="scroll"></div>
           <div class="veg">
-            <div class="tag">🥕 Veg &amp; misc – no date</div>
+            <div class="tag">🥕 Veg &amp; no date</div>
             <div id="veg" class="scroll"></div>
           </div>
         </div>
@@ -117,6 +121,7 @@
         <div class="mtabs">
           <button data-kind="main" class="sb on">🍖 Main</button>
           <button data-kind="side" class="sb">🥔 Side</button>
+          <button data-kind="veg" class="sb">🥕 Veg</button>
           <button data-kind="misc" class="sb">🧂 Misc</button>
         </div>
         <div class="tag">⭐ Usual · tap one</div>
@@ -135,7 +140,7 @@
           <button type="button" data-dt="best_before" class="sb">Best before</button>
         </div>
         <div class="qchips" id="quick">
-          <label class="noDate" style="display:none"><input type="checkbox" id="noDate"><span>No date (sides only)</span></label>
+          <label class="noDate"><input type="checkbox" id="noDate"><span>No date</span></label>
         </div>
         <div id="datePreview" class="datebox">No date picked yet</div>
         <div class="packs2"><span>Packs</span><button type="button" class="undo" id="minus" aria-label="One less">−</button><b id="count">1</b><button type="button" class="undo" id="plus" aria-label="One more">+</button></div>
@@ -150,6 +155,7 @@
       <div class="pane af">
         <b>📋 Quick fill</b>
         <div class="qf-how note">Photos → Claude → paste the JSON here</div>
+        <div class="note">Or drag a .json file onto the app</div>
         <details>
           <summary>Message for Claude</summary>
           <pre id="qfPrompt"></pre>

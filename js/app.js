@@ -13,6 +13,9 @@
   let shopTab = 'main';   // "bought before" tab: main | side | veg | other
   let ideasOn = false;
   const autoBusy = new Set();
+  // Fridge select mode: tap packs to pick them, then freeze the picked ones together
+  let selectMode = false;
+  const selectedIds = new Set();
 
   function getToday() {
     const params = new URLSearchParams(window.location.search);
@@ -96,8 +99,8 @@
       });
     });
 
-    // Kind selection
-    document.querySelectorAll('[data-kind]').forEach(btn => {
+    // Kind selection (Add to fridge only; quick fill has its own kind buttons)
+    document.querySelectorAll('.mtabs [data-kind]').forEach(btn => {
       btn.addEventListener('click', () => selectKind(btn.dataset.kind));
     });
 
@@ -108,6 +111,7 @@
     document.getElementById('name').addEventListener('input', () => {
       document.getElementById('days').value = '';
       document.getElementById('ddmm').value = '';
+      applyNoDateRule();
       updateDatePreview();
     });
 
@@ -132,6 +136,11 @@
     document.getElementById('actFreeze').addEventListener('click', actFreeze);
     document.getElementById('actDelete').addEventListener('click', actDelete);
     document.getElementById('actCancel').addEventListener('click', hideSheet);
+
+    // Fridge select mode
+    document.getElementById('selectBtn').addEventListener('click', toggleSelectMode);
+    document.getElementById('freezeSel').addEventListener('click', freezeSelected);
+    updateSelectUI();
 
     // Undo
     document.getElementById('undoBtn').addEventListener('click', async () => {
@@ -183,6 +192,21 @@
         renderIdeas();
       });
     });
+    // Drag a .json file onto the app to load it into Quick fill
+    document.body.addEventListener('dragover', e => e.preventDefault());
+    document.body.addEventListener('drop', dropJsonFile);
+  }
+
+  async function dropJsonFile(e) {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer?.files || []);
+    const file = files.find(f => /\.json$/i.test(f.name) || /json|text/.test(f.type));
+    if (!file) return;
+    const text = await file.text();
+    switchTab('add');
+    switchSub('quick');
+    document.getElementById('qfText').value = text;
+    checkQuickFill();
   }
 
   function switchSub(sub) {
@@ -213,10 +237,14 @@
 
   let quickFillItems = [];
   let quickFillBoxes = [];
+  let quickFillRowEls = [];
+
+  const QF_KINDS = [['main', '🍖 Main'], ['side', '🥔 Side'], ['veg', '🥕 Veg'], ['misc', '🧂 Misc']];
 
   function clearQuickFillList() {
     quickFillItems = [];
     quickFillBoxes = [];
+    quickFillRowEls = [];
     document.getElementById('qfList').innerHTML = '';
     document.getElementById('qfAdd').style.display = 'none';
   }
@@ -224,7 +252,7 @@
   function checkQuickFill() {
     const msg = document.getElementById('qfMsg');
     const listEl = document.getElementById('qfList');
-    const result = FT.parseQuickFill(document.getElementById('qfText').value, today);
+    const result = FT.parseQuickFill(document.getElementById('qfText').value, today, packs);
 
     clearQuickFillList();
     if (result.error) {
@@ -233,44 +261,85 @@
     }
     msg.textContent = '';
 
-    const emojiMap = { main: '🍖', side: '🥔', misc: '🧂' };
-    result.items.forEach(item => {
-      const row = document.createElement('label');
-      row.className = 'srow qf-row';
-
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.checked = item.ok;
-      box.disabled = !item.ok;
-      quickFillBoxes.push(box);
-      row.appendChild(box);
-
-      const text = document.createElement('span');
-      const emoji = emojiMap[item.kind] || '📦';
-      const when = document.createElement('span');
-      if (item.date) {
-        when.textContent = FT.formatDate(item.date);
-        when.className = 'preview-' + FT.colour(item.date, today);
-      } else {
-        when.textContent = 'no date';
-      }
-      text.textContent = `${emoji} ${item.name || '(no name)'} ×${item.count} · `;
-      text.appendChild(when);
-      if (item.toFreezer) text.append(' · 🧊');
-      row.appendChild(text);
-
-      if (!item.ok) {
-        const problem = document.createElement('span');
-        problem.className = 'qf-problem';
-        problem.textContent = item.problem;
-        row.appendChild(problem);
-      }
-
-      listEl.appendChild(row);
-    });
-
     quickFillItems = result.items;
+    result.items.forEach((item, i) => {
+      const rowEl = buildQuickFillRow(item, i);
+      quickFillRowEls[i] = rowEl;
+      listEl.appendChild(rowEl);
+    });
     document.getElementById('qfAdd').style.display = '';
+  }
+
+  // One row: tick box, name, date, price; a food with no known kind gets 4 kind buttons
+  function buildQuickFillRow(item, index) {
+    const emojiMap = { main: '🍖', side: '🥔', veg: '🥕', misc: '🧂' };
+    const row = document.createElement('label');
+    row.className = 'srow qf-row';
+
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = item.ok;
+    box.disabled = !item.ok;
+    quickFillBoxes[index] = box;
+    row.appendChild(box);
+
+    const text = document.createElement('span');
+    const emoji = emojiMap[item.kind] || '📦';
+    const when = document.createElement('span');
+    if (item.date) {
+      when.textContent = FT.formatDate(item.date);
+      when.className = 'preview-' + FT.colour(item.date, today);
+    } else {
+      when.textContent = 'no date';
+    }
+    text.textContent = `${emoji} ${item.name || '(no name)'} ×${item.count} · `;
+    text.appendChild(when);
+    if (item.price !== null) {
+      const price = document.createElement('span');
+      price.className = 'qf-price';
+      price.textContent = ` · £${item.price.toFixed(2)}`;
+      text.appendChild(price);
+    }
+    if (item.toFreezer) text.append(' · 🧊');
+    row.appendChild(text);
+
+    if (!item.ok) {
+      const problem = document.createElement('span');
+      problem.className = 'qf-problem';
+      problem.textContent = item.problem;
+      row.appendChild(problem);
+    }
+
+    if (item.needsKind) {
+      const group = document.createElement('div');
+      group.className = 'qf-kind';
+      QF_KINDS.forEach(([kind, label]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'qc';
+        btn.dataset.kind = kind;
+        btn.textContent = label;
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          pickQuickFillKind(index, kind);
+        });
+        group.appendChild(btn);
+      });
+      row.appendChild(group);
+    }
+
+    return row;
+  }
+
+  // Re-check one row with the kind the user picked, and swap just that row
+  function pickQuickFillKind(index, kind) {
+    const item = quickFillItems[index];
+    if (!item) return;
+    const fixed = FT.quickFillRow({ ...item.raw, kind }, packs);
+    quickFillItems[index] = fixed;
+    const rowEl = buildQuickFillRow(fixed, index);
+    quickFillRowEls[index].replaceWith(rowEl);
+    quickFillRowEls[index] = rowEl;
   }
 
   async function addQuickFill() {
@@ -282,8 +351,9 @@
     }
 
     const newPacks = chosen.flatMap(item => FT.makePacks({
-      name: item.name, kind: item.kind, date: item.date,
-      dateType: item.dateType, count: item.count, toFreezer: item.toFreezer
+      name: item.name, kind: item.kind, date: item.date, noDate: item.noDate,
+      dateType: item.dateType, count: item.count, toFreezer: item.toFreezer,
+      sub: item.sub, price: item.price
     }, today));
 
     try {
@@ -308,6 +378,7 @@
   }
 
   function switchTab(tab) {
+    if (tab !== 'fridge' && selectMode) exitSelectMode();
     document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('on'));
     document.querySelector(`[data-tab="${tab}"]`).classList.add('on');
 
@@ -324,6 +395,7 @@
   }
 
   function switchView(view) {
+    if (view !== 'fridge' && selectMode) exitSelectMode();
     document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('on'));
     document.querySelector(`[data-view="${view}"]`).classList.add('on');
 
@@ -335,18 +407,40 @@
     else if (view === 'used') renderUsedView();
   }
 
+  function currentKind() {
+    return document.querySelector('.mtabs [data-kind].on')?.dataset.kind || 'main';
+  }
+
   function selectKind(kind) {
-    document.querySelectorAll('[data-kind]').forEach(b => b.classList.remove('on'));
-    document.querySelector(`[data-kind="${kind}"]`).classList.add('on');
-    // "No date" is only for sides
-    document.getElementById('noDate').closest('label').style.display = kind === 'side' ? '' : 'none';
-    if (kind !== 'side') document.getElementById('noDate').checked = false;
+    document.querySelectorAll('.mtabs [data-kind]').forEach(b => b.classList.remove('on'));
+    document.querySelector(`.mtabs [data-kind="${kind}"]`).classList.add('on');
+    // Veg starts ticked "No date"; other kinds untick, then the name decides
+    document.getElementById('noDate').checked = kind === 'veg';
+    applyNoDateRule();
     refreshUsuals();
     updateDatePreview();
   }
 
+  // Ticks "No date" from the name: a food remembered with no date ticks it.
+  // Veg stays ticked unless the food was last seen with a date.
+  function applyNoDateRule() {
+    const name = document.getElementById('name').value.trim();
+    const noDate = document.getElementById('noDate');
+    if (!name) {
+      noDate.checked = currentKind() === 'veg';
+      return;
+    }
+    if (currentKind() === 'veg') {
+      const key = name.toLowerCase();
+      const seen = packs.some(p => p.status !== 'deleted' && p.name.trim().toLowerCase() === key);
+      noDate.checked = !seen || FT.rememberedNoDate(packs, name);
+    } else {
+      noDate.checked = FT.rememberedNoDate(packs, name);
+    }
+  }
+
   function refreshUsuals() {
-    const kind = document.querySelector('[data-kind].on')?.dataset.kind || 'main';
+    const kind = currentKind();
     const names = FT.usuals(packs, kind);
     const usuals = document.getElementById('usuals');
     usuals.innerHTML = '';
@@ -358,6 +452,7 @@
         document.getElementById('name').value = name;
         document.getElementById('days').value = '';
         document.getElementById('ddmm').value = '';
+        applyNoDateRule();
         updateDatePreview();
       });
       usuals.appendChild(btn);
@@ -418,9 +513,9 @@
     countEl.textContent = count;
   }
 
-  function addPacks() {
+  async function addPacks() {
     const name = document.getElementById('name').value;
-    const kind = document.querySelector('[data-kind].on')?.dataset.kind || 'main';
+    const kind = currentKind();
     const noDate = document.getElementById('noDate').checked;
     const count = parseInt(document.getElementById('count').textContent) || 1;
     const toFreezer = document.getElementById('toFreezer').checked;
@@ -436,46 +531,37 @@
       }
     }
 
-    // Validate and create packs synchronously
+    let newPacks;
     try {
-      const newPacks = FT.makePacks({ name, kind, date, dateType: document.querySelector('[data-dt].on')?.dataset.dt || 'use_by', count, toFreezer }, today);
-
-      // Set success message immediately
-      setAddMsg(`✓ added ${count} × ${name}`);
-      showUndoBar();
-
-      // Store packs for database operations
-      const packsCopy = newPacks.map(p => ({ ...p }));
-
-      // Now do async database operations
-      (async () => {
-        try {
-          const ids = [];
-          for (const pack of packsCopy) {
-            const id = await DB.add(pack);
-            pack.id = id;
-            ids.push(id);
-          }
-          packs.push(...packsCopy);
-          lastAction = { type: 'add', ids };
-
-          document.getElementById('name').value = '';
-          document.getElementById('ddmm').value = '';
-          document.getElementById('days').value = '';
-          document.getElementById('noDate').checked = false;
-          document.getElementById('count').textContent = '1';
-          updateDatePreview();
-          refreshUsuals();
-          renderAll();
-        } catch (dbErr) {
-          // Database error - revert the success message
-          setAddMsg('Error saving to database', true);
-        }
-      })();
+      newPacks = FT.makePacks({ name, kind, date, noDate, dateType: document.querySelector('[data-dt].on')?.dataset.dt || 'use_by', count, toFreezer }, today);
     } catch (err) {
-      const msg = err.message || 'Error';
-      setAddMsg(msg, true);
+      setAddMsg(err.message || 'Error', true);
+      return;
     }
+
+    try {
+      const ids = [];
+      for (const pack of newPacks) {
+        pack.id = await DB.add(pack);
+        ids.push(pack.id);
+      }
+      packs.push(...newPacks);
+      lastAction = { type: 'add', ids };
+    } catch (dbErr) {
+      setAddMsg('Error saving to database', true);
+      return;
+    }
+
+    setAddMsg(`✓ added ${count} × ${newPacks[0].name}`);
+    showUndoBar();
+    document.getElementById('name').value = '';
+    document.getElementById('ddmm').value = '';
+    document.getElementById('days').value = '';
+    document.getElementById('count').textContent = '1';
+    applyNoDateRule();
+    updateDatePreview();
+    refreshUsuals();
+    renderAll();
   }
 
   let selectedPackId = null;
@@ -567,6 +653,14 @@
           await DB.remove(id);
         }
         packs = packs.filter(p => !lastAction.ids.includes(p.id));
+      } else if (lastAction.type === 'batch') {
+        for (const before of lastAction.befores) {
+          const packIndex = packs.findIndex(p => p.id === before.id);
+          if (packIndex === -1) continue;
+          const restoredPack = JSON.parse(JSON.stringify(before));
+          packs[packIndex] = restoredPack;
+          await DB.put(restoredPack);
+        }
       } else if (lastAction.type === 'update') {
         const packIndex = packs.findIndex(p => p.id === lastAction.packId);
         if (packIndex !== -1 && lastAction.before) {
@@ -592,7 +686,70 @@
     const btn = document.createElement('button');
     btn.className = 'pack ' + STATUS_CLASS[colour] + ' use-by-' + colour;
     btn.dataset.id = pack.id;
+    if (selectedIds.has(pack.id)) btn.classList.add('sel');
     return btn;
+  }
+
+  // A tap on a pack opens its sheet, or picks it while in select mode
+  function packTap(pack, btn) {
+    if (!selectMode) {
+      showSheet(pack.id);
+      return;
+    }
+    if (selectedIds.has(pack.id)) selectedIds.delete(pack.id);
+    else selectedIds.add(pack.id);
+    btn.classList.toggle('sel', selectedIds.has(pack.id));
+    updateSelectUI();
+  }
+
+  function toggleSelectMode() {
+    if (selectMode) {
+      exitSelectMode();
+      return;
+    }
+    selectMode = true;
+    updateSelectUI();
+  }
+
+  function exitSelectMode() {
+    selectMode = false;
+    selectedIds.clear();
+    document.querySelectorAll('#fridgeView .sel').forEach(el => el.classList.remove('sel'));
+    updateSelectUI();
+  }
+
+  function updateSelectUI() {
+    const selectBtn = document.getElementById('selectBtn');
+    const freezeBtn = document.getElementById('freezeSel');
+    selectBtn.textContent = selectMode ? '✖️ Cancel' : '☑️ Select';
+    selectBtn.classList.toggle('on', selectMode);
+    freezeBtn.style.display = selectMode ? '' : 'none';
+    freezeBtn.textContent = `🧊 Freeze (${selectedIds.size})`;
+    freezeBtn.disabled = selectedIds.size === 0;
+  }
+
+  // Freeze every picked pack in one go; one Undo puts them all back
+  async function freezeSelected() {
+    const ids = [...selectedIds].filter(id => packs.some(p => p.id === id && p.status === 'in_fridge'));
+    const befores = [];
+    try {
+      for (const id of ids) {
+        const pack = packs.find(p => p.id === id);
+        const beforeState = JSON.parse(JSON.stringify(pack));
+        const updated = FT.freeze(pack, today);
+        await DB.put(updated);
+        Object.assign(pack, updated);
+        befores.push(beforeState);
+      }
+    } catch (e) {
+      // keep what was saved; the rest stay in the fridge
+    }
+    if (befores.length) {
+      lastAction = { type: 'batch', befores };
+      showUndoBar();
+    }
+    exitSelectMode();
+    renderAll();
   }
 
   function renderCards(el, cards) {
@@ -618,7 +775,7 @@
           tag.textContent = '🍽️ ' + shortDay(pack.plannedFor);
         }
         btn.append(when, tag);
-        btn.addEventListener('click', () => showSheet(pack.id));
+        btn.addEventListener('click', () => packTap(pack, btn));
         packsEl.appendChild(btn);
       });
       cardEl.appendChild(packsEl);
@@ -626,46 +783,54 @@
     });
   }
 
+  // Dated pack: name left, countdown right (coloured like the cards)
+  function datedButton(pack) {
+    const btn = packButton(pack);
+    const name = document.createElement('span');
+    name.textContent = pack.name;
+    const when = document.createElement('span');
+    when.textContent = FT.countdown(pack.date, today);
+    btn.append(name, when);
+    btn.addEventListener('click', () => packTap(pack, btn));
+    return btn;
+  }
+
+  // Pack with no date: name left, age right (goes old after 7 days)
+  function undatedButton(pack) {
+    const old = FT.isOld(pack.added, today);
+    const btn = document.createElement('button');
+    btn.className = 'age' + (old ? ' old' : '') + (selectedIds.has(pack.id) ? ' sel' : '');
+    btn.dataset.id = pack.id;
+    const name = document.createElement('b');
+    name.textContent = pack.name;
+    const age = document.createElement('span');
+    age.textContent = FT.ageLabel(pack.added, today) + (old ? ' ⚠️' : '');
+    btn.append(name, age);
+    btn.addEventListener('click', () => packTap(pack, btn));
+    return btn;
+  }
+
   function renderFridgeView() {
     autoAddOutOfDate();
     const view = FT.fridgeView(packs, today);
 
     document.getElementById('mainCount').textContent = view.mainCount;
-    renderCards(document.getElementById('mains'), view.mains);
+    const mainsEl = document.getElementById('mains');
+    renderCards(mainsEl, view.mains);
+    // Mains with no date go under the cards
+    view.mainsNoDate.forEach(pack => mainsEl.appendChild(undatedButton(pack)));
     document.getElementById('sideCount').textContent = view.sideCount;
     renderCards(document.getElementById('sides'), view.sides);
 
-    // Misc: name left, countdown right
     const miscEl = document.getElementById('misc');
     miscEl.innerHTML = '';
-    view.misc.forEach(pack => {
-      const btn = packButton(pack);
-      const name = document.createElement('span');
-      name.textContent = pack.name;
-      const when = document.createElement('span');
-      when.textContent = FT.countdown(pack.date, today);
-      btn.append(name, when);
-      btn.addEventListener('click', () => showSheet(pack.id));
-      miscEl.appendChild(btn);
-    });
+    view.misc.forEach(pack => miscEl.appendChild(datedButton(pack)));
     document.getElementById('miscOk').textContent = view.miscOk > 0 ? `+ ${view.miscOk} more, all OK` : '';
 
-    // Veg & misc with no date: name left, age right
+    // Veg: dated ones show a countdown, undated ones show their age
     const vegEl = document.getElementById('veg');
     vegEl.innerHTML = '';
-    view.veg.forEach(pack => {
-      const old = FT.isOld(pack.added, today);
-      const btn = document.createElement('button');
-      btn.className = 'age' + (old ? ' old' : '');
-      btn.dataset.id = pack.id;
-      const name = document.createElement('b');
-      name.textContent = pack.name;
-      const age = document.createElement('span');
-      age.textContent = FT.ageLabel(pack.added, today) + (old ? ' ⚠️' : '');
-      btn.append(name, age);
-      btn.addEventListener('click', () => showSheet(pack.id));
-      vegEl.appendChild(btn);
-    });
+    view.veg.forEach(pack => vegEl.appendChild(pack.date ? datedButton(pack) : undatedButton(pack)));
 
     // Deleted today or yesterday: red line, with Undo
     const deletedEl = document.getElementById('deletedList');
@@ -708,7 +873,7 @@
       const rowEl = document.createElement('div');
       rowEl.className = 'srow frz' + (item.old ? ' old old3' : '');
 
-      const emojiMap = { main: '🍖', side: '🥔', misc: '🧂' };
+      const emojiMap = { main: '🍖', side: '🥔', veg: '🥕', misc: '🧂' };
       const emoji = emojiMap[item.pack.kind] || '📦';
 
       const label = document.createElement('label');
