@@ -435,3 +435,96 @@ test("CLAUDE_PROMPT mentions veg and noDate", () => {
   assert.match(L.CLAUDE_PROMPT, /"veg"/);
   assert.match(L.CLAUDE_PROMPT, /noDate/);
 });
+
+// ---------- Photo check JSON: name, sub, date, price (+ bb, packs) ----------
+
+test("Potatoes is a veg starter, not a side", () => {
+  assert.ok(L.STARTERS.veg.includes("Potatoes"));
+  assert.ok(!L.STARTERS.side.includes("Potatoes"));
+});
+
+test("rememberedKind: latest pack's kind, else the starter lists, else null", () => {
+  const packs = [
+    pk(1, "Halloumi", "side", "2026-10-09", { added: "2026-09-01" }),
+    pk(2, "halloumi", "misc", "2026-10-20", { added: "2026-10-01" }),
+    pk(3, "Quiche", "main", "2026-10-09", { status: "deleted" }),
+  ];
+  assert.equal(L.rememberedKind(packs, "HALLOUMI "), "misc");
+  assert.equal(L.rememberedKind(packs, "Chicken"), "main");   // starter
+  assert.equal(L.rememberedKind(packs, "potatoes"), "veg");   // starter, any case
+  assert.equal(L.rememberedKind(packs, "Quiche"), null);      // deleted packs don't count
+  assert.equal(L.rememberedKind(packs, "Dragonfruit"), null);
+});
+
+test("boughtCount: packs ever added with that name (not deleted)", () => {
+  const packs = [
+    pk(1, "Chicken", "main", "2026-10-09", { status: "used" }),
+    pk(2, "chicken", "main", "2026-10-12"),
+    pk(3, "Chicken", "main", "2026-10-12", { status: "frozen" }),
+    pk(4, "Chicken", "main", "2026-10-12", { status: "deleted" }),
+  ];
+  assert.equal(L.boughtCount(packs, "Chicken"), 3);
+  assert.equal(L.boughtCount(packs, "Eggs"), 0);
+});
+
+test("quick fill: photo JSON with no kind uses the remembered kind", () => {
+  const r = L.parseQuickFill(`[
+    {"name":"Chicken","sub":"Asda chicken breasts","date":"2026-10-12","price":3.5},
+    {"name":"Milk","sub":"Cravendale 2L","date":"2026-10-15","bb":true},
+    {"name":"Mince","sub":"Tesco beef mince 5%","date":"2026-10-10","packs":3}
+  ]`, TODAY, []);
+  assert.deepEqual(r.items.map(i => [i.name, i.kind, i.date, i.dateType, i.count, i.sub, i.price, i.ok]), [
+    ["Chicken", "main", "2026-10-12", "use_by", 1, "Asda chicken breasts", 3.5, true],
+    ["Milk", "misc", "2026-10-15", "best_before", 1, "Cravendale 2L", null, true],
+    ["Mince", "main", "2026-10-10", "use_by", 3, "Tesco beef mince 5%", null, true],
+  ]);
+});
+
+test("quick fill: a new food asks for its kind, then works once picked", () => {
+  const r = L.parseQuickFill(`[{"name":"Halloumi","date":"2026-10-20"}]`, TODAY, []);
+  const item = r.items[0];
+  assert.equal(item.ok, false);
+  assert.equal(item.needsKind, true);
+  assert.equal(item.problem, "Pick a kind");
+  const fixed = L.quickFillRow({ ...item.raw, kind: "misc" }, []);
+  assert.equal(fixed.ok, true);
+  assert.equal(fixed.kind, "misc");
+  assert.equal(fixed.needsKind, false);
+});
+
+test("quick fill: veg and remembered no-date foods ignore any date sent", () => {
+  const packs = [pk(1, "Margarine", "misc", null)];
+  const r = L.parseQuickFill(`[
+    {"name":"Potatoes","date":"2026-10-30"},
+    {"name":"Margarine","sub":"Flora 500g","date":"2027-01-01"},
+    {"name":"Leeks"}
+  ]`, TODAY, packs);
+  assert.deepEqual(r.items.map(i => [i.name, i.kind, i.date, i.dateType, i.noDate, i.ok]), [
+    ["Potatoes", "veg", null, null, true, true],
+    ["Margarine", "misc", null, null, true, true],
+    ["Leeks", "veg", null, null, true, true],
+  ]);
+});
+
+test("quick fill: price reads numbers and '£3.50', ignores junk", () => {
+  const r = L.parseQuickFill(`[
+    {"name":"Chicken","date":"2026-10-12","price":"£3.50"},
+    {"name":"Chicken","date":"2026-10-12","price":"cheap"},
+    {"name":"Chicken","date":"2026-10-12","price":-2}
+  ]`, TODAY);
+  assert.deepEqual(r.items.map(i => i.price), [3.5, null, null]);
+});
+
+test("makePacks keeps sub and price on every pack (null when missing)", () => {
+  const out = L.makePacks({ name: "Chicken", kind: "main", date: "2026-10-12", count: 2, sub: "Asda chicken breasts", price: 3.5 }, TODAY);
+  assert.deepEqual(out.map(p => [p.sub, p.price]), [["Asda chicken breasts", 3.5], ["Asda chicken breasts", 3.5]]);
+  const [p] = L.makePacks({ name: "Eggs", kind: "misc", date: "2026-10-20", count: 1 }, TODAY);
+  assert.equal(p.sub, null);
+  assert.equal(p.price, null);
+});
+
+test("CLAUDE_PROMPT asks for name, sub, date, price, bb and packs", () => {
+  for (const word of ['"name"', '"sub"', '"date"', '"price"', '"bb"', '"packs"']) {
+    assert.ok(L.CLAUDE_PROMPT.includes(word), word);
+  }
+});

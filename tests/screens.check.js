@@ -357,6 +357,63 @@ process.on("exit", () => server && server.kill());
     assert.equal(await page.locator("#qfList .qf-row input[type=checkbox]:checked").count(), 2);
   });
 
+  await step("photo JSON: known foods fill in, new food asks for its kind", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="quick"]');
+    await page.fill("#qfText", JSON.stringify([
+      { name: "Chicken", sub: "Asda chicken breasts", date: "2026-10-12", price: 3.5 },
+      { name: "Halloumi", date: "2026-10-20" },
+      { name: "Potatoes", date: "2026-11-30" },
+    ]));
+    await page.click("#qfCheck");
+    assert.equal(await page.locator("#qfList .qf-row").count(), 3);
+    const hal = page.locator('#qfList .qf-row:has-text("Halloumi")');
+    assert.equal(await hal.locator("input[type=checkbox]").isChecked(), false);
+    assert.equal(await hal.locator(".qf-kind [data-kind]").count(), 4);
+    await hal.locator('.qf-kind [data-kind="misc"]').click();
+    await until(async () => assert.equal(
+      await page.locator('#qfList .qf-row:has-text("Halloumi") input[type=checkbox]').isChecked(), true));
+    await page.click("#qfAdd");
+    await until(async () => assert.match(await text("#qfMsg"), /added 3/i));
+    const saved = await page.evaluate(() => fetch("/api/packs").then(r => r.json()));
+    const chicken = saved.find(p => p.sub === "Asda chicken breasts");
+    assert.ok(chicken, "sub name saved");
+    assert.equal(chicken.price, 3.5);
+    assert.equal(chicken.kind, "main");
+    assert.equal(saved.find(p => p.name === "Halloumi").kind, "misc");
+    const pot = saved.find(p => p.name === "Potatoes");
+    assert.equal(pot.kind, "veg");
+    assert.equal(pot.date, null);
+    // next time Halloumi is known
+    await page.fill("#qfText", '[{"name":"halloumi","date":"2026-10-22"}]');
+    await page.click("#qfCheck");
+    assert.equal(await page.locator("#qfList .qf-row input[type=checkbox]").isChecked(), true);
+    assert.equal(await page.locator("#qfList .qf-kind").count(), 0);
+  });
+
+  await step("select several packs and freeze them together", async () => {
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    await page.click("#selectBtn");
+    await page.locator('#mains .card:has-text("Chicken") .pack').first().click();
+    await page.locator('#mains .card:has-text("Sausages") .pack').first().click();
+    assert.equal(await page.locator(".pack.sel").count(), 2);
+    assert.match(await text("#freezeSel"), /Freeze \(2\)/);
+    // tapping a pack in select mode doesn't open the action sheet
+    assert.equal(await page.locator("#actUsed").isVisible(), false);
+    await page.click("#freezeSel");
+    await page.click('[data-view="freezer"]');
+    await until(async () => {
+      const t = await text("#freezerList");
+      assert.match(t, /Chicken/);
+      assert.match(t, /Sausages/);
+    });
+    // select mode is off again
+    await page.click('[data-view="fridge"]');
+    assert.equal(await page.locator(".pack.sel").count(), 0);
+    assert.equal(await page.locator("#freezeSel").isVisible(), false);
+  });
+
   await step("data is in the SQLite file outside the app folder", async () => {
     const dbFile = path.join(DATA_DIR, "food.db");
     assert.ok(fs.existsSync(dbFile), "food.db created in data folder");
