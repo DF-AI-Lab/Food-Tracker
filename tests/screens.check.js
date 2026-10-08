@@ -131,6 +131,53 @@ const URL = "file://" + path.join(__dirname, "..", "index.html") + "?today=2026-
     assert.equal(await page.locator("#usuals .usual").first().innerText(), "Sausages");
   });
 
+  await step("quick fill: paste JSON, check list, untick one, add", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="quick"]');
+    await page.fill("#qfText", '```json\n[{"name":"Gammon","kind":"main","date":"2026-10-10","packs":2},' +
+      '{"name":"Peas","kind":"veg","date":null},{"name":"Chicken","kind":"main","date":null},' +
+      '{"name":"Milk","kind":"misc","date":"2026-10-09"}]\n```');
+    await page.click("#qfCheck");
+    assert.equal(await page.locator("#qfList .qf-row").count(), 4);
+    assert.match(await text("#qfList"), /Gammon ×2/);
+    // bad row (no date) is shown unticked with its problem
+    const bad = page.locator('#qfList .qf-row:has-text("Chicken")');
+    assert.equal(await bad.locator("input[type=checkbox]").isChecked(), false);
+    assert.match(await bad.innerText(), /date/i);
+    // untick Milk
+    await page.locator('#qfList .qf-row:has-text("Milk") input[type=checkbox]').uncheck();
+    await page.click("#qfAdd");
+    await until(async () => assert.match(await text("#qfMsg"), /added 3/i));
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    assert.equal(await page.locator('#mains .card:has-text("Gammon") .pack').count(), 2);
+    assert.match(await text("#veg"), /Peas/);
+    assert.doesNotMatch(await text("#misc"), /Milk/);
+  });
+
+  await step("quick fill: undo removes the whole batch", async () => {
+    await page.click("#undoBtn");
+    await until(async () => assert.equal(await page.locator('#mains .card:has-text("Gammon")').count(), 0));
+    assert.doesNotMatch(await text("#veg"), /Peas/);
+  });
+
+  await step("quick fill: bad JSON shows a message", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="quick"]');
+    await page.fill("#qfText", "not json");
+    await page.click("#qfCheck");
+    assert.match(await text("#qfMsg"), /read/i);
+  });
+
+  await step("quick fill: Claude message is on the page", async () => {
+    assert.match(await page.locator("#qfPrompt").textContent(), /"kind"/);
+  });
+
+  await step("normal add still reachable", async () => {
+    await page.click('[data-sub="fridge"]');
+    assert.ok(await page.locator("#addBtn").isVisible());
+  });
+
   await step("meals tab says coming soon", async () => {
     await page.click('[data-tab="meals"]');
     assert.match(await page.locator("body").innerText(), /Coming soon/i);

@@ -352,6 +352,76 @@
     return allNames;
   }
 
+  // Quick fill (JSON pasted back from Claude)
+  const CLAUDE_PROMPT = [
+    "I'm sending you photos of my fridge and freezer. Please:",
+    "- Read each food item and its use-by or best-before date from the photos.",
+    "- For each item choose a kind: \"main\" (meat, fish or a main meal), \"side\" (sides and veg), or \"misc\" (milk, eggs, butter, sauces etc).",
+    "- If you are unsure of the kind, or can't read a date clearly, ASK me before giving the JSON. Never guess a date.",
+    "- Write dates as YYYY-MM-DD. Veg with no date: use null.",
+    "- If the same item has several packs with the same date, make one row with \"packs\".",
+    "- Reply with only a JSON array in a ```json block, like this:",
+    "[{\"name\":\"Sausages\",\"kind\":\"main\",\"date\":\"2026-10-10\",\"dateType\":\"use_by\",\"packs\":2},{\"name\":\"Carrots\",\"kind\":\"side\",\"date\":null}]",
+    "Keep it short and plain English."
+  ].join("\n");
+
+  function isRealDate(s) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    const d = new Date(s + "T00:00:00Z");
+    return !isNaN(d) && d.toISOString().split("T")[0] === s;
+  }
+
+  function quickFillRow(row) {
+    const r = row || {};
+    const rawName = String(r.name ?? "").trim();
+    const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+    let kind = String(r.kind ?? "").trim().toLowerCase();
+    if (kind === "veg" || kind === "vegetable") kind = "side";
+
+    const hasDate = r.date !== null && r.date !== undefined && String(r.date).trim() !== "";
+    const date = hasDate ? String(r.date).trim() : null;
+    const dateType = hasDate ? (r.dateType === "best_before" ? "best_before" : "use_by") : null;
+
+    const count = Math.min(20, Math.max(1, parseInt(r.packs ?? r.count ?? 1, 10) || 1));
+    const toFreezer = r.freezer === true || r.toFreezer === true;
+
+    let problem = null;
+    if (!name) problem = "Needs a name";
+    else if (!["main", "side", "misc"].includes(kind)) problem = "Kind must be main, side or misc";
+    else if (hasDate && !isRealDate(date)) problem = "Date must look like 2026-10-10";
+    else if ((kind === "main" || kind === "misc") && !hasDate) problem = "Needs a date";
+
+    return { name, kind, date, dateType, count, toFreezer, ok: problem === null, problem };
+  }
+
+  function parseQuickFill(text, today) {
+    const raw = String(text || "").trim();
+    if (!raw) return { error: "Paste the JSON from Claude first", items: [] };
+
+    const readError = { error: "Couldn't read that — copy the whole JSON from Claude", items: [] };
+
+    // Strip ``` fences, then keep from the first [ or { to its matching last ] or }
+    const body = raw.replace(/```(json)?/gi, "");
+    const starts = [body.indexOf("["), body.indexOf("{")].filter(i => i >= 0);
+    if (starts.length === 0) return readError;
+    const start = Math.min(...starts);
+    const end = body.lastIndexOf(body[start] === "[" ? "]" : "}");
+    if (end < start) return readError;
+
+    let data;
+    try {
+      data = JSON.parse(body.slice(start, end + 1));
+    } catch (e) {
+      return readError;
+    }
+
+    const list = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
+    if (list.length === 0) return { error: "No food found in that", items: [] };
+
+    return { error: null, items: list.map(quickFillRow) };
+  }
+
   // Export
   const FT = {
     addDays,
@@ -374,7 +444,9 @@
     freezerList,
     usedSummary,
     STARTERS,
-    usuals
+    usuals,
+    parseQuickFill,
+    CLAUDE_PROMPT
   };
 
   if (typeof module !== "undefined") {

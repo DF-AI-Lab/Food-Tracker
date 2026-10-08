@@ -89,6 +89,14 @@
 
   <!-- Add Tab -->
   <div data-tab-pane="add">
+    <div id="subTabs">
+      <button data-sub="fridge" class="active">🥶 Add to fridge</button>
+      <button data-sub="quick">📋 Quick fill</button>
+      <button data-sub="shop">🛒 Shopping list</button>
+    </div>
+
+    <!-- Add to fridge (the existing form) -->
+    <div data-sub-pane="fridge" style="display:block;">
     <div class="form-section">
       <div class="kind-buttons">
         <button data-kind="main" class="active">🍖 Main</button>
@@ -141,9 +149,33 @@
       <button id="addBtn">Add</button>
       <div id="addMsg"></div>
     </div>
+    </div>
 
-    <!-- Sub-tab for shopping list -->
-    <div style="display: none;">
+    <!-- Quick fill (JSON pasted back from Claude) -->
+    <div data-sub-pane="quick" style="display:none;">
+      <div class="form-section">
+        <div class="qf-how">Photos → Claude → paste the JSON here</div>
+        <details>
+          <summary>Message for Claude</summary>
+          <pre id="qfPrompt"></pre>
+          <button id="qfCopy">📋 Copy</button>
+        </details>
+      </div>
+
+      <div class="form-section">
+        <textarea id="qfText" rows="6" placeholder="Paste the JSON from Claude here"></textarea>
+        <button id="qfCheck">Check</button>
+      </div>
+
+      <div id="qfMsg"></div>
+      <div id="qfList"></div>
+      <div class="form-section">
+        <button id="qfAdd" style="display:none;">Add ticked</button>
+      </div>
+    </div>
+
+    <!-- Shopping list -->
+    <div data-sub-pane="shop" style="display:none;">
       <div class="coming-soon">🛒 Shopping list — Coming soon</div>
     </div>
   </div>

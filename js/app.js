@@ -97,6 +97,132 @@
     document.getElementById('undoBtn').addEventListener('click', async () => {
       await undo();
     });
+
+    // Add tab sub-tabs
+    document.querySelectorAll('[data-sub]').forEach(btn => {
+      btn.addEventListener('click', () => switchSub(btn.dataset.sub));
+    });
+
+    // Quick fill
+    document.getElementById('qfPrompt').textContent = FT.CLAUDE_PROMPT;
+    document.getElementById('qfCopy').addEventListener('click', copyQuickFillPrompt);
+    document.getElementById('qfCheck').addEventListener('click', checkQuickFill);
+    document.getElementById('qfAdd').addEventListener('click', addQuickFill);
+  }
+
+  function switchSub(sub) {
+    document.querySelectorAll('[data-sub]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-sub="${sub}"]`).classList.add('active');
+
+    document.querySelectorAll('[data-sub-pane]').forEach(p => p.style.display = 'none');
+    document.querySelector(`[data-sub-pane="${sub}"]`).style.display = 'block';
+  }
+
+  async function copyQuickFillPrompt() {
+    const btn = document.getElementById('qfCopy');
+    try {
+      await navigator.clipboard.writeText(FT.CLAUDE_PROMPT);
+      btn.textContent = 'Copied';
+    } catch (e) {
+      btn.textContent = 'Copy failed — select the text instead';
+    }
+    setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+  }
+
+  let quickFillItems = [];
+  let quickFillBoxes = [];
+
+  function clearQuickFillList() {
+    quickFillItems = [];
+    quickFillBoxes = [];
+    document.getElementById('qfList').innerHTML = '';
+    document.getElementById('qfAdd').style.display = 'none';
+  }
+
+  function checkQuickFill() {
+    const msg = document.getElementById('qfMsg');
+    const listEl = document.getElementById('qfList');
+    const result = FT.parseQuickFill(document.getElementById('qfText').value, today);
+
+    clearQuickFillList();
+    if (result.error) {
+      msg.textContent = result.error;
+      return;
+    }
+    msg.textContent = '';
+
+    const emojiMap = { main: '🍖', side: '🥔', misc: '🧂' };
+    result.items.forEach(item => {
+      const row = document.createElement('label');
+      row.className = 'qf-row';
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = item.ok;
+      box.disabled = !item.ok;
+      quickFillBoxes.push(box);
+      row.appendChild(box);
+
+      const text = document.createElement('span');
+      const emoji = emojiMap[item.kind] || '📦';
+      const when = document.createElement('span');
+      if (item.date) {
+        when.textContent = FT.formatDate(item.date);
+        when.className = 'preview-' + FT.colour(item.date, today);
+      } else {
+        when.textContent = 'no date';
+      }
+      text.textContent = `${emoji} ${item.name || '(no name)'} ×${item.count} · `;
+      text.appendChild(when);
+      if (item.toFreezer) text.append(' · 🧊');
+      row.appendChild(text);
+
+      if (!item.ok) {
+        const problem = document.createElement('span');
+        problem.className = 'qf-problem';
+        problem.textContent = item.problem;
+        row.appendChild(problem);
+      }
+
+      listEl.appendChild(row);
+    });
+
+    quickFillItems = result.items;
+    document.getElementById('qfAdd').style.display = '';
+  }
+
+  async function addQuickFill() {
+    const msg = document.getElementById('qfMsg');
+    const chosen = quickFillItems.filter((item, i) => item.ok && quickFillBoxes[i].checked);
+    if (chosen.length === 0) {
+      msg.textContent = 'Tick at least one item to add';
+      return;
+    }
+
+    const newPacks = chosen.flatMap(item => FT.makePacks({
+      name: item.name, kind: item.kind, date: item.date,
+      dateType: item.dateType, count: item.count, toFreezer: item.toFreezer
+    }, today));
+
+    try {
+      const ids = [];
+      for (const pack of newPacks) {
+        const id = await DB.add(pack);
+        pack.id = id;
+        ids.push(id);
+      }
+      packs.push(...newPacks);
+      lastAction = { type: 'add', ids };
+
+      msg.textContent = `✓ added ${newPacks.length} packs`;
+      showUndoBar();
+      document.getElementById('qfText').value = '';
+      clearQuickFillList();
+      refreshUsuals();
+      renderAll();
+    } catch (dbErr) {
+      msg.textContent = 'Error saving to database';
+    }
   }
 
   function switchTab(tab) {

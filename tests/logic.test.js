@@ -249,3 +249,60 @@ test("usuals: starters first, then re-ordered by most added", () => {
   ];
   assert.deepEqual(L.usuals(packs, "main"), ["Bacon", "Gammon", "Chicken", "Mince", "Sausages"]);
 });
+
+// ---------- quick fill (JSON from Claude) ----------
+
+test("parseQuickFill reads a plain array", () => {
+  const r = L.parseQuickFill(`[
+    {"name":"sausages","kind":"main","date":"2026-10-10","packs":2},
+    {"name":"Carrots","kind":"side","date":null},
+    {"name":"Milk","kind":"misc","date":"2026-10-12","dateType":"best_before"}
+  ]`, TODAY);
+  assert.equal(r.error, null);
+  assert.deepEqual(r.items.map(i => [i.name, i.kind, i.date, i.dateType, i.count, i.ok]), [
+    ["Sausages", "main", "2026-10-10", "use_by", 2, true],
+    ["Carrots", "side", null, null, 1, true],
+    ["Milk", "misc", "2026-10-12", "best_before", 1, true],
+  ]);
+});
+
+test("parseQuickFill copes with code fences, extra text and {items:[...]}", () => {
+  const r = L.parseQuickFill('Here you go:\n```json\n{"items":[{"name":"Eggs","kind":"misc","date":"2026-10-20"}]}\n```\nEnjoy!', TODAY);
+  assert.equal(r.error, null);
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].name, "Eggs");
+});
+
+test("parseQuickFill: veg means a side, freezer flag kept", () => {
+  const r = L.parseQuickFill('[{"name":"Peas","kind":"veg","date":null},{"name":"Mince","kind":"main","date":"2026-10-09","freezer":true}]', TODAY);
+  assert.equal(r.items[0].kind, "side");
+  assert.equal(r.items[0].ok, true);
+  assert.equal(r.items[1].toFreezer, true);
+});
+
+test("parseQuickFill flags bad rows but keeps the good ones", () => {
+  const r = L.parseQuickFill(`[
+    {"name":"Chicken","kind":"main","date":null},
+    {"name":"Cheese","kind":"cheese","date":"2026-10-20"},
+    {"name":"","kind":"side","date":null},
+    {"name":"Ham","kind":"main","date":"10/10/2026"},
+    {"name":"Bacon","kind":"main","date":"2026-10-11","packs":99}
+  ]`, TODAY);
+  assert.equal(r.error, null);
+  assert.deepEqual(r.items.map(i => i.ok), [false, false, false, false, true]);
+  assert.match(r.items[0].problem, /date/i);
+  assert.match(r.items[1].problem, /main, side or misc/i);
+  assert.equal(r.items[4].count, 20); // capped
+});
+
+test("parseQuickFill: not JSON gives an error", () => {
+  assert.match(L.parseQuickFill("hello", TODAY).error, /read/i);
+  assert.match(L.parseQuickFill("", TODAY).error, /paste/i);
+  assert.match(L.parseQuickFill("[]", TODAY).error, /no food/i);
+});
+
+test("CLAUDE_PROMPT explains the format", () => {
+  assert.match(L.CLAUDE_PROMPT, /"kind"/);
+  assert.match(L.CLAUDE_PROMPT, /main/);
+  assert.match(L.CLAUDE_PROMPT, /ask/i);
+});

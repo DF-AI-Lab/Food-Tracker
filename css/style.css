@@ -285,6 +285,92 @@ input {
   border-radius: 4px;
 }
 
+/* Add tab sub-tabs */
+#subTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+[data-sub] {
+  padding: 8px 12px;
+  background-color: transparent;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid var(--line);
+}
+
+[data-sub].active {
+  background-color: var(--line);
+  border-color: var(--text);
+}
+
+/* Quick fill */
+.qf-how {
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+details summary {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+#qfPrompt {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.85em;
+  margin: 0 0 8px;
+}
+
+#qfCopy {
+  padding: 6px 12px;
+  background-color: var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+textarea {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: inherit;
+  margin-bottom: 12px;
+}
+
+.qf-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.qf-row input[type="checkbox"] {
+  margin-top: 4px;
+}
+
+.qf-problem {
+  display: block;
+  width: 100%;
+  color: var(--redline);
+  font-size: 0.9em;
+}
+
 /* Add form */
 .form-section {
   margin-bottom: 16px;
@@ -436,7 +522,7 @@ input[type="checkbox"] {
   cursor: pointer;
 }
 
-#addBtn {
+#addBtn, #qfAdd, #qfCheck {
   width: 100%;
   padding: 12px;
   background-color: var(--green);
@@ -446,7 +532,7 @@ input[type="checkbox"] {
   margin-bottom: 12px;
 }
 
-#addMsg {
+#addMsg, #qfMsg {
   padding: 8px;
   background-color: var(--surface);
   border-radius: 6px;
