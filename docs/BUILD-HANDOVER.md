@@ -28,7 +28,7 @@ No server. Built and tested on the PC in Chrome (phone-size view) first.
 
 - `kind`: `main` | `side` | `misc`. Mains and misc **need** a date; sides may have none (veg).
 - `dateType`: `use_by` (default) | `best_before` | `null` (no date).
-- `status`: `in_fridge` | `used` | `thrown_away` | `frozen`. `left` = date used/binned. `frozen` = date it went in.
+- `status`: `in_fridge` | `used` | `thrown_away` | `frozen` | `deleted` (kept 1 day for Undo, then removed). `left` = date used/binned. `frozen` = date it went in.
 
 ## First build (core V1)
 
@@ -42,7 +42,8 @@ No server. Built and tested on the PC in Chrome (phone-size view) first.
 - Same-name packs share a card, **max 2 dates**, soonest first; a 3rd pack starts a new card.
 - Countdown when 5 days or fewer: "3 days left", "1 day left", "Today!"; past: "1 day out", "2 days out".
 - Colours: **green** >3 days · **amber** 3 → 0 days · **red + darker red outline** when out.
-- Tap a pack → **✅ Used · 🗑️ Thrown away · 🧊 Freeze · Cancel**.
+- Tap a pack → **✅ Used · 🗑️ Thrown away · 🧊 Freeze · Cancel**
+  - **🗑️ Delete** (a mistake): not saved as used or wasted. Shows under the boxes with a **red line + ↩ Undo**, gone after 1 day.
 - **🧊 Freezer:** oldest first, "in 20 Sep · 2 weeks", amber border at 3 months+, **Defrost** → back to fridge, use by tomorrow.
 - **♻️ Used:** used / wasted counts this month + list.
 
