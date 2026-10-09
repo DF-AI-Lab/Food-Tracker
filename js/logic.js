@@ -246,49 +246,46 @@
     return result;
   }
 
-  function fridgeView(packs, today) {
-    // Mains: use cards
-    const mains = cards(packs, "main");
-
-    // Sides: use cards
-    const allSides = cards(packs, "side");
-    const sides = allSides;
-
-    // Misc: in-fridge with date, daysLeft < 7, sorted by date
-    const misc = packs
-      .filter(p => p.status === "in_fridge" && p.kind === "misc" && p.date && daysLeft(p.date, today) < 7)
+  // Use soon: fridge packs with a date 2 days or less away (today and out-of-date included)
+  function useSoon(packs, today) {
+    return packs
+      .filter(p => p.status === "in_fridge" && p.date && daysLeft(p.date, today) <= 2)
       .sort((a, b) => a.date.localeCompare(b.date));
+  }
 
-    // Misc OK: count of other in-fridge misc packs (no date or date >= 7 days away)
-    const miscOk = packs
-      .filter(p => p.status === "in_fridge" && p.kind === "misc" && (!p.date || daysLeft(p.date, today) >= 7))
-      .length;
+  function fridgeView(packs, today) {
+    const inFridge = packs.filter(p => p.status === "in_fridge");
+    const byAdded = (a, b) => a.added.localeCompare(b.added);
 
-    // Mains with no date: listed under the mains, oldest first
-    const mainsNoDate = packs
-      .filter(p => p.status === "in_fridge" && p.kind === "main" && !p.date)
-      .sort((a, b) => a.added.localeCompare(b.added));
+    // Mains: dated cards, plus undated mains listed under them (oldest first)
+    const mains = cards(packs, "main");
+    const mainsNoDate = inFridge.filter(p => p.kind === "main" && !p.date).sort(byAdded);
 
-    // Veg box: veg (dated or not) plus undated sides, oldest first
-    const veg = packs
-      .filter(p => p.status === "in_fridge" && (p.kind === "veg" || (p.kind === "side" && !p.date)))
-      .sort((a, b) => a.added.localeCompare(b.added));
+    // Sides: dated cards, plus undated sides (oldest first)
+    const sides = cards(packs, "side");
+    const sidesNoDate = inFridge.filter(p => p.kind === "side" && !p.date).sort(byAdded);
 
-    // Count mains: all in-fridge mains (dated + undated)
-    const mainCount = packs.filter(p => p.status === "in_fridge" && p.kind === "main").length;
+    // Veg: all veg, dated or not, oldest first
+    const veg = inFridge.filter(p => p.kind === "veg").sort(byAdded);
 
-    // Count sides: in-fridge sides and veg (dated + undated)
-    const sideCount = packs.filter(p => p.status === "in_fridge" && (p.kind === "side" || p.kind === "veg")).length;
+    // Misc: every misc pack; dated soonest first, then undated oldest first
+    const miscDated = inFridge.filter(p => p.kind === "misc" && p.date).sort((a, b) => a.date.localeCompare(b.date));
+    const miscUndated = inFridge.filter(p => p.kind === "misc" && !p.date).sort(byAdded);
+    const misc = [...miscDated, ...miscUndated];
+
+    const countKind = kind => inFridge.filter(p => p.kind === kind).length;
 
     return {
       mains,
       mainsNoDate,
       sides,
-      misc,
-      miscOk,
+      sidesNoDate,
       veg,
-      mainCount,
-      sideCount
+      misc,
+      mainCount: countKind("main"),
+      sideCount: countKind("side"),
+      vegCount: countKind("veg"),
+      miscCount: countKind("misc")
     };
   }
 
@@ -681,6 +678,7 @@
     expiredDeletes,
     cards,
     fridgeView,
+    useSoon,
     freezeAge,
     freezerList,
     usedSummary,

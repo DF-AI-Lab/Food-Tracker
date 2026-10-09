@@ -13,10 +13,6 @@
   let shopTab = 'main';   // "bought before" tab: main | side | veg | other
   let ideasOn = false;
   const autoBusy = new Set();
-  // Fridge select mode: tap packs to pick them, then freeze the picked ones together
-  let selectMode = false;
-  const selectedIds = new Set();
-
   function getToday() {
     const params = new URLSearchParams(window.location.search);
     const todayParam = params.get('today');
@@ -136,11 +132,6 @@
     document.getElementById('actFreeze').addEventListener('click', actFreeze);
     document.getElementById('actDelete').addEventListener('click', actDelete);
     document.getElementById('actCancel').addEventListener('click', hideSheet);
-
-    // Fridge select mode
-    document.getElementById('selectBtn').addEventListener('click', toggleSelectMode);
-    document.getElementById('freezeSel').addEventListener('click', freezeSelected);
-    updateSelectUI();
 
     // Undo
     document.getElementById('undoBtn').addEventListener('click', async () => {
@@ -378,7 +369,6 @@
   }
 
   function switchTab(tab) {
-    if (tab !== 'fridge' && selectMode) exitSelectMode();
     document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('on'));
     document.querySelector(`[data-tab="${tab}"]`).classList.add('on');
 
@@ -395,7 +385,6 @@
   }
 
   function switchView(view) {
-    if (view !== 'fridge' && selectMode) exitSelectMode();
     document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('on'));
     document.querySelector(`[data-view="${view}"]`).classList.add('on');
 
@@ -686,70 +675,12 @@
     const btn = document.createElement('button');
     btn.className = 'pack ' + STATUS_CLASS[colour] + ' use-by-' + colour;
     btn.dataset.id = pack.id;
-    if (selectedIds.has(pack.id)) btn.classList.add('sel');
     return btn;
   }
 
-  // A tap on a pack opens its sheet, or picks it while in select mode
-  function packTap(pack, btn) {
-    if (!selectMode) {
-      showSheet(pack.id);
-      return;
-    }
-    if (selectedIds.has(pack.id)) selectedIds.delete(pack.id);
-    else selectedIds.add(pack.id);
-    btn.classList.toggle('sel', selectedIds.has(pack.id));
-    updateSelectUI();
-  }
-
-  function toggleSelectMode() {
-    if (selectMode) {
-      exitSelectMode();
-      return;
-    }
-    selectMode = true;
-    updateSelectUI();
-  }
-
-  function exitSelectMode() {
-    selectMode = false;
-    selectedIds.clear();
-    document.querySelectorAll('#fridgeView .sel').forEach(el => el.classList.remove('sel'));
-    updateSelectUI();
-  }
-
-  function updateSelectUI() {
-    const selectBtn = document.getElementById('selectBtn');
-    const freezeBtn = document.getElementById('freezeSel');
-    selectBtn.textContent = selectMode ? '✖️ Cancel' : '☑️ Select';
-    selectBtn.classList.toggle('on', selectMode);
-    freezeBtn.style.display = selectMode ? '' : 'none';
-    freezeBtn.textContent = `🧊 Freeze (${selectedIds.size})`;
-    freezeBtn.disabled = selectedIds.size === 0;
-  }
-
-  // Freeze every picked pack in one go; one Undo puts them all back
-  async function freezeSelected() {
-    const ids = [...selectedIds].filter(id => packs.some(p => p.id === id && p.status === 'in_fridge'));
-    const befores = [];
-    try {
-      for (const id of ids) {
-        const pack = packs.find(p => p.id === id);
-        const beforeState = JSON.parse(JSON.stringify(pack));
-        const updated = FT.freeze(pack, today);
-        await DB.put(updated);
-        Object.assign(pack, updated);
-        befores.push(beforeState);
-      }
-    } catch (e) {
-      // keep what was saved; the rest stay in the fridge
-    }
-    if (befores.length) {
-      lastAction = { type: 'batch', befores };
-      showUndoBar();
-    }
-    exitSelectMode();
-    renderAll();
+  // A tap on any pack opens its action sheet
+  function packTap(pack) {
+    showSheet(pack.id);
   }
 
   function renderCards(el, cards) {
@@ -775,7 +706,7 @@
           tag.textContent = '🍽️ ' + shortDay(pack.plannedFor);
         }
         btn.append(when, tag);
-        btn.addEventListener('click', () => packTap(pack, btn));
+        btn.addEventListener('click', () => packTap(pack));
         packsEl.appendChild(btn);
       });
       cardEl.appendChild(packsEl);
@@ -791,7 +722,7 @@
     const when = document.createElement('span');
     when.textContent = FT.countdown(pack.date, today);
     btn.append(name, when);
-    btn.addEventListener('click', () => packTap(pack, btn));
+    btn.addEventListener('click', () => packTap(pack));
     return btn;
   }
 
@@ -799,38 +730,61 @@
   function undatedButton(pack) {
     const old = FT.isOld(pack.added, today);
     const btn = document.createElement('button');
-    btn.className = 'age' + (old ? ' old' : '') + (selectedIds.has(pack.id) ? ' sel' : '');
+    btn.className = 'age' + (old ? ' old' : '');
     btn.dataset.id = pack.id;
     const name = document.createElement('b');
     name.textContent = pack.name;
     const age = document.createElement('span');
     age.textContent = FT.ageLabel(pack.added, today) + (old ? ' ⚠️' : '');
     btn.append(name, age);
-    btn.addEventListener('click', () => packTap(pack, btn));
+    btn.addEventListener('click', () => packTap(pack));
     return btn;
+  }
+
+  // Use soon strip: fridge packs due within 2 days, tap opens the menu
+  function renderUseSoon() {
+    const soon = FT.useSoon(packs, today);
+    const box = document.getElementById('useSoon');
+    const list = document.getElementById('useSoonList');
+    list.innerHTML = '';
+    soon.forEach(pack => {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (FT.colour(pack.date, today) === 'red' ? ' red' : '');
+      chip.textContent = `${pack.name} · ${FT.countdown(pack.date, today)}`;
+      chip.addEventListener('click', () => showSheet(pack.id));
+      list.appendChild(chip);
+    });
+    box.hidden = soon.length === 0;
   }
 
   function renderFridgeView() {
     autoAddOutOfDate();
     const view = FT.fridgeView(packs, today);
+    renderUseSoon();
 
+    // Mains: cards, then undated mains
     document.getElementById('mainCount').textContent = view.mainCount;
     const mainsEl = document.getElementById('mains');
     renderCards(mainsEl, view.mains);
-    // Mains with no date go under the cards
     view.mainsNoDate.forEach(pack => mainsEl.appendChild(undatedButton(pack)));
-    document.getElementById('sideCount').textContent = view.sideCount;
-    renderCards(document.getElementById('sides'), view.sides);
 
-    const miscEl = document.getElementById('misc');
-    miscEl.innerHTML = '';
-    view.misc.forEach(pack => miscEl.appendChild(datedButton(pack)));
-    document.getElementById('miscOk').textContent = view.miscOk > 0 ? `+ ${view.miscOk} more, all OK` : '';
+    // Sides: cards, then undated sides
+    document.getElementById('sideCount').textContent = view.sideCount;
+    const sidesEl = document.getElementById('sides');
+    renderCards(sidesEl, view.sides);
+    view.sidesNoDate.forEach(pack => sidesEl.appendChild(undatedButton(pack)));
 
     // Veg: dated ones show a countdown, undated ones show their age
+    document.getElementById('vegCount').textContent = view.vegCount;
     const vegEl = document.getElementById('veg');
     vegEl.innerHTML = '';
     view.veg.forEach(pack => vegEl.appendChild(pack.date ? datedButton(pack) : undatedButton(pack)));
+
+    // Misc: dated soonest first, then undated
+    document.getElementById('miscCount').textContent = view.miscCount;
+    const miscEl = document.getElementById('misc');
+    miscEl.innerHTML = '';
+    view.misc.forEach(pack => miscEl.appendChild(pack.date ? datedButton(pack) : undatedButton(pack)));
 
     // Deleted today or yesterday: red line, with Undo
     const deletedEl = document.getElementById('deletedList');

@@ -160,10 +160,22 @@ button.act.ghost{box-shadow:none}
 [data-tab-pane="add"]{gap:14px}
 #top{margin:0}
 .today b{font-weight:600}
-#fridgeView{display:grid}
-#mains,#sides{gap:8px;flex:2}
-#misc,#veg{gap:6px}
-#miscOk:empty{display:none}
+/* Fridge: Use soon strip, then four full-width folding boxes */
+#fridgeView{display:flex;flex-direction:column;gap:10px;min-width:0}
+#useSoon[hidden]{display:none}
+.soon{border:1px solid var(--soon);background:color-mix(in srgb,var(--soonbg) 35%,var(--surface));border-radius:16px;padding:10px 12px;box-shadow:var(--shadow-sm)}
+.soon h3{margin:0 0 8px;font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.04em;color:var(--soon)}
+.soon .chips{display:flex;flex-wrap:wrap;gap:6px}
+.soon .chip{font:inherit;font-size:13px;font-weight:700;color:var(--fg);background:var(--soonbg);border:0;border-radius:10px;padding:6px 10px;cursor:pointer;box-shadow:var(--shadow-sm)}
+.soon .chip.red{background:var(--offbg)}
+.fbox{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm);overflow:hidden;min-width:0}
+.fbox>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;font-family:var(--display);font-weight:600;font-size:17px}
+.fbox>summary::-webkit-details-marker{display:none}
+.fbox>summary::marker{content:""}
+.fbox>summary .arr{color:var(--muted);display:inline-block;transition:transform .2s}
+.fbox[open]>summary .arr{transform:rotate(90deg)}
+.fbox>.rows,.fbox-body{display:flex;flex-direction:column;gap:8px;padding:0 10px 10px}
+#mains .card,#sides .card{min-width:0}
 .pane h2{margin:0}
 button.sb,button.tab{font-family:inherit}
 .sb{font-family:var(--body)}
@@ -221,14 +233,9 @@ summary{cursor:pointer;font-weight:700;color:var(--muted)}
 #undoBar .undo{background:var(--surface);color:var(--accent);padding:10px 16px;font-size:14px;box-shadow:var(--shadow)}
 #micNote:empty{display:none}
 [data-view-pane="used"]{gap:8px}
-#misc{flex:0 1 auto}
 
-/* ---- Quick fill: kind buttons for unknown foods, price; fridge select mode ---- */
+/* ---- Quick fill: kind buttons for unknown foods, price ---- */
 .qf-kind{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px}
 .qf-kind .qc{flex:1 1 auto;font-size:12px;padding:6px 8px}
 .qf-price{font-size:12px;color:var(--muted);font-weight:600}
-.selbar{display:flex;justify-content:flex-end;align-items:center;gap:8px}
-.selbar .sb{flex:none;padding:8px 12px;font-size:13px}
-.selbar .sb.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
-.selbar button.act{padding:8px 12px;font-size:13px}
-.pack.sel,.age.sel{outline:3px solid var(--accent);outline-offset:2px}
+
