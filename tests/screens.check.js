@@ -712,10 +712,16 @@ process.on("exit", () => server && server.kill());
     // numbered rows with U / ½ / B boxes
     const first = sheet.locator(".ps-top tr").first();
     assert.match(await first.innerText(), /^01/);
-    assert.equal(await first.locator(".bx").count(), 3);
-    // fixed bottom boxes
-    assert.equal(await sheet.locator(".ps-added tr").count(), 4);
-    assert.equal(await sheet.locator(".ps-need tr").count(), 3);
+    assert.equal(await first.locator(".bx").count(), 4); // U P B N
+    // dates sit under a DATE header, short: UB / BB / added
+    assert.match(await sheet.locator(".ps-top h2").first().innerText(), /DATE/);
+    assert.match(await first.innerText(), /UB \d+ \w{3}|BB \d+ \w{3}|added \d+ \w{3}/);
+    assert.doesNotMatch(await sheet.locator(".ps-top").innerText(), /Use by/);
+    assert.match(await sheet.locator(".ps-key").innerText(), /N = Need more/);
+    // bottom: Meals (2/3, left) + Added names (1/3, right); no Need box any more
+    assert.equal(await sheet.locator(".ps-need").count(), 0);
+    assert.equal(await sheet.locator(".ps-added tr").count(), 5);
+    assert.match(await sheet.locator(".ps-added").innerText(), /Add these in the app too/);
     assert.equal(await sheet.locator(".ps-meals tr").count(), 7);
     assert.match(await sheet.locator(".ps-meals tr").first().innerText(), /Wed 7 Oct/);
     // corner marks and black bars must print even with "Background graphics" off:
@@ -832,19 +838,28 @@ process.on("exit", () => server && server.kill());
     assert.match(sheet.code, /^0710-\d{4}$/);
     assert.ok(sheet.rows.length >= 2);
     assert.equal(sheet.rows[0].no, "01");
-    assert.equal(sheet.rows[0].boxes.length, 3);
+    assert.equal(sheet.rows[0].boxes.length, 4);
     for (const b of sheet.rows[0].boxes) assert.ok(b.every(n => n >= 0 && n <= 1), "boxes are 0..1: " + b);
 
     await page.click("#scanBtn");
     assert.ok(await page.locator("#scanPanel").isVisible());
     await until(async () => assert.match(await text("#scanSheet"), new RegExp(sheet.code)));
     // pretend the photo shows row 01 used and row 02 binned
-    const [r1, r2] = sheet.rows;
-    await page.evaluate(([a, b]) => {
-      window.FT_OMR.readSheet = () => ({ ok: true, marks: { [a]: { u: true, p: false, b: false }, [b]: { u: false, p: false, b: true } } });
-    }, [r1.no, r2.no]);
+    const [r1, r2, r3] = sheet.rows;
+    const shopCount = async name => (await page.evaluate(async () => (await fetch("/api/shop")).json()))
+      .filter(i => i.name.toLowerCase() === name.toLowerCase() && !i.got && !i.del).length;
+    const before1 = await shopCount(r1.name), before3 = await shopCount(r3.name);
+    await page.evaluate(([a, b, c]) => {
+      window.FT_OMR.readSheet = () => ({ ok: true, marks: {
+        [a]: { u: true, p: false, b: false, n: true },
+        [b]: { u: false, p: false, b: true, n: false },
+        [c]: { u: false, p: false, b: false, n: true } } });
+    }, [r1.no, r2.no, r3.no]);
     await page.setInputFiles("#scanFile", path.join(__dirname, "..", "docs", "mockup-scan.png"));
-    await until(async () => assert.match(await text("#scanChanges"), /Changes found · 2/));
+    await until(async () => assert.match(await text("#scanChanges"), /Changes found · 3/));
+    // N shows as its own toggle
+    assert.match(await page.locator(`#scanChanges .chg[data-no="${r1.no}"] .n`).getAttribute("class"), /\bon\b/);
+    assert.match(await page.locator(`#scanChanges .chg[data-no="${r3.no}"] .n`).getAttribute("class"), /\bon\b/);
     const row1 = page.locator(`#scanChanges .chg[data-no="${r1.no}"]`);
     assert.match(await row1.innerText(), new RegExp(r1.name));
     assert.match(await row1.locator(".u").getAttribute("class"), /\bon\b/);
@@ -857,6 +872,11 @@ process.on("exit", () => server && server.kill());
       const p2 = packs.find(p => p.id === r2.id);
       assert.equal(p2.status, "in_fridge");
       assert.equal(p2.partUsed, true);
+      // N only: stays in the fridge, goes on the shopping list
+      assert.equal(packs.find(p => p.id === r3.id).status, "in_fridge");
+      assert.equal(await shopCount(r3.name), Math.max(before3, 1));
+      // U + N: on the list once, not twice
+      assert.equal(await shopCount(r1.name), Math.max(before1, 1));
     });
     assert.equal(await page.locator("#scanPanel").isVisible(), false);
   });

@@ -1,11 +1,11 @@
 // Reads ✕ marks off a photo of the printed fridge sheet (no AI, no network).
 // Works on a grayscale image: finds the 4 black corner squares, maps each
-// U / P / B box from the saved sheet layout onto the photo, and checks for ink.
+// U / P / B (and N) box from the saved sheet layout onto the photo, and checks for ink.
 // Plain JS so it runs in the browser (window.FT_OMR) and in Node tests.
 (function() {
   // Box positions relative to the 4 corner marks: (0,0) = top-left mark centre,
   // (1,1) = bottom-right mark centre. corners: { tl, tr, bl, br } as {x,y,w,h};
-  // rows: [{ no, id, name, boxes: [{x,y,w,h} x3] }] -> boxes as [u, v, w, h].
+  // rows: [{ no, id, name, boxes: [{x,y,w,h} x3 or x4] }] -> boxes as [u, v, w, h].
   function layoutFromRects(corners, rows) {
     const c = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
     const tl = c(corners.tl), tr = c(corners.tr), bl = c(corners.bl);
@@ -249,8 +249,8 @@
     };
   }
 
-  // img: { gray: Uint8Array, width, height }; rows: [{ no, boxes: [[u,v,w,h] x3] }]
-  // Returns { ok: true, marks: { "01": { u, p, b }, ... } } or { ok: false, reason }.
+  // img: { gray: Uint8Array, width, height }; rows: [{ no, boxes: [[u,v,w,h] x3 or x4] }]
+  // Returns { ok: true, marks: { "01": { u, p, b[, n] }, ... } } or { ok: false, reason }.
   function readSheet(img, rows) {
     const { gray, width: w, height: h } = img;
     const ink = inkMask(gray, w, h);
@@ -261,7 +261,10 @@
     const marks = {};
     for (const row of rows) {
       const s = row.boxes.map(box => boxScore(ink, w, h, map, box));
-      marks[row.no] = { u: s[0] > THRESHOLD, p: s[1] > THRESHOLD, b: s[2] > THRESHOLD };
+      const m = { u: s[0] > THRESHOLD, p: s[1] > THRESHOLD, b: s[2] > THRESHOLD };
+      // Newer sheets have a 4th box (N = need more)
+      if (s.length > 3) m.n = s[3] > THRESHOLD;
+      marks[row.no] = m;
     }
     return { ok: true, marks };
   }

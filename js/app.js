@@ -48,27 +48,26 @@
   function buildPrintSheet(stamp) {
     const sheet = FT.printSheet(packs, today);
     const hhmm = stamp.hhmm;
-    const boxes = '<td class="bx"><span></span></td>'.repeat(3);
+    const boxes = '<td class="bx"><span></span></td>'.repeat(4); // U P B N
 
     const section = sec => {
       const word = sec.title.replace(/[^A-Za-z ]/g, '').trim().toLowerCase();
       const more = word.charAt(0).toUpperCase() + word.slice(1);
       const rows = sec.rows.map(r =>
         `<tr data-id="${r.id}"><td class="id">${r.no}</td><td>${esc(r.name)}</td><td class="d">${esc(r.date)}</td>${boxes}</tr>`).join('');
-      return `<h2${sec.key === 'soon' ? ' class="soon"' : ''}>${esc(sec.title)}<span class="ub">U P B</span></h2>` +
+      return `<h2${sec.key === 'soon' ? ' class="soon"' : ''}>${esc(sec.title)}<span class="ub"><b class="dt">DATE</b><b>U</b><b>P</b><b>B</b><b>N</b></span></h2>` +
         `<table>${rows}</table>` +
         (sec.more > 0 ? `<div class="more">+${sec.more} more ${esc(more)} · see app</div>` : '');
     };
     const column = secs => secs.map(section).join('');
 
     const blankRows = (n, cells) => Array.from({ length: n }, () => `<tr>${cells}</tr>`).join('');
-    const added = blankRows(4, '<td class="id">+</td><td>&nbsp;</td><td class="d">__/__</td>');
-    const need = blankRows(3, '<td class="bx"><span></span></td><td>&nbsp;</td>');
+    const added = blankRows(5, '<td>&nbsp;</td>');
     const meals = sheet.meals.map(m =>
       `<tr><td class="dn">${esc(m.day)}</td><td>${m.text ? esc(m.text) : '&nbsp;'}</td></tr>`).join('');
 
     const hidden = sheet.total - sheet.shown;
-    const footer = `${sheet.total} items${hidden > 0 ? ` (${hidden} more in app)` : ''} · U = Used · P = Part used · B = Binned`;
+    const footer = `${sheet.total} items${hidden > 0 ? ` (${hidden} more in app)` : ''} · U = Used · P = Part used · B = Binned · N = Need more`;
 
     return `<div class="ps-page">
   <i class="ps-mk ps-tl"></i><i class="ps-mk ps-tr"></i><i class="ps-mk ps-bl"></i><i class="ps-mk ps-br"></i>
@@ -76,13 +75,12 @@
     <div><h1>🥶 Fridge sheet</h1><div class="ps-sub">Week ${esc(sheet.range)} · printed ${esc(FT.formatDate(today))}, ${hhmm}</div></div>
     <div class="ps-code">SHEET ${esc(stamp.code)}</div>
   </header>
-  <div class="ps-key">Mark with an <b>✕</b> when gone: U = Used · P = Part used · B = Binned</div>
+  <div class="ps-key">Mark with an ✕: U = Used · P = Part used · B = Binned · N = Need more (adds to shopping list)</div>
   <div class="ps-top"><div>${column(sheet.left)}</div><div>${column(sheet.right)}</div></div>
-  <div class="ps-bottom"><div>
-    <div class="ps-added"><h2>✍️ ADDED (write in)</h2><table class="blank">${added}</table></div>
-    <div class="ps-need"><h2>🛒 NEED</h2><table class="blank">${need}</table></div>
+  <div class="ps-bottom">
+    <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div>
+    <div class="ps-added"><h2>✍️ ADDED</h2><div class="ps-hint">Add these in the app too</div><table class="blank">${added}</table></div>
   </div>
-  <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div></div>
   <div class="ps-foot">${esc(footer)}</div>
 </div>`;
   }
@@ -471,6 +469,7 @@
   let scanChanges = null; // { sheet, changes: [{ no, id, name, mark, note, choice }] } while "Changes found" shows
   const CHIP_LABEL = { u: 'U', p: 'P', b: 'B', none: '–' };
   const CHIP_NAME = { u: 'Used', p: 'Part used', b: 'Binned', none: 'No change' };
+  const NEED_NAME = 'Need more (adds to shopping list)';
   const NO_SHEET = 'No printed sheet yet. Print the fridge sheet first.';
 
   function scanMsg(text, err = false) {
@@ -577,14 +576,15 @@
     renderScanChanges();
   }
 
-  // Tap a letter on a change row: that choice wins
+  // Tap a letter on a change row: that choice wins. Tap N: toggles need more.
   function chooseScanMark(e) {
-    const btn = e.target.closest('button[data-c]');
+    const btn = e.target.closest('button[data-c], button[data-n]');
     if (!btn || !scanChanges) return;
     const no = btn.closest('.chg').dataset.no;
     const c = scanChanges.changes.find(x => x.no === no);
     if (!c) return;
-    c.choice = btn.dataset.c;
+    if (btn.dataset.n !== undefined) c.need = !c.need;
+    else c.choice = btn.dataset.c;
     renderScanChanges();
   }
 
@@ -607,7 +607,8 @@
       const chips = ['u', 'p', 'b', 'none'].map(k =>
         `<button type="button" class="${k}${c.choice === k ? ' on' : ''}" data-c="${k}" title="${CHIP_NAME[k]}" aria-label="${CHIP_NAME[k]}">${CHIP_LABEL[k]}</button>`
       ).join('');
-      row.innerHTML = `<span><span class="no">${esc(c.no)}</span><b>${esc(c.name)}</b></span><span class="chips">${chips}</span>`;
+      const need = `<button type="button" class="n${c.need ? ' on' : ''}" data-n title="${NEED_NAME}" aria-label="${NEED_NAME}">N</button>`;
+      row.innerHTML = `<span><span class="no">${esc(c.no)}</span><b>${esc(c.name)}</b></span><span class="chips">${chips}${need}</span>`;
       list.appendChild(row);
       if (c.note && (c.mark !== 'ask' || unresolved)) {
         const note = document.createElement('div');
@@ -616,7 +617,7 @@
         list.appendChild(note);
       }
     }
-    const chosen = changes.filter(c => ['u', 'p', 'b'].includes(c.choice)).length;
+    const chosen = changes.filter(c => ['u', 'p', 'b'].includes(c.choice) || c.need).length;
     const ready = changes.every(c => !(c.mark === 'ask' && c.choice === null));
     const apply = document.getElementById('scanApply');
     apply.textContent = `✅ Apply all (${chosen})`;
@@ -626,21 +627,22 @@
   // Apply the chosen marks: Used, Part used or Binned, same as the fridge pop-up buttons
   async function applyScan() {
     if (!scanChanges) return;
-    const todo = scanChanges.changes.filter(c => ['u', 'p', 'b'].includes(c.choice));
+    const todo = scanChanges.changes.filter(c => ['u', 'p', 'b'].includes(c.choice) || c.need);
     closeScan();
     const writes = [];
     for (const c of todo) {
       const pack = packs.find(p => p.id === c.id);
-      if (!pack) continue;
-      if (c.choice === 'p') {
+      if (pack && c.choice === 'p') {
         writes.push(setPack(FT.partUse(pack, today)));
-      } else if (c.choice === 'u') {
+      } else if (pack && c.choice === 'u') {
         const updated = FT.markUsed(pack, today);
         writes.push(setPack(updated), autoAddFinished(updated, 'used'));
-      } else {
+      } else if (pack && c.choice === 'b') {
         const updated = FT.markThrown(pack, today);
         writes.push(setPack(updated), autoAddFinished(updated, 'thrown_away'));
       }
+      // autoAdd skips foods already on the list, so U + N adds once
+      if (c.need) writes.push(autoAdd(c.name, 'need more'));
     }
     renderAll();
     await persistAll(writes);
