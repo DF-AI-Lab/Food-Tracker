@@ -226,3 +226,20 @@ test("/api/info gives the version the server started with and the files on disk 
     assert.deepEqual(body.disk, body.version);
   });
 });
+
+test("updateOptions: 🔄 can pull on the real copy and on the TEST copy", () => {
+  const { updateOptions } = require("../server/server.js");
+  const real = updateOptions({ FT_AUTO_UPDATE: "1", FT_WATCH: "1" });
+  assert.equal(typeof real.update, "function");
+  assert.equal(typeof real.onRestart, "function");
+  // TEST copy: no background pulls, but the button still pulls and can restart
+  const testCopy = updateOptions({ FT_TEST: "1", FT_WATCH: "1" });
+  assert.equal(typeof testCopy.update, "function");
+  assert.equal(typeof testCopy.onRestart, "function");
+  // plain "npm start" (no restart loop): button can pull, but must not exit the server
+  const plain = updateOptions({});
+  assert.equal(typeof plain.update, "function");
+  assert.equal(plain.onRestart, undefined);
+  // tests switch pulling off
+  assert.deepEqual(updateOptions({ FT_NO_PULL: "1", FT_WATCH: "1" }), {});
+});

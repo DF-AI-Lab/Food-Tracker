@@ -272,6 +272,19 @@ function startServer({ port = 0, dataDir = defaultDataDir(), today, test = false
 
 module.exports = { startServer, defaultDataDir };
 
+// What the 🔄 button may do. It can always pull (a ZIP copy just reports "no update").
+// Restarting is only safe when a launcher loop starts us again (FT_WATCH / FT_AUTO_UPDATE).
+function updateOptions(env) {
+  const loop = env.FT_WATCH === "1" || env.FT_AUTO_UPDATE === "1";
+  if (env.FT_NO_PULL === "1") return {}; // tests: never touch git
+  return {
+    update: () => checkForUpdate({ cwd: APP_DIR }),
+    onRestart: loop ? () => process.exit(RESTART_CODE) : undefined
+  };
+}
+
+module.exports.updateOptions = updateOptions;
+
 if (require.main === module) {
   const port = Number(process.env.FT_PORT) || 5178;
   const dataDir = process.env.FT_DATA_DIR || defaultDataDir();
@@ -282,8 +295,7 @@ if (require.main === module) {
     port,
     dataDir,
     test: process.env.FT_TEST === "1",
-    update: autoUpdate ? () => checkForUpdate({ cwd: APP_DIR }) : undefined,
-    onRestart: autoUpdate ? restart : undefined
+    ...updateOptions(process.env)
   })
     .then(srv => {
       console.log(`Food Tracker running at http://localhost:${srv.port}`);

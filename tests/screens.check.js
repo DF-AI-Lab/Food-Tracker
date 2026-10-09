@@ -15,7 +15,7 @@ const URL = `http://localhost:${PORT}/index.html?today=2026-10-07`;
 
 async function startServer() {
   const srv = spawn(process.execPath, [path.join(__dirname, "..", "server", "server.js")], {
-    env: { ...process.env, FT_PORT: String(PORT), FT_DATA_DIR: DATA_DIR },
+    env: { ...process.env, FT_PORT: String(PORT), FT_DATA_DIR: DATA_DIR, FT_NO_PULL: "1" },
     stdio: "inherit",
   });
   for (let i = 0; i < 50; i++) {
