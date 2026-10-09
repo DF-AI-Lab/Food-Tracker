@@ -740,3 +740,38 @@ test("takeawaySummary: count and total this month", () => {
   assert.deepEqual(L.takeawaySummary(meals, "2026-10-09"), { count: 3, total: 42.5 });
   assert.deepEqual(L.takeawaySummary([], "2026-10-09"), { count: 0, total: 0 });
 });
+
+// ---------- Meal ideas ----------
+
+test("mealIdeas: combos of 2+ foods, most had first, with what's missing", () => {
+  const meals = [
+    { day: "2026-10-01", items: [{ name: "Chicken", slot: "main" }, { name: "Peas", slot: "veg" }, { name: "Mash", slot: "side" }], takeaway: false },
+    { day: "2026-10-03", items: [{ name: "chicken", slot: "main" }, { name: "Mash", slot: "side" }, { name: "Peas", slot: "veg" }], takeaway: false },
+    { day: "2026-10-04", items: [{ name: "Gammon", slot: "main" }, { name: "Chips", slot: "side" }], takeaway: false },
+    { day: "2026-10-05", items: [{ name: "Beef", slot: "main" }], takeaway: false },          // 1 food: not a combo
+    { day: "2026-10-06", items: [], takeaway: true, cost: 20 },                               // takeaway: not here
+  ];
+  const packs = [
+    pk(1, "Chicken", "main", "2026-10-12"),
+    pk(2, "Mash", "side", "2026-10-14"),
+    pk(3, "Peas", "veg", null),
+    pk(4, "Gammon", "main", "2026-10-12", { plannedFor: "2026-10-10", slot: "main" }), // planned already: not free
+  ];
+  const ideas = L.mealIdeas(meals, packs);
+  assert.equal(ideas.length, 2);
+  assert.equal(ideas[0].name, "Chicken + Mash + Peas");   // main, side, veg order
+  assert.equal(ideas[0].count, 2);
+  assert.deepEqual(ideas[0].missing, []);
+  assert.deepEqual(ideas[0].items.map(i => i.slot), ["main", "side", "veg"]);
+  assert.equal(ideas[1].name, "Gammon + Chips");
+  assert.deepEqual(ideas[1].missing, ["Gammon", "Chips"]);
+  assert.deepEqual(L.mealIdeas([], packs), []);
+});
+
+test("mealIdeas: same count -> most recently had first", () => {
+  const meals = [
+    { day: "2026-10-01", items: [{ name: "A", slot: "main" }, { name: "B", slot: "side" }], takeaway: false },
+    { day: "2026-10-05", items: [{ name: "C", slot: "main" }, { name: "D", slot: "side" }], takeaway: false },
+  ];
+  assert.deepEqual(L.mealIdeas(meals, []).map(i => i.name), ["C + D", "A + B"]);
+});

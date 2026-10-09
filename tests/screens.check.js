@@ -652,6 +652,42 @@ process.on("exit", () => server && server.kill());
     assert.match(await page.locator('#mains .card:has-text("Lamb")').innerText(), /part used/i);
   });
 
+  await step("meal ideas: top combos under the days, + plans it, grey + shops for it", async () => {
+    const post = rec => fetch(`http://localhost:${PORT}/api/meals`, { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
+    const lambPeas = { items: [{ name: "Lamb", slot: "main" }, { name: "Peas", slot: "veg" }], takeaway: false, cost: null };
+    await post({ day: "2026-10-01", ...lambPeas });
+    await post({ day: "2026-10-02", ...lambPeas });
+    await goToday("2026-10-12");
+    const ideas = page.locator("#mealIdeas .idea");
+    await until(async () => assert.ok(await ideas.count() >= 2));
+    // sits under the day list
+    const days = await page.locator("#dayList").boundingBox();
+    const box = await page.locator("#mealIdeas").boundingBox();
+    assert.ok(box.y >= days.y + days.height - 1, "ideas under the days");
+    // the list scrolls instead of growing
+    assert.equal(await page.locator("#mealIdeas .il").evaluate(e => getComputedStyle(e).overflowY), "auto");
+    // takeaways are not ideas
+    assert.doesNotMatch(await text("#mealIdeas"), /Takeaway/);
+    const lamb = page.locator('#mealIdeas .idea:has-text("Lamb + Peas")');
+    assert.match(await ideas.first().innerText(), /Lamb \+ Peas/);
+    assert.match(await lamb.innerText(), /had 2×/);
+    await lamb.locator(".plus").click();
+    const todayHead = page.locator("#dayList .day.today .dh");
+    await until(async () => {
+      const t = await todayHead.innerText();
+      assert.match(t, /Lamb/); assert.match(t, /Peas/);
+    });
+    // Pork + Coleslaw + Peas: Pork and Coleslaw were used up -> grey +, adds them to the list
+    const pork = page.locator('#mealIdeas .idea:has-text("Pork + Coleslaw + Peas")');
+    assert.match(await pork.innerText(), /need Pork, Coleslaw/);
+    assert.match(await pork.locator(".plus").getAttribute("class"), /\boff\b/);
+    await pork.locator(".plus").click();
+    await openShop();
+    await until(async () => assert.equal(await shopRow("Coleslaw").count(), 1));
+    assert.equal(await shopRow("Pork").count(), 1);
+  });
+
   await step("data is in the SQLite file outside the app folder", async () => {
     const dbFile = path.join(DATA_DIR, "food.db");
     assert.ok(fs.existsSync(dbFile), "food.db created in data folder");
