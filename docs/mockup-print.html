@@ -1,0 +1,50 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Print sheet mockup</title>
+<style>
+  @page { size: A4; margin: 0; }
+  body { margin: 0; background: #ccc; font-family: Arial, sans-serif; color: #000; }
+  .page { width: 210mm; height: 297mm; background: #fff; margin: 0 auto; position: relative; box-sizing: border-box; padding: 14mm 14mm 12mm; }
+  .mark { position: absolute; width: 8mm; height: 8mm; background: #000; }
+  .tl { top: 5mm; left: 5mm } .tr { top: 5mm; right: 5mm } .bl { bottom: 5mm; left: 5mm } .br { bottom: 5mm; right: 5mm }
+  header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2mm; }
+  h1 { font-size: 20pt; margin: 0; }
+  .sub { font-size: 9pt; }
+  .code { font: bold 11pt monospace; border: 1.5px solid #000; padding: 1mm 2mm; }
+  .key { font-size: 9pt; margin: 2mm 0 3mm; }
+  .key b { display: inline-block; width: 4.5mm; height: 4.5mm; border: 1.5px solid #000; vertical-align: middle; margin: 0 1mm 0 3mm; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  h2 .ub { float: right; font: bold 9pt monospace; word-spacing: 3.6mm; margin-right: 2.5mm; }
+  h2 { font-size: 11pt; margin: 3mm 0 1mm; background: #000; color: #fff; padding: 1mm 2mm; }
+  h2.soon { background: #fff; color: #000; border: 2px solid #000; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  td { border-bottom: 1px solid #999; padding: 1.3mm 1mm; height: 6mm; }
+  td.id { font: bold 9pt monospace; width: 7mm; }
+  td.bx { width: 7mm; text-align: center; }
+  td.bx span { display: inline-block; width: 5mm; height: 5mm; border: 1.5px solid #000; }
+  td.d { width: 24mm; white-space: nowrap; font-size: 9pt; text-align: right; }
+  td.n { width: 9mm; text-align: right; font-weight: bold; }
+  .blank td { color: #999; }
+  .meals td { height: 7mm; }
+  .meals td.day { width: 24mm; white-space: nowrap; font-weight: bold; }
+  .foot { position: absolute; bottom: 14mm; left: 14mm; right: 14mm; font-size: 8pt; display: flex; justify-content: space-between; }
+  .top { height: 158mm; overflow: hidden; }
+  .bottom { position: absolute; left: 14mm; right: 14mm; bottom: 20mm; }
+  .more { font-size: 9pt; font-style: italic; text-align: right; padding: 1mm; }
+  .bottom h2 { margin-top: 0; }
+</style></head>
+<body>
+<div class="page">
+  <div class="mark tl"></div><div class="mark tr"></div><div class="mark bl"></div><div class="mark br"></div>
+
+  <header>
+    <div><h1>🥶 Fridge sheet</h1><div class="sub">Week 10–16 October · printed Fri 9 Oct, 6:40pm</div></div>
+    <div class="code">SHEET 0910-A</div>
+  </header>
+
+  <div class="key">Mark with an <b style="text-align:center;line-height:4.5mm">✕</b> when gone: U = Used · ½ = Part used · B = Binned</div>
+
+  <div class="cols top"><div><h2 class="soon">⚠️ USE SOON<span class="ub">U ½ B</span></h2><table><tr><td class="id">01</td><td>Chicken breasts</td><td class="d">Use by 10 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">02</td><td>Salmon fillets</td><td class="d">Use by 11 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">03</td><td>Spinach</td><td class="d">Use by 9 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr></table><h2 class="">🍖 MAINS<span class="ub">U ½ B</span></h2><table><tr><td class="id">04</td><td>Beef mince</td><td class="d">Use by 14 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">05</td><td>Sausages ×2</td><td class="d">Use by 15 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">06</td><td>Pork chops</td><td class="d">Use by 17 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">07</td><td>Gammon</td><td class="d">Use by 18 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">08</td><td>Turkey mince</td><td class="d">Use by 18 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">09</td><td>Lamb steaks</td><td class="d">Use by 19 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">10</td><td>Chicken thighs</td><td class="d">Use by 19 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">11</td><td>Cod fillets</td><td class="d">Use by 20 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr></table><div class="more">+3 more Mains · see app</div></div><div><h2 class="">🍚 SIDES<span class="ub">U ½ B</span></h2><table><tr><td class="id">12</td><td>Mash</td><td class="d">Use by 13 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">13</td><td>Rice pouch</td><td class="d">added 2 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">14</td><td>Coleslaw</td><td class="d">Use by 14 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">15</td><td>Potato salad</td><td class="d">Use by 15 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr></table><h2 class="">🥦 VEG<span class="ub">U ½ B</span></h2><table><tr><td class="id">16</td><td>Broccoli</td><td class="d">Use by 13 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">17</td><td>Carrots</td><td class="d">BB 20 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">18</td><td>Peppers</td><td class="d">BB 16 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">19</td><td>Mushrooms</td><td class="d">Use by 12 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">20</td><td>Cucumber</td><td class="d">BB 15 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr></table><h2 class="">🧀 MISC<span class="ub">U ½ B</span></h2><table><tr><td class="id">21</td><td>Milk</td><td class="d">Use by 12 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">22</td><td>Cheddar</td><td class="d">BB 30 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr><tr><td class="id">23</td><td>Yoghurts ×4</td><td class="d">Use by 16 Oct</td><td class="bx"><span></span></td><td class="bx"><span></span></td><td class="bx"><span></span></td></tr></table><div class="more">+2 more Misc · see app</div></div></div>
+  <div class="cols bottom"><div><h2>✍️ ADDED (write in)</h2><table class="blank"><tr><td class="id">+</td><td>&nbsp;</td><td class="d">__/__</td></tr><tr><td class="id">+</td><td>&nbsp;</td><td class="d">__/__</td></tr><tr><td class="id">+</td><td>&nbsp;</td><td class="d">__/__</td></tr><tr><td class="id">+</td><td>&nbsp;</td><td class="d">__/__</td></tr></table><h2>🛒 NEED</h2><table class="blank"><tr><td class="bx"><span></span></td><td>&nbsp;</td></tr><tr><td class="bx"><span></span></td><td>&nbsp;</td></tr><tr><td class="bx"><span></span></td><td>&nbsp;</td></tr></table></div><div><h2>🍽️ MEALS 10–16 OCT</h2><table class="meals"><tr><td class="day">Sat 10 Oct</td><td>Chicken breasts + Mash</td></tr><tr><td class="day">Sun 11 Oct</td><td>Salmon + Broccoli</td></tr><tr><td class="day">Mon 12 Oct</td><td>&nbsp;</td></tr><tr><td class="day">Tue 13 Oct</td><td>&nbsp;</td></tr><tr><td class="day">Wed 14 Oct</td><td>🥡 Takeaway</td></tr><tr><td class="day">Thu 15 Oct</td><td>&nbsp;</td></tr><tr><td class="day">Fri 16 Oct</td><td>&nbsp;</td></tr></table></div></div>
+  <div class="foot"><span>28 items (5 more in app) · U = Used · ½ = Part used · B = Binned</span><span>Black corners + numbers = ready for photo tick-off later</span></div>
+</div>
+</body></html>

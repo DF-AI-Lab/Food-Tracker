@@ -753,6 +753,110 @@
     return { count: mine.length, total: Math.round(total * 100) / 100 };
   }
 
+  // Printable fridge sheet
+  // "0910-1840" from today's ISO date and HH:MM
+  function sheetCode(todayIso, hhmm) {
+    return todayIso.slice(8, 10) + todayIso.slice(5, 7) + "-" + String(hhmm).replace(":", "");
+  }
+
+  const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  // "14 Oct" (day and month only)
+  function dayMonth(iso) {
+    const d = new Date(iso + "T00:00:00Z");
+    return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]}`;
+  }
+
+  function packDateLabel(p) {
+    if (!p.date) return `added ${dayMonth(p.added)}`;
+    return p.dateType === "best_before" ? `BB ${dayMonth(p.date)}` : `Use by ${dayMonth(p.date)}`;
+  }
+
+  // Dated packs soonest first (then id), then undated packs oldest added first (then id)
+  function sheetOrder(a, b) {
+    if (a.date && b.date) return a.date.localeCompare(b.date) || a.id - b.id;
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return a.added.localeCompare(b.added) || a.id - b.id;
+  }
+
+  function printSheet(packs, today, { rows = 17 } = {}) {
+    const inFridge = (packs || []).filter(p => p.status === "in_fridge" && p.kind !== "takeaway");
+    const soonPacks = useSoon(inFridge, today);
+    const soonIds = new Set(soonPacks.map(p => p.id));
+
+    const sectionDefs = [
+      { key: "soon", title: "⚠️ USE SOON", packs: soonPacks },
+      { key: "main", title: "🍖 MAINS", packs: [] },
+      { key: "side", title: "🍚 SIDES", packs: [] },
+      { key: "veg", title: "🥦 VEG", packs: [] },
+      { key: "misc", title: "🧀 MISC", packs: [] }
+    ];
+    const byKey = Object.fromEntries(sectionDefs.map(s => [s.key, s]));
+    for (const p of inFridge) {
+      if (soonIds.has(p.id)) continue;
+      if (KINDS.includes(p.kind)) byKey[p.kind].packs.push(p);
+    }
+    for (const s of sectionDefs) s.packs.sort(sheetOrder);
+
+    // Fit one column: each header costs 1 slot, the rest go round-robin, then
+    // sections with packs left over give back 1 row for their "+N more" line
+    function fitColumn(defs) {
+      const active = defs.filter(s => s.packs.length > 0);
+      const sections = active.map(s => ({ ...s, shown: 0 }));
+      let free = rows - sections.length;
+      let progress = true;
+      while (free > 0 && progress) {
+        progress = false;
+        for (const s of sections) {
+          if (free > 0 && s.shown < s.packs.length) {
+            s.shown++;
+            free--;
+            progress = true;
+          }
+        }
+      }
+      return sections.map(s => {
+        const partial = s.shown < s.packs.length;
+        const count = partial && s.shown > 0 ? s.shown - 1 : s.shown;
+        return {
+          key: s.key,
+          title: s.title,
+          rows: s.packs.slice(0, count).map(p => ({ id: p.id, name: p.name, date: packDateLabel(p) })),
+          more: s.packs.length - count
+        };
+      });
+    }
+
+    const left = fitColumn([byKey.soon, byKey.main]);
+    const right = fitColumn([byKey.side, byKey.veg, byKey.misc]);
+
+    let no = 0;
+    for (const sec of [...left, ...right]) {
+      sec.rows = sec.rows.map(r => ({ no: String(++no).padStart(2, "0"), ...r }));
+    }
+
+    const shown = no;
+    const total = inFridge.length;
+
+    // Meals: today plus 6 days
+    const days = mealDays(today);
+    const meals = days.map(day => {
+      const names = dayMeals(packs, day).map(p => (p.kind === "takeaway" ? "🥡 Takeaway" : p.name));
+      return { day: formatDate(day), text: names.join(" + ") };
+    });
+
+    // Range: first to last meal day
+    const first = days[0];
+    const last = days[days.length - 1];
+    const sameMonth = first.slice(0, 7) === last.slice(0, 7);
+    const range = sameMonth
+      ? `${Number(first.slice(8, 10))}–${Number(last.slice(8, 10))} ${MONTHS_SHORT[Number(last.slice(5, 7)) - 1]}`
+      : `${dayMonth(first)} – ${dayMonth(last)}`;
+
+    return { left, right, meals, range, total, shown };
+  }
+
   // Export
   const FT = {
     addDays,
@@ -807,7 +911,9 @@
     expiredPlans,
     partUse,
     mealRecord,
-    takeawaySummary
+    takeawaySummary,
+    sheetCode,
+    printSheet
   };
 
   if (typeof module !== "undefined") {

@@ -14,10 +14,8 @@
   <div id="testBanner" class="testbanner" hidden>🧪 TEST COPY · not your real food</div>
   <div id="top" class="today">
     <span id="today">📅 Today · <b>Loading...</b></span>
-    <span class="pal"><button id="printF" title="Print the whole fridge list (coming soon)" aria-label="Print the whole fridge list">🖨️</button><button id="themeDark" data-m="dark" aria-label="Dark mode">🌙</button><button id="theme" data-m="light" aria-label="Light mode">☀️</button></span>
+    <span class="pal"><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="themeDark" data-m="dark" aria-label="Dark mode">🌙</button><button id="theme" data-m="light" aria-label="Light mode">☀️</button></span>
   </div>
-
-  <div class="note" id="printFNote" hidden>Print: coming soon</div>
 
   <div id="tabs" class="tabs">
     <button data-tab="fridge" class="tab on">🥶 Fridge</button>
@@ -182,6 +180,9 @@
     </div>
   </div>
 </div>
+
+  <!-- Printable fridge sheet: filled by app.js, shown only when printing -->
+  <div id="printSheet"></div>
 
   <!-- Sheet (modal for pack actions) -->
   <div id="sheet">

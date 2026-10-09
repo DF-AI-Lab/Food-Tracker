@@ -775,3 +775,117 @@ test("mealIdeas: same count -> most recently had first", () => {
   ];
   assert.deepEqual(L.mealIdeas(meals, []).map(i => i.name), ["C + D", "A + B"]);
 });
+
+// ---------- print sheet ----------
+
+function pk(id, name, kind, date, extra = {}) {
+  return { id, name, kind, date, dateType: date ? "use_by" : null, status: "in_fridge",
+    added: "2026-10-01", left: null, frozen: null, ...extra };
+}
+
+test("printSheet: use soon first, then sections, numbered in order", () => {
+  const packs = [
+    pk(1, "Beef mince", "main", "2026-10-12"),
+    pk(2, "Chicken", "main", "2026-10-08"),          // 1 day: use soon
+    pk(3, "Milk", "misc", "2026-10-09", { dateType: "best_before" }), // 2 days: use soon
+    pk(4, "Mash", "side", "2026-10-11"),
+    pk(5, "Rice", "side", null, { added: "2026-10-02" }),
+    pk(6, "Carrots", "veg", null, { added: "2026-10-03" }),
+    pk(7, "Eggs", "misc", "2026-10-20", { dateType: "best_before" }),
+    pk(8, "Old", "main", "2026-10-01", { status: "used" }),
+    pk(9, "Ice", "main", "2026-10-01", { status: "frozen" })
+  ];
+  const s = L.printSheet(packs, TODAY);
+  const keys = col => col.map(sec => sec.key);
+  assert.deepEqual(keys(s.left), ["soon", "main"]);
+  assert.deepEqual(keys(s.right), ["side", "veg", "misc"]);
+  assert.deepEqual(s.left[0].rows.map(r => [r.no, r.name]), [["01", "Chicken"], ["02", "Milk"]]);
+  assert.deepEqual(s.left[1].rows.map(r => [r.no, r.name, r.id]), [["03", "Beef mince", 1]]);
+  assert.deepEqual(s.right[0].rows.map(r => r.no), ["04", "05"]);
+  assert.equal(s.right[2].rows[0].no, "07");
+  assert.equal(s.total, 7);
+  assert.equal(s.shown, 7);
+});
+
+test("printSheet: date labels (use by, BB, undated shows added)", () => {
+  const packs = [
+    pk(1, "Beef", "main", "2026-10-14"),
+    pk(2, "Cheese", "misc", "2026-10-30", { dateType: "best_before" }),
+    pk(3, "Rice", "side", null, { added: "2026-10-02" })
+  ];
+  const s = L.printSheet(packs, TODAY);
+  const all = [...s.left, ...s.right].flatMap(sec => sec.rows);
+  const label = name => all.find(r => r.name === name).date;
+  assert.equal(label("Beef"), "Use by 14 Oct");
+  assert.equal(label("Cheese"), "BB 30 Oct");
+  assert.equal(label("Rice"), "added 2 Oct");
+});
+
+test("printSheet: each section dated soonest first, then undated oldest", () => {
+  const packs = [
+    pk(1, "B", "veg", null, { added: "2026-10-05" }),
+    pk(2, "A", "veg", null, { added: "2026-10-01" }),
+    pk(3, "C", "veg", "2026-10-20"),
+    pk(4, "D", "veg", "2026-10-15")
+  ];
+  const s = L.printSheet(packs, TODAY);
+  assert.deepEqual(s.right[0].rows.map(r => r.name), ["D", "C", "A", "B"]);
+});
+
+test("printSheet: empty sections are left out", () => {
+  const s = L.printSheet([pk(1, "Beef", "main", "2026-10-14")], TODAY);
+  assert.deepEqual(s.left.map(x => x.key), ["main"]);
+  assert.deepEqual(s.right, []);
+});
+
+test("printSheet: overflow shows '+N more' and keeps soonest", () => {
+  const mains = [];
+  for (let i = 0; i < 12; i++) mains.push(pk(i + 1, "M" + i, "main", L.addDays(TODAY, 5 + i)));
+  // 10 rows: header (1) + rows + more line (1) -> 8 shown, 4 more
+  const s = L.printSheet(mains, TODAY, { rows: 10 });
+  const sec = s.left[0];
+  assert.equal(sec.rows.length, 8);
+  assert.equal(sec.more, 4);
+  assert.deepEqual(sec.rows.map(r => r.name), ["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7"]);
+  assert.equal(s.total, 12);
+  assert.equal(s.shown, 8);
+});
+
+test("printSheet: space is shared fairly between sections in a column", () => {
+  const packs = [];
+  for (let i = 0; i < 10; i++) packs.push(pk(100 + i, "S" + i, "side", L.addDays(TODAY, 5 + i)));
+  packs.push(pk(200, "V", "veg", null));
+  for (let i = 0; i < 10; i++) packs.push(pk(300 + i, "X" + i, "misc", L.addDays(TODAY, 5 + i)));
+  // 12 rows, 3 headers -> 9 left. Veg takes 1; sides and misc split the rest,
+  // each giving 1 row to its "+N more" line.
+  const s = L.printSheet(packs, TODAY, { rows: 12 });
+  const [side, veg, misc] = s.right;
+  assert.equal(veg.rows.length, 1);
+  assert.equal(veg.more, 0);
+  assert.equal(side.rows.length + misc.rows.length, 6);
+  assert.ok(Math.abs(side.rows.length - misc.rows.length) <= 1);
+  assert.equal(side.more, 10 - side.rows.length);
+  assert.equal(misc.more, 10 - misc.rows.length);
+});
+
+test("printSheet: meals are today + 6 days with full dates", () => {
+  const packs = [
+    pk(1, "Chicken", "main", "2026-10-09", { plannedFor: "2026-10-07", slot: "main" }),
+    pk(2, "Mash", "side", "2026-10-11", { plannedFor: "2026-10-07", slot: "side" }),
+    L.makeTakeaway("2026-10-09")
+  ];
+  const s = L.printSheet(packs, TODAY);
+  assert.equal(s.meals.length, 7);
+  assert.deepEqual(s.meals[0], { day: "Wed 7 Oct", text: "Chicken + Mash" });
+  assert.deepEqual(s.meals[1], { day: "Thu 8 Oct", text: "" });
+  assert.deepEqual(s.meals[2], { day: "Fri 9 Oct", text: "🥡 Takeaway" });
+  assert.equal(s.range, "7–13 Oct");
+});
+
+test("printSheet: range across months", () => {
+  assert.equal(L.printSheet([], "2026-10-28").range, "28 Oct – 3 Nov");
+});
+
+test("sheetCode: day, month and time", () => {
+  assert.equal(L.sheetCode("2026-10-09", "18:40"), "0910-1840");
+});
