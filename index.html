@@ -6,7 +6,9 @@
   <title>Food Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap">
+  <!-- Fonts load without blocking the page (the app shows up at once; fonts swap in when ready) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap"></noscript>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -181,6 +183,7 @@
       </div>
     </div>
   </div>
+  <div id="ver" class="ver"></div>
 </div>
 
   <!-- Printable fridge sheet: filled by app.js, shown only when printing -->

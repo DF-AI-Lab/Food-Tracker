@@ -596,7 +596,7 @@ process.on("exit", () => server && server.kill());
 
   await step("meals v2: past day asks 'Had this meal?' -> yes, all/part used", async () => {
     await goToday("2026-10-10"); // Sat: Thu 8 had Pork + Coleslaw + Peas planned
-    assert.equal(await pastDay().count(), 1);
+    await until(async () => assert.equal(await pastDay().count(), 1));
     assert.match(await pastDay().locator(".dh").innerText(), /Thu/);
     assert.match(await pastDay().innerText(), /Had this meal\?/);
     // past day sits above today
@@ -619,7 +619,7 @@ process.on("exit", () => server && server.kill());
 
   await step("meals v2: takeaway day -> yes -> how much was it?", async () => {
     await goToday("2026-10-11"); // Sun: Sat 10 was a takeaway
-    assert.equal(await pastDay().count(), 1);
+    await until(async () => assert.equal(await pastDay().count(), 1));
     assert.match(await pastDay().innerText(), /Takeaway/);
     await pastDay().locator(".had-yes").click();
     assert.match(await pastDay().innerText(), /How much was it\?/);
@@ -644,7 +644,7 @@ process.on("exit", () => server && server.kill());
     await page.click('#dayList .day.open #pickList .item:has-text("Lamb")');
     await until(async () => assert.match(await page.locator("#dayList .day.today .dh").innerText(), /Lamb/));
     await goToday("2026-10-12");
-    assert.equal(await pastDay().count(), 1);
+    await until(async () => assert.equal(await pastDay().count(), 1));
     await pastDay().locator(".had-no").click();
     assert.match(await pastDay().innerText(), /What did you have\?/);
     // Lamb is back in the picker; pick Beef instead
@@ -824,7 +824,7 @@ process.on("exit", () => server && server.kill());
 
     await page.click("#scanBtn");
     assert.ok(await page.locator("#scanPanel").isVisible());
-    assert.match(await text("#scanSheet"), new RegExp(sheet.code));
+    await until(async () => assert.match(await text("#scanSheet"), new RegExp(sheet.code)));
     // pretend the photo shows row 01 used and row 02 binned
     const [r1, r2] = sheet.rows;
     await page.evaluate(([a, b]) => {

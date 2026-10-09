@@ -138,7 +138,7 @@
     // The TEST copy shows a red banner (the real copy stays hidden)
     try {
       const banner = document.getElementById('testBanner');
-      fetch('/api/info').then(r => r.json()).then(i => { if (i.test) banner.hidden = false; }).catch(() => {});
+      fetch('/api/info').then(r => r.json()).then(i => { if (i.test) banner.hidden = false; renderVersion(i); }).catch(() => renderVersion(null));
     } catch (e) {
       // no banner
     }
@@ -176,30 +176,77 @@
     } catch (e) { /* ignore */ }
     if (justUpdated) showUpdateNote();
 
-    // Look for updates now, then every hour
-    checkUpdate(false);
+    // Look for updates soon, then every hour. After an update reload the new code is already
+    // here, so the first silent check waits a minute
+    setTimeout(() => checkUpdate(false), justUpdated ? 60 * 1000 : 0);
     setInterval(() => checkUpdate(false), 60 * 60 * 1000);
   }
 
-  function showUpdateNote() {
+  // Short note under the top bar; hides itself after ms
+  let noteTimer = null;
+  function flashNote(text, ms) {
     const note = document.getElementById('updNote');
-    note.textContent = '✨ Updated to the latest version';
+    clearTimeout(noteTimer);
+    note.textContent = text;
     note.hidden = false;
-    setTimeout(() => { note.hidden = true; }, 6000);
+    noteTimer = setTimeout(() => { note.hidden = true; }, ms);
   }
 
-  // Ask the server to pull the latest app from GitHub. Reloads if it changed
-  // (or always, when force is true, i.e. the 🔄 button was pressed).
+  function showUpdateNote() {
+    flashNote('✨ Updated to the latest version', 6000);
+  }
+
+  // Version line at the bottom: "v<n> · <date>", or a warning when the files on disk are newer
+  // than the server that is running (it needs a restart)
+  function shortDate(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${Number(m[3])} ${months[Number(m[2]) - 1]}`;
+  }
+
+  function renderVersion(info) {
+    const el = document.getElementById('ver');
+    if (!el) return;
+    const v = info && info.version;
+    const disk = info && info.disk;
+    el.classList.remove('stale');
+    if (!v) { el.textContent = 'v?'; return; }
+    if (disk && disk.n !== v.n) {
+      el.textContent = '⚠️ New version waiting · Close the app and open it again';
+      el.classList.add('stale');
+      return;
+    }
+    el.textContent = ['v' + v.n, shortDate(v.date)].filter(Boolean).join(' · ');
+  }
+
+  // Latest version number on disk, for the "up to date" note ('?' if unknown)
+  async function latestNumber() {
+    try {
+      const info = await (await fetch('/api/info')).json();
+      renderVersion(info);
+      const v = info.disk || info.version;
+      return v ? v.n : '?';
+    } catch (e) {
+      return '?';
+    }
+  }
+
+  // Ask the server to pull the latest app from GitHub. Reloads if it changed.
+  // force is true when the 🔄 button was pressed: then it also says "up to date" (or that the check failed).
   let checkingUpdate = false;
   let loadedVersion = null; // version stamp of the files this page was loaded from
+  const MIN_SPIN_MS = 800;
   async function checkUpdate(force) {
     if (checkingUpdate) return;
     checkingUpdate = true;
     const btn = document.getElementById('refresh');
     btn.disabled = true;
     btn.classList.add('spin');
+    const started = Date.now();
     let updated = false;
     let restart = false;
+    let failed = false;
     try {
       const r = await fetch('/api/update', { method: 'POST' });
       const body = await r.json();
@@ -209,17 +256,27 @@
       if (loadedVersion === null) loadedVersion = body.version;
       else if (body.version && body.version !== loadedVersion) updated = true;
     } catch (e) {
-      // offline or no update support: nothing changed
+      failed = true; // offline or no update support: nothing changed
     }
     if (updated) {
       try { sessionStorage.setItem('ftUpdated', '1'); } catch (e) { /* ignore */ }
     }
-    if (updated || force) {
+    let note = null; // [text, ms] for the 🔄 button, if pressed and nothing was updated
+    if (!updated && force) {
+      note = failed
+        ? ["Couldn't check for updates", 3000]
+        : ['✓ Up to date · v' + await latestNumber(), 3000];
+    }
+    // Keep the spinner going long enough to be seen
+    const wait = MIN_SPIN_MS - (Date.now() - started);
+    if (wait > 0) await new Promise(done => setTimeout(done, wait));
+    if (updated) {
       // The server restarts itself after a server-side change, so give it a moment
       if (restart) await new Promise(done => setTimeout(done, 4000));
       location.reload();
       return;
     }
+    if (note) flashNote(note[0], note[1]);
     btn.disabled = false;
     btn.classList.remove('spin');
     checkingUpdate = false;
@@ -1879,12 +1936,17 @@
     renderAll();
   }
 
-  function renderAll() {
+  // Top line: today's date (needs no stored data, so it shows before the database loads)
+  function renderTopDate() {
     const todayEl = document.getElementById('today');
     todayEl.textContent = '📅 Today · ';
     const dateB = document.createElement('b');
     dateB.textContent = FT.formatDate(today);
     todayEl.appendChild(dateB);
+  }
+
+  function renderAll() {
+    renderTopDate();
     const activeView = document.querySelector('[data-view].on')?.dataset.view;
     if (activeView === 'fridge') renderFridgeView();
     else if (activeView === 'freezer') renderFreezerView();
@@ -2162,5 +2224,6 @@
   }
 
   // Start
+  renderTopDate();
   window.addEventListener('DOMContentLoaded', init);
 })();
