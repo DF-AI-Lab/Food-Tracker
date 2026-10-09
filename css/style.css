@@ -58,12 +58,22 @@ button.act.ghost{background:transparent;color:var(--muted);border:1px solid var(
 .row .u{color:var(--ok);font-weight:700} .row .w{color:var(--off);font-weight:700}
 button.tab{font:inherit;border:0;background:transparent;cursor:pointer}
 button.tab.on{background:var(--accent);color:var(--bg)}
-.mgrid{display:grid;grid-template-columns:44% 1fr;gap:10px}
 .mtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .mtabs .sb{padding:7px 2px;font-size:12px;white-space:nowrap}
-.day{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:4px;background:var(--bg);border:2px solid var(--line);border-radius:6px;padding:7px 8px}
-.day.on{border-color:var(--accent)} .day.drop{border-style:dashed;border-color:var(--accent)}
-.day .dn{font-weight:700;font-size:13px} .day .dn small{color:var(--muted);font-weight:600}
+#mtabs{grid-template-columns:repeat(3,1fr)}
+#mtabs .sb{font-size:13px;padding:8px 4px;white-space:normal}
+#dayList{display:flex;flex-direction:column;gap:8px}
+.day{display:flex;flex-direction:column;background:var(--tile);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden}
+.day.open{outline:2px solid var(--accent);outline-offset:-2px}
+.dh{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 14px;cursor:pointer}
+.dh:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.dh .hint{margin-left:auto;color:var(--muted);font-size:13px}
+.dbody{padding:0 12px 12px}
+.picker{display:flex;flex-direction:column;gap:8px}
+.picker[hidden]{display:none}
+#pickList{display:flex;flex-direction:column;gap:6px}
+#nextDay{width:100%}
+.day .dn{font-weight:700;font-size:15px} .day .dn small{color:var(--muted);font-weight:600;margin-left:4px}
 .chip2{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:3px 6px}
 .chip2 .x{all:unset;cursor:pointer;color:var(--muted);padding:0 3px} .chip2.warn{background:var(--offbg);border-color:var(--redline)}
 .slot{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
@@ -125,14 +135,12 @@ button.tab.on{background:var(--accent);color:var(--bg)}
 .act.big{padding:13px;font-size:16px}
 .done{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--okbg);border-radius:6px;padding:8px 10px;font-size:14px;font-weight:700}
 .sbot{border-top:1px solid var(--line);padding-top:8px}
-.wrow{display:grid;grid-template-columns:44px 1fr;gap:8px;font-size:14px;align-items:baseline}
-.wrow b{color:var(--accent)}
 pre{margin:0;overflow-x:auto;font-size:12px;line-height:1.5;background:var(--bg);border-radius:6px;padding:10px;color:var(--fg)}
 
 /* ---- Floating tiles: shape + depth from the user's reference image (colours unchanged) ---- */
 .pane,.sheet,.stat,.tabs{
   border-radius:18px;border:0;box-shadow:var(--shadow),inset 0 1px 0 var(--hi)}
-.cols,.mgrid{gap:14px}
+.cols{gap:14px}
 .scroll{gap:10px}
 .card{border-radius:14px;border:0;box-shadow:var(--shadow-sm),inset 0 1px 0 var(--hi)}
 .pack{border-radius:10px}
@@ -143,7 +151,6 @@ button.act{border-radius:12px;box-shadow:var(--shadow-sm)}
 button.act.ghost{box-shadow:none}
 .age,.day,.srow,.item,.qc,.chip2,.row{
   border-radius:12px;border-color:transparent;box-shadow:var(--shadow-sm)}
-.day.on{border-color:var(--accent)}
 .datebox,.sform input,.warnbar{border-radius:12px}
 .pane .card,.pane .age,.srow,.day,.item.nd,.row{background:var(--tile)}
 

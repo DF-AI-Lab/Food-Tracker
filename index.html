@@ -84,26 +84,19 @@
 
   <!-- Meals Tab -->
   <div data-tab-pane="meals" style="display:none;">
-    <div class="note">1) Tap a day · 2) tap a Main · 3) it jumps to Sides, then Veg · ✕ removes.</div>
-    <div class="mgrid">
-      <div class="pane days">
-        <div class="wkhead"><h2>📅 Week</h2><button class="pbtn" id="printWeek" title="Print this week (coming soon)" aria-label="Print this week">🖨️</button></div>
-        <div class="note" id="printWeekNote" hidden>Print: coming soon</div>
-        <div class="scroll" id="dayList"></div>
+    <div id="dayList"></div>
+    <!-- One picker, moved into the open day card by app.js; hidden when no day is open -->
+    <div id="picker" class="picker" hidden>
+      <div class="mtabs" id="mtabs">
+        <button class="sb on" data-s="main">🍖 Mains</button>
+        <button class="sb" data-s="side">🥔 Sides</button>
+        <button class="sb" data-s="veg">🥕 Veg</button>
       </div>
-      <div class="pane">
-        <div class="mtabs" id="mtabs">
-          <button class="sb on" data-s="main">🍖 Mains</button>
-          <button class="sb" data-s="side">🥔 Sides</button>
-          <button class="sb" data-s="veg">🥕 Veg</button>
-        </div>
-        <div class="tag" id="pickFor"></div>
-        <div class="warnbar" id="warnBar" hidden></div>
-        <div class="scroll" id="pickList"></div>
-        <button class="act" id="nextDay">Next day ▸</button>
-      </div>
+      <div class="tag" id="pickFor"></div>
+      <div class="warnbar" id="warnBar" hidden></div>
+      <div id="pickList"></div>
+      <button class="act" id="nextDay">Next day ▸</button>
     </div>
-    <div class="sheet"><b>🍽️ This week's meals</b><div id="weekSum" class="col" style="gap:6px"></div></div>
   </div>
 
   <!-- Add Tab -->

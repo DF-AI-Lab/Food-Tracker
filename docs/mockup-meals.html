@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meals Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#051F20;--card:#0B2B26;--item:#163832;--line:#235347;--fg:#DAF1DE;--muted:#8EB69B;--accent:#8EB69B;--warn:#8a5a12}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Nunito Sans',sans-serif;display:flex;justify-content:center;padding:16px}
+.app{width:100%;max-width:420px}
+h1{font-family:Fredoka;font-size:20px;margin:4px 0 14px;display:flex;justify-content:space-between;align-items:center}
+.icons span{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:10px;margin-left:6px;font-size:14px}
+.tabs{display:flex;gap:6px;background:var(--card);padding:5px;border-radius:16px;margin-bottom:12px}
+.tabs div{flex:1;text-align:center;padding:9px 0;border-radius:12px;color:var(--muted)}
+.tabs .on{background:var(--accent);color:var(--bg);font-weight:700}
+.card{background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:12px}
+.card h2{font-family:Fredoka;font-size:17px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+.pr{font-size:14px;padding:3px 8px;border:1px solid var(--line);border-radius:8px}
+.sum{display:grid;grid-template-columns:44px 1fr;row-gap:5px;font-size:14px}
+.sum b{color:var(--muted)}
+.sum .today{color:var(--fg)}
+.day{background:var(--card);border-radius:14px;margin-bottom:8px;overflow:hidden}
+.dh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer}
+.dh .n{font-weight:700}.dh .n small{color:var(--muted);font-weight:600;margin-left:4px}
+.dh .m{font-size:13px;color:var(--muted)}
+.day.open{outline:2px solid var(--accent)}
+.body{display:none;padding:0 12px 12px}
+.day.open .body{display:block}
+.kt{display:flex;gap:6px;margin-bottom:10px}
+.kt div{flex:1;text-align:center;padding:8px 0;border-radius:10px;background:var(--item);font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+.kt .on{background:var(--fg);color:var(--bg)}
+.ta{border:2px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:8px;font-weight:700;font-size:14px}
+.f{display:flex;justify-content:space-between;background:#2c6a4c;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-weight:700;font-size:14px;cursor:pointer}
+.f.warn{background:var(--warn)}
+.f span:last-child{font-weight:600}
+.next{background:var(--accent);color:var(--bg);text-align:center;border-radius:12px;padding:11px;font-weight:700;margin-top:8px}
+</style></head><body>
+<div class="app">
+  <h1>📅 Today · Fri 9 Oct <span class="icons"><span>🖨️</span><span>🌙</span><span>🌞</span></span></h1>
+  <div class="tabs"><div>🧊 Fridge</div><div class="on">🍽️ Meals</div><div>➕ Add</div></div>
+
+  <div class="card">
+    <h2>🍽️ This week's meals <span class="pr">🖨️</span></h2>
+    <div class="sum">
+      <b>Mon</b><span>—</span><b>Tue</b><span>—</span><b>Wed</b><span>Sausages · Mash · Peas</span>
+      <b>Thu</b><span>🥡 Takeaway</span><b class="today">Fri</b><span>—</span><b>Sat</b><span>—</span><b>Sun</b><span>—</span>
+    </div>
+  </div>
+
+  <div id="days"></div>
+</div>
+<script>
+const days=[['Mon','5 Oct',''],['Tue','6 Oct',''],['Wed','7 Oct','Sausages · Mash · Peas'],['Thu','8 Oct','🥡 Takeaway'],['Fri','9 Oct',''],['Sat','10 Oct',''],['Sun','11 Oct','']];
+const foods={Mains:[['Chicken','1 day left',1],['Sausages','4 days left'],['Mince','Sun 18 Oct'],['Gammon','Wed 21 Oct'],['Bacon ×2','Wed 21 Oct']],
+ Sides:[['Tagliatelle','Tue 3 Nov'],['Potatoes','Added today']],Veg:[['Carrots','Added today'],['Broccoli','Added today']]};
+const el=document.getElementById('days');
+let open=new URLSearchParams(location.search).get('open');
+function draw(){el.innerHTML='';days.forEach(([d,dt,m])=>{
+ const o=open===d,div=document.createElement('div');div.className='day'+(o?' open':'');
+ div.innerHTML=`<div class="dh"><span class="n">${d}<small>${dt}</small></span><span class="m">${m||'Tap to plan ›'}</span></div>
+ <div class="body"><div class="kt">${['Mains','Sides','Veg'].map((k,i)=>`<div class="${i==0?'on':''}">${['🍖','🥔','🥕'][i]} ${k}</div>`).join('')}</div>
+ <div class="ta">🥡 Takeaway</div><div class="list">${foods.Mains.map(f=>`<div class="f ${f[2]?'warn':''}"><span>${f[0]}</span><span>${f[1]}</span></div>`).join('')}</div>
+ <div class="next">Next day ▸</div></div>`;
+ div.querySelector('.dh').onclick=()=>{open=o?null:d;draw()};
+ div.querySelectorAll('.kt div').forEach((t,i)=>t.onclick=()=>{div.querySelectorAll('.kt div').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+  const k=['Mains','Sides','Veg'][i];div.querySelector('.list').innerHTML=foods[k].map(f=>`<div class="f ${f[2]?'warn':''}"><span>${f[0]}</span><span>${f[1]}</span></div>`).join('')});
+ el.appendChild(div)})}
+draw();
+</script></body></html>
