@@ -3,7 +3,7 @@
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")
 here = fso.GetParentFolderName(WScript.ScriptFullName)
-sh.Run "wscript """ & here & "\start-server.vbs""", 0, True
+sh.Run "wscript """ & here & "\start-server.vbs""", 0, False
 WScript.Sleep 1500
 
 url = "http://127.0.0.1:5178"
