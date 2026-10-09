@@ -803,7 +803,7 @@
 
   function packDateLabel(p) {
     if (!p.date) return `added ${dayMonth(p.added)}`;
-    return p.dateType === "best_before" ? `BB ${dayMonth(p.date)}` : `Use by ${dayMonth(p.date)}`;
+    return p.dateType === "best_before" ? `BB ${dayMonth(p.date)}` : `UB ${dayMonth(p.date)}`;
   }
 
   // Dated packs soonest first (then id), then undated packs oldest added first (then id)
@@ -911,11 +911,12 @@
       if (!pack || pack.status !== "in_fridge") continue;
       const m = (marks || {})[row.no];
       const mark = resolveMark(m);
-      if (!mark) continue;
+      const need = !!(m && m.n);
+      if (!mark && !need) continue;
       let note = "";
       if (mark === "ask") note = "U and B both marked · pick one";
       else if (m.u && m.p && !m.b) note = "U and P both marked → Used";
-      out.push({ no: row.no, id: row.id, name: row.name, mark, note });
+      out.push({ no: row.no, id: row.id, name: row.name, mark, need, note });
     }
     return out;
   }
