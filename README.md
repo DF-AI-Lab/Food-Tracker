@@ -6,11 +6,8 @@ A phone-first household fridge app: add food fast (taps, typing, voice, photo in
 
 ## Run it on your PC
 
-1. Download this branch (Code → Download ZIP) and unzip it.
-2. Double-click `index.html`. It opens in Chrome.
-3. Press F12, then the phone icon, to see it at phone size.
-
-Your food is saved in Chrome on that PC.
+See [`windows/SETUP.md`](windows/SETUP.md). Install Node.js once, then double-click `windows/install.vbs`.
+For automatic updates from GitHub, also double-click `windows/setup-updates.vbs` once (steps are in the same file).
 
 ## Tests
 

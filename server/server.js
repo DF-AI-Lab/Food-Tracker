@@ -4,6 +4,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
+const { RESTART_CODE, startAutoUpdate } = require("./updater");
 
 const APP_DIR = path.join(__dirname, "..");
 const KEEP_BACKUPS = 14;
@@ -240,7 +241,13 @@ if (require.main === module) {
   const port = Number(process.env.FT_PORT) || 5178;
   const dataDir = process.env.FT_DATA_DIR || defaultDataDir();
   startServer({ port, dataDir })
-    .then(srv => console.log(`Food Tracker running at http://localhost:${srv.port}`))
+    .then(srv => {
+      console.log(`Food Tracker running at http://localhost:${srv.port}`);
+      // Auto-update from GitHub only when the Windows launcher turns it on
+      if (process.env.FT_AUTO_UPDATE === "1") {
+        startAutoUpdate({ cwd: APP_DIR, onRestart: () => process.exit(RESTART_CODE) });
+      }
+    })
     .catch(err => {
       if (err.code === "EADDRINUSE") process.exit(0); // already running
       console.error(err);
