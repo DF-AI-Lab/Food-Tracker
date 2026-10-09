@@ -91,3 +91,26 @@ test("real git: pulls a new commit from the remote into the app folder", async (
   const again = await checkForUpdate({ cwd: app });
   assert.deepEqual(again, { updated: false, restart: false });
 });
+
+// ---------- restart when server files change on disk ----------
+const { serverStamp } = require("../server/updater.js");
+
+test("serverStamp changes when a server file or package.json changes", () => {
+  const dir = tmp();
+  fs.mkdirSync(path.join(dir, "server"));
+  fs.writeFileSync(path.join(dir, "server", "server.js"), "a");
+  fs.writeFileSync(path.join(dir, "package.json"), "{}");
+  const t0 = new Date("2026-01-01T00:00:00Z");
+  fs.utimesSync(path.join(dir, "server", "server.js"), t0, t0);
+  fs.utimesSync(path.join(dir, "package.json"), t0, t0);
+  const a = serverStamp(dir);
+  assert.equal(serverStamp(dir), a);
+  const t1 = new Date("2026-01-02T00:00:00Z");
+  fs.utimesSync(path.join(dir, "server", "server.js"), t1, t1);
+  assert.notEqual(serverStamp(dir), a);
+  // app files don't count
+  const b = serverStamp(dir);
+  fs.mkdirSync(path.join(dir, "js"));
+  fs.writeFileSync(path.join(dir, "js", "app.js"), "x");
+  assert.equal(serverStamp(dir), b);
+});

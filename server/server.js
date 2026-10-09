@@ -4,7 +4,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
-const { RESTART_CODE, checkForUpdate, startAutoUpdate } = require("./updater");
+const { RESTART_CODE, checkForUpdate, startAutoUpdate, serverStamp } = require("./updater");
 
 const APP_DIR = path.join(__dirname, "..");
 const KEEP_BACKUPS = 14;
@@ -287,6 +287,14 @@ if (require.main === module) {
     .then(srv => {
       console.log(`Food Tracker running at http://localhost:${srv.port}`);
       if (autoUpdate) startAutoUpdate({ cwd: APP_DIR, onRestart: restart });
+      // Restart when server code changes on disk (the TEST copy has no auto-update)
+      if (process.env.FT_WATCH === "1") {
+        const first = serverStamp(APP_DIR);
+        const timer = setInterval(() => {
+          if (serverStamp(APP_DIR) !== first) restart();
+        }, 60 * 1000);
+        timer.unref();
+      }
     })
     .catch(err => {
       if (err.code === "EADDRINUSE") process.exit(0); // already running

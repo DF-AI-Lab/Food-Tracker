@@ -68,4 +68,26 @@ function startAutoUpdate({ cwd, everyMs = 5 * 60 * 1000, onRestart } = {}) {
   };
 }
 
-module.exports = { RESTART_CODE, checkForUpdate, startAutoUpdate };
+// Newest modified time (whole ms) of the server's .js files and package.json.
+// Changes when the server code changes on disk. Missing files are ignored.
+function serverStamp(appDir) {
+  const files = [path.join(appDir, "package.json")];
+  try {
+    for (const name of fs.readdirSync(path.join(appDir, "server"))) {
+      if (name.endsWith(".js")) files.push(path.join(appDir, "server", name));
+    }
+  } catch (err) {
+    // no server folder: only package.json counts
+  }
+  let newest = 0;
+  for (const file of files) {
+    try {
+      newest = Math.max(newest, Math.floor(fs.statSync(file).mtimeMs));
+    } catch (err) {
+      // missing file: ignore
+    }
+  }
+  return String(newest);
+}
+
+module.exports = { RESTART_CODE, checkForUpdate, startAutoUpdate, serverStamp };
