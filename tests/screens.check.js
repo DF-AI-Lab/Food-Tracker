@@ -735,14 +735,40 @@ process.on("exit", () => server && server.kill());
     await page.emulateMedia({ media: "screen" });
   });
 
-  await step("🔄 button checks for updates, then reloads the page", async () => {
+  await step("version number shows on the page", async () => {
+    await page.goto(URL);
+    await until(async () => assert.match(await text("#ver"), /^v\d+/));
+    assert.ok(await page.locator("#ver").isVisible());
+  });
+
+  await step("🔄 with nothing new: spins, says up to date, no reload", async () => {
     await page.goto(URL);
     await page.evaluate(() => { window.__notReloaded = true; });
     const asked = page.waitForRequest(r => r.url().endsWith("/api/update") && r.method() === "POST");
     await page.click("#refresh");
+    assert.match(await page.locator("#refresh").getAttribute("class") || "", /\bspin\b/);
     await asked;
+    await until(async () => assert.match(await text("#updNote"), /Up to date · v\d+/));
+    assert.equal(await page.evaluate(() => window.__notReloaded), true, "no reload");
+    await until(async () => assert.doesNotMatch(await page.locator("#refresh").getAttribute("class") || "", /\bspin\b/));
+  });
+
+  await step("🔄 with an update: reloads the page", async () => {
+    await page.route("**/api/update", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ updated: true, restart: false, version: "x" }) }));
+    await page.evaluate(() => { window.__notReloaded = true; });
+    await page.click("#refresh");
     await page.waitForFunction(() => !window.__notReloaded);
+    await page.unroute("**/api/update");
     assert.match(await text("#today"), /Wed 7 Oct/);
+  });
+
+  await step("old server still running: the version line says restart", async () => {
+    await page.route("**/api/info", r => r.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ test: false, version: { n: 5, hash: "aaaaaaa", date: "2026-10-09" }, disk: { n: 6, hash: "bbbbbbb", date: "2026-10-10" } }) }));
+    await page.goto(URL);
+    await until(async () => assert.match(await text("#ver"), /Close the app and open it again/));
+    await page.unroute("**/api/info");
+    await page.goto(URL);
   });
 
   await step("after an update the app says so once", async () => {
