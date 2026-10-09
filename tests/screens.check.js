@@ -688,6 +688,10 @@ process.on("exit", () => server && server.kill());
     assert.equal(await shopRow("Pork").count(), 1);
   });
 
+  await step("real copy shows no TEST banner", async () => {
+    assert.equal(await page.locator("#testBanner").isVisible(), false);
+  });
+
   await step("data is in the SQLite file outside the app folder", async () => {
     const dbFile = path.join(DATA_DIR, "food.db");
     assert.ok(fs.existsSync(dbFile), "food.db created in data folder");

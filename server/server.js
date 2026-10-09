@@ -93,6 +93,12 @@ async function readPackBody(req) {
 }
 
 async function handleApi(req, res, url, ctx) {
+  // Says whether this is the TEST copy (the app shows a banner then)
+  if (url.pathname === "/api/info") {
+    if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed" });
+    return sendJson(res, 200, { test: !!ctx.test });
+  }
+
   // Ratings: one row per food name
   const r = url.pathname.match(/^\/api\/ratings(?:\/(.+))?$/);
   if (r) return handleRatings(req, res, r[1] === undefined ? null : decodeURIComponent(r[1]), ctx);
@@ -205,12 +211,12 @@ async function handle(req, res, ctx) {
   return serveStatic(req, res, url.pathname);
 }
 
-function startServer({ port = 0, dataDir = defaultDataDir(), today } = {}) {
+function startServer({ port = 0, dataDir = defaultDataDir(), today, test = false } = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   const dbFile = path.join(dataDir, "food.db");
   withDb(dbFile, () => {}); // create the file and table now
 
-  const ctx = { dataDir, dbFile, today };
+  const ctx = { dataDir, dbFile, today, test };
   const server = http.createServer((req, res) => {
     handle(req, res, ctx).catch(err => {
       if (res.headersSent) return res.end();
@@ -241,7 +247,7 @@ module.exports = { startServer, defaultDataDir };
 if (require.main === module) {
   const port = Number(process.env.FT_PORT) || 5178;
   const dataDir = process.env.FT_DATA_DIR || defaultDataDir();
-  startServer({ port, dataDir })
+  startServer({ port, dataDir, test: process.env.FT_TEST === "1" })
     .then(srv => {
       console.log(`Food Tracker running at http://localhost:${srv.port}`);
       // Auto-update from GitHub only when the Windows launcher turns it on

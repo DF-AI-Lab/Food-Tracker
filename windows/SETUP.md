@@ -27,3 +27,10 @@ After that, new changes arrive within about 5 minutes. **Just refresh the app.**
 - A backup copy is made each day in `FoodTrackerData\backups\` (the last 14 are kept).
 - Rebuilding or replacing the app folder doesn't touch your data.
 - If you move or rebuild the app folder, double-click `install.vbs` again.
+
+## Test copy (fake data, for playing)
+
+- Double-click **`windows\open-test.vbs`**. The first time, it makes random test data and a **Food Tracker TEST** icon on your desktop.
+- The test copy shows a red **TEST COPY** banner, so you can tell it apart.
+- To start again with fresh random data, double-click **`windows\reset-test.vbs`**.
+- Your real data is never touched. The test copy has its own data folder, `FoodTrackerTestData`, next to the app folder, and its own port (5179).
