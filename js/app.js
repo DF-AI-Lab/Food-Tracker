@@ -55,8 +55,11 @@
       const more = word.charAt(0).toUpperCase() + word.slice(1);
       const rows = sec.rows.map(r =>
         `<tr data-id="${r.id}"><td class="id">${r.no}</td><td>${esc(r.name)}</td><td class="d">${esc(r.date)}</td>${boxes}</tr>`).join('');
-      return `<h2${sec.key === 'soon' ? ' class="soon"' : ''}>${esc(sec.title)}<span class="ub"><b class="dt">DATE</b><b>U</b><b>P</b><b>B</b><b>N</b></span></h2>` +
-        `<table>${rows}</table>` +
+      // The header is the table's first row, so DATE and U P B N line up with their columns
+      const head = `<tr class="hd${sec.key === 'soon' ? ' soon' : ''}"><th colspan="2">${esc(sec.title)}</th>` +
+        '<th class="d">DATE</th><th class="bx">U</th><th class="bx">P</th><th class="bx">B</th><th class="bx">N</th></tr>';
+      const cols = '<colgroup><col class="c-id"><col><col class="c-d"><col class="c-bx"><col class="c-bx"><col class="c-bx"><col class="c-bx"></colgroup>';
+      return `<table>${cols}${head}${rows}</table>` +
         (sec.more > 0 ? `<div class="more">+${sec.more} more ${esc(more)} · see app</div>` : '');
     };
     const column = secs => secs.map(section).join('');

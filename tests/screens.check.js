@@ -710,11 +710,11 @@ process.on("exit", () => server && server.kill());
     assert.match(await sheet.locator(".ps-head").innerText(), /7–13 Oct/);
     assert.match(await sheet.locator(".ps-code").innerText(), /SHEET 0710-\d{4}/);
     // numbered rows with U / ½ / B boxes
-    const first = sheet.locator(".ps-top tr").first();
+    const first = sheet.locator(".ps-top tr[data-id]").first();
     assert.match(await first.innerText(), /^01/);
     assert.equal(await first.locator(".bx").count(), 4); // U P B N
     // dates sit under a DATE header, short: UB / BB / added
-    assert.match(await sheet.locator(".ps-top h2").first().innerText(), /DATE/);
+    assert.match(await sheet.locator(".ps-top .hd").first().innerText(), /DATE/);
     assert.match(await first.innerText(), /UB \d+ \w{3}|BB \d+ \w{3}|added \d+ \w{3}/);
     assert.doesNotMatch(await sheet.locator(".ps-top").innerText(), /Use by/);
     assert.match(await sheet.locator(".ps-key").innerText(), /N = Need more/);
@@ -742,6 +742,23 @@ process.on("exit", () => server && server.kill());
       const a1 = await sheet.locator(".ps-added tr").first().boundingBox(), m1 = await sheet.locator(".ps-meals tr").first().boundingBox();
       const a7 = await sheet.locator(".ps-added tr").last().boundingBox(), m7 = await sheet.locator(".ps-meals tr").last().boundingBox();
       assert.ok(Math.abs(a1.y - m1.y) < 3 && Math.abs((a7.y + a7.height) - (m7.y + m7.height)) < 3, "Added rows line up with Meals rows");
+    }
+    // header labels sit exactly over their columns: DATE over the date, U P B N over the 4 boxes
+    {
+      const cx = b => b.x + b.width / 2;
+      const hd = sheet.locator(".ps-top .hd").first();
+      const row = sheet.locator(".ps-top tr[data-id]").first();
+      const labels = await hd.locator("th").allInnerTexts();
+      const iDate = labels.findIndex(t => /DATE/.test(t));
+      const dateLabel = await hd.locator("th").nth(iDate).boundingBox();
+      const dateCell = await row.locator("td.d").boundingBox();
+      assert.ok(dateLabel.x >= dateCell.x - 1 && dateLabel.x + dateLabel.width <= dateCell.x + dateCell.width + 1, "DATE over the date");
+      for (const [i, L] of ["U", "P", "B", "N"].entries()) {
+        const lab = await hd.locator("th").nth(iDate + 1 + i).boundingBox();
+        assert.equal(await hd.locator("th").nth(iDate + 1 + i).innerText(), L);
+        const box = await row.locator("td.bx span").nth(i).boundingBox();
+        assert.ok(Math.abs(cx(lab) - cx(box)) < 2, `${L} label over its box`);
+      }
     }
     // long names stay on one line, so the food lists never run under the bottom boxes
     {
