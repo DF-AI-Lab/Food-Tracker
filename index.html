@@ -33,32 +33,33 @@
 
     <!-- Fridge View -->
     <div data-view-pane="fridge">
-      <div class="selbar">
-        <button type="button" class="sb" id="selectBtn">☑️ Select</button>
-        <button type="button" class="act" id="freezeSel" style="display:none">🧊 Freeze (0)</button>
+      <div id="useSoon" class="soon" hidden>
+        <h3>⚠️ Use soon · 2 days or less</h3>
+        <div class="chips" id="useSoonList"></div>
       </div>
-      <div id="fridgeView" class="cols">
-        <div class="pane column">
-          <div class="wkhead">
-            <h2>🍖 Mains · <span id="mainCount">0</span></h2>
-            <button class="pbtn" id="printF" title="Print the whole fridge list (coming soon)" aria-label="Print the whole fridge list">🖨️</button>
+      <div id="fridgeView">
+        <details class="fbox column" open>
+          <summary><span>🍖 Mains · <span id="mainCount">0</span></span><span class="arr">›</span></summary>
+          <div class="fbox-body">
+            <div class="fbox-top">
+              <button class="pbtn" id="printF" title="Print the whole fridge list (coming soon)" aria-label="Print the whole fridge list">🖨️</button>
+              <div class="note" id="printFNote" hidden>Print: coming soon</div>
+            </div>
+            <div id="mains" class="rows"></div>
           </div>
-          <div class="note" id="printFNote" hidden>Print: coming soon</div>
-          <div id="mains" class="scroll"></div>
-          <div class="veg">
-            <div class="tag">🧂 Misc – under 7 days</div>
-            <div id="misc" class="scroll"></div>
-            <div class="note" id="miscOk"></div>
-          </div>
-        </div>
-        <div class="pane column">
-          <h2>🥔 Sides · <span id="sideCount">0</span></h2>
-          <div id="sides" class="scroll"></div>
-          <div class="veg">
-            <div class="tag">🥕 Veg &amp; no date</div>
-            <div id="veg" class="scroll"></div>
-          </div>
-        </div>
+        </details>
+        <details class="fbox" open>
+          <summary><span>🥔 Sides · <span id="sideCount">0</span></span><span class="arr">›</span></summary>
+          <div id="sides" class="rows"></div>
+        </details>
+        <details class="fbox" open>
+          <summary><span>🥕 Veg · <span id="vegCount">0</span></span><span class="arr">›</span></summary>
+          <div id="veg" class="rows"></div>
+        </details>
+        <details class="fbox" open>
+          <summary><span>🧂 Misc · <span id="miscCount">0</span></span><span class="arr">›</span></summary>
+          <div id="misc" class="rows"></div>
+        </details>
       </div>
       <div id="deletedList"></div>
     </div>
