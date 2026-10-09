@@ -300,21 +300,29 @@ process.on("exit", () => server && server.kill());
     assert.equal(st.border, "0px");
   });
 
-  await step("look: Mains | Sides are fixed boxes that scroll on their own", async () => {
-    for (const sel of ["#mains", "#sides", "#misc", "#veg"]) {
-      const oy = await page.locator(sel).evaluate(e => getComputedStyle(e).overflowY);
-      assert.equal(oy, "auto", sel + " overflowY");
+  await step("look: 4 full-width boxes stacked, fold on tap, no Select", async () => {
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    assert.equal(await page.locator("#selectBtn").count(), 0);
+    assert.equal(await page.locator("#freezeSel").count(), 0);
+    const boxes = page.locator("#fridgeView details.fbox");
+    assert.equal(await boxes.count(), 4);
+    const heads = await page.locator("#fridgeView details.fbox > summary").allInnerTexts();
+    ["Mains", "Sides", "Veg", "Misc"].forEach((n, i) => assert.match(heads[i], new RegExp(n)));
+    const r = await boxes.evaluateAll(els => els.map(e => e.getBoundingClientRect()));
+    for (let i = 1; i < 4; i++) {
+      assert.ok(r[i].top >= r[i - 1].bottom - 1, "box " + i + " below the one before");
+      assert.ok(Math.abs(r[i].width - r[0].width) < 2, "same width");
     }
-    const cols = page.locator("#fridgeView .column");
-    assert.equal(await cols.count(), 2);
-    const boxes = await cols.evaluateAll(els => els.map(e => e.getBoundingClientRect()));
-    assert.ok(Math.abs(boxes[0].top - boxes[1].top) < 2, "columns side by side");
-    assert.ok(Math.abs(boxes[0].height - boxes[1].height) < 2, "columns same fixed height");
-    assert.ok(boxes[0].height >= 300, "columns tall enough");
-    // misc sits in the bottom part of the Mains box, veg in the bottom of Sides
-    const mainsBox = await page.locator("#fridgeView .column").first().boundingBox();
-    const miscBox = await page.locator("#misc").boundingBox();
-    assert.ok(miscBox.y + miscBox.height <= mainsBox.y + mainsBox.height + 1, "misc inside mains box");
+    const view = await page.locator("#fridgeView").boundingBox();
+    assert.ok(r[0].width >= view.width - 2, "full width");
+    // tapping the header folds and unfolds the box
+    const mains = boxes.first();
+    const wasOpen = await mains.evaluate(e => e.open);
+    await mains.locator("summary").click();
+    assert.equal(await mains.evaluate(e => e.open), !wasOpen);
+    await mains.locator("summary").click();
+    assert.equal(await mains.evaluate(e => e.open), wasOpen);
   });
 
   await step("look: Use by toggle sits on the date line", async () => {
@@ -516,27 +524,23 @@ process.on("exit", () => server && server.kill());
     assert.equal(await page.locator("#qfList .qf-kind").count(), 0);
   });
 
-  await step("select several packs and freeze them together", async () => {
+  await step("use soon strip: 2 days or less, tap opens the menu", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click('[data-kind="main"]');
+    await page.fill("#name", "Kippers");
+    await page.fill("#days", "1");
+    await page.click("#addBtn");
+    await page.fill("#name", "Brisket");
+    await page.fill("#days", "6");
+    await page.click("#addBtn");
     await page.click('[data-tab="fridge"]');
     await page.click('[data-view="fridge"]');
-    await page.click("#selectBtn");
-    await page.locator('#mains .card:has-text("Chicken") .pack').first().click();
-    await page.locator('#mains .card:has-text("Sausages") .pack').first().click();
-    assert.equal(await page.locator(".pack.sel").count(), 2);
-    assert.match(await text("#freezeSel"), /Freeze \(2\)/);
-    // tapping a pack in select mode doesn't open the action sheet
-    assert.equal(await page.locator("#actUsed").isVisible(), false);
-    await page.click("#freezeSel");
-    await page.click('[data-view="freezer"]');
-    await until(async () => {
-      const t = await text("#freezerList");
-      assert.match(t, /Chicken/);
-      assert.match(t, /Sausages/);
-    });
-    // select mode is off again
-    await page.click('[data-view="fridge"]');
-    assert.equal(await page.locator(".pack.sel").count(), 0);
-    assert.equal(await page.locator("#freezeSel").isVisible(), false);
+    await until(async () => assert.match(await text("#useSoon"), /Kippers/));
+    assert.doesNotMatch(await text("#useSoon"), /Brisket/);
+    await page.locator('#useSoon :text("Kippers")').first().click();
+    assert.equal(await page.locator("#actUsed").isVisible(), true);
+    await page.click("#actCancel");
   });
 
   await step("data is in the SQLite file outside the app folder", async () => {

@@ -167,26 +167,43 @@ test("cards: same name shares a card, max 2, soonest first", () => {
   ]);
 });
 
-test("fridgeView splits mains, misc, sides, veg", () => {
+test("fridgeView splits into 4 boxes: mains, sides, veg, misc", () => {
   const packs = [
     pk(1, "Chicken", "main", "2026-10-09"),
     pk(2, "Coleslaw", "side", "2026-10-09"),
-    pk(3, "Milk", "misc", "2026-10-10"),      // 3 days -> shown
-    pk(4, "Ketchup", "misc", "2027-03-01"),   // shown as "all OK"
-    pk(5, "Butter", "misc", "2026-10-14"),    // 7 days -> all OK
-    pk(6, "Onions", "side", null, { added: "2026-09-27" }),
-    pk(7, "Carrots", "side", null, { added: "2026-10-05" }),
+    pk(3, "Milk", "misc", "2026-10-10"),
+    pk(4, "Ketchup", "misc", "2027-03-01"),
+    pk(5, "Butter", "misc", null, { added: "2026-10-01" }),
+    pk(6, "Onions", "veg", null, { added: "2026-09-27" }),
+    pk(7, "Potatoes", "side", null, { added: "2026-10-05" }),
     pk(8, "Old", "main", "2026-10-09", { status: "used" }),
     pk(9, "Ice", "main", "2026-10-09", { status: "frozen" }),
   ];
   const v = L.fridgeView(packs, TODAY);
   assert.deepEqual(v.mains.map(c => c.name), ["Chicken"]);
   assert.deepEqual(v.sides.map(c => c.name), ["Coleslaw"]);
-  assert.deepEqual(v.misc.map(p => p.name), ["Milk"]);
-  assert.equal(v.miscOk, 2);
-  assert.deepEqual(v.veg.map(p => p.name), ["Onions", "Carrots"]); // oldest first
+  assert.deepEqual(v.sidesNoDate.map(p => p.name), ["Potatoes"]);
+  // every misc shows now: dated soonest first, then undated
+  assert.deepEqual(v.misc.map(p => p.name), ["Milk", "Ketchup", "Butter"]);
+  assert.equal(v.miscOk, undefined);
+  assert.deepEqual(v.veg.map(p => p.name), ["Onions"]);
   assert.equal(v.mainCount, 1);
-  assert.equal(v.sideCount, 3); // coleslaw + 2 veg
+  assert.equal(v.sideCount, 2);
+  assert.equal(v.vegCount, 1);
+  assert.equal(v.miscCount, 3);
+});
+
+test("useSoon: fridge packs with 2 days or less, soonest first", () => {
+  const packs = [
+    pk(1, "Chicken", "main", "2026-10-09"),   // 2 days -> in
+    pk(2, "Mince", "main", "2026-10-10"),     // 3 days -> out
+    pk(3, "Yoghurt", "misc", "2026-10-07"),   // today -> in
+    pk(4, "Ham", "main", "2026-10-06"),       // out of date -> in
+    pk(5, "Peas", "veg", null),               // no date -> out
+    pk(6, "Fish", "main", "2026-10-08", { status: "frozen" }), // not in fridge
+  ];
+  assert.deepEqual(L.useSoon(packs, TODAY).map(p => p.name), ["Ham", "Yoghurt", "Chicken"]);
+  assert.deepEqual(L.useSoon([], TODAY), []);
 });
 
 // ---------- freezer ----------
@@ -468,7 +485,7 @@ test("makePacks: veg needs no date", () => {
   assert.equal(p.dateType, null);
 });
 
-test("fridgeView: veg goes in the veg box (with undated sides), oldest first, and counts as a side", () => {
+test("fridgeView: veg box holds only veg, oldest first; undated sides stay in sides", () => {
   const v = L.fridgeView([
     pk(1, "Coleslaw", "side", "2026-10-09"),
     pk(2, "Carrots", "veg", null, { added: "2026-10-05" }),
@@ -476,9 +493,11 @@ test("fridgeView: veg goes in the veg box (with undated sides), oldest first, an
     pk(4, "Peas", "side", null, { added: "2026-10-01" }),
     pk(5, "Leeks", "veg", "2026-10-12", { added: "2026-10-06" }),
   ], TODAY);
-  assert.deepEqual(v.veg.map(p => p.name), ["Onions", "Peas", "Carrots", "Leeks"]);
+  assert.deepEqual(v.veg.map(p => p.name), ["Onions", "Carrots", "Leeks"]);
   assert.deepEqual(v.sides.map(c => c.name), ["Coleslaw"]);
-  assert.equal(v.sideCount, 5);
+  assert.deepEqual(v.sidesNoDate.map(p => p.name), ["Peas"]);
+  assert.equal(v.sideCount, 2);
+  assert.equal(v.vegCount, 3);
 });
 
 // ---------- "No date" for any kind, remembered per food ----------
@@ -516,7 +535,7 @@ test("fridgeView: undated mains listed separately (oldest first) and counted", (
   assert.deepEqual(v.mains.map(c => c.name), ["Chicken"]);
   assert.deepEqual(v.mainsNoDate.map(p => p.name), ["Quiche", "Pie"]);
   assert.equal(v.mainCount, 3);
-  assert.equal(v.miscOk, 1);
+  assert.equal(v.miscCount, 1);
 });
 
 // ---------- Quick fill: veg + no date ----------
