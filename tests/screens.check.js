@@ -688,6 +688,30 @@ process.on("exit", () => server && server.kill());
     assert.equal(await shopRow("Pork").count(), 1);
   });
 
+  await step("print button fills the A4 sheet and opens print", async () => {
+    await page.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
+    await page.click("#printF");
+    assert.equal(await page.evaluate(() => window.__printed), 1);
+    const sheet = page.locator("#printSheet");
+    assert.match(await sheet.locator(".ps-head").innerText(), /7–13 Oct/);
+    assert.match(await sheet.locator(".ps-code").innerText(), /SHEET 0710-\d{4}/);
+    // numbered rows with U / ½ / B boxes
+    const first = sheet.locator(".ps-top tr").first();
+    assert.match(await first.innerText(), /^01/);
+    assert.equal(await first.locator(".bx").count(), 3);
+    // fixed bottom boxes
+    assert.equal(await sheet.locator(".ps-added tr").count(), 4);
+    assert.equal(await sheet.locator(".ps-need tr").count(), 3);
+    assert.equal(await sheet.locator(".ps-meals tr").count(), 7);
+    assert.match(await sheet.locator(".ps-meals tr").first().innerText(), /Wed 7 Oct/);
+    // on screen the sheet stays hidden; only the print view shows it
+    assert.equal(await sheet.isVisible(), false);
+    await page.emulateMedia({ media: "print" });
+    assert.equal(await sheet.isVisible(), true);
+    assert.equal(await page.locator(".phone").isVisible(), false);
+    await page.emulateMedia({ media: "screen" });
+  });
+
   await step("real copy shows no TEST banner", async () => {
     assert.equal(await page.locator("#testBanner").isVisible(), false);
   });
