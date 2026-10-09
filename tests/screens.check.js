@@ -342,10 +342,15 @@ process.on("exit", () => server && server.kill());
     // packs show the countdown on the left and USE BY / BB tag on the right
     const tag = page.locator("#mains .pack .tag").first();
     assert.match(await tag.innerText(), /^(USE BY|BB|🍽️ \w+)$/i);
-    // print button sits in the Mains header
-    assert.equal(await page.locator(".column:first-child .pbtn").count(), 1);
+    // print button sits in the top bar, between the date and the light/dark buttons
+    assert.equal(await page.locator("#top #printF").count(), 1);
+    assert.equal(await page.locator("#fridgeView .pbtn").count(), 0);
+    const d = await page.locator("#today").boundingBox();
+    const pr = await page.locator("#printF").boundingBox();
+    const moon = await page.locator("#themeDark").boundingBox();
+    assert.ok(pr.x >= d.x + d.width && pr.x + pr.width <= moon.x, "print between date and moon");
     // moon + sun buttons
-    assert.equal(await page.locator("#top button").count(), 2);
+    assert.equal(await page.locator("#top button").count(), 3); // print + moon + sun
     await page.click('[data-tab="add"]');
     await page.click('[data-sub="fridge"]');
     assert.match(await page.locator("body").innerText(), /USUAL · TAP ONE/i);

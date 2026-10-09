@@ -175,8 +175,6 @@ button.act.ghost{box-shadow:none}
 .fbox>summary .arr{color:var(--muted);display:inline-block;transition:transform .2s}
 .fbox[open]>summary .arr{transform:rotate(90deg)}
 .fbox>.rows,.fbox-body{display:flex;flex-direction:column;gap:8px;padding:0 10px 10px}
-.fbox-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.fbox-top .note{margin:0}
 #mains .card,#sides .card{min-width:0}
 .pane h2{margin:0}
 button.sb,button.tab{font-family:inherit}
