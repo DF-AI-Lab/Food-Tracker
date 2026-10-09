@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meals Mockup v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#051F20;--card:#0B2B26;--item:#163832;--line:#235347;--fg:#DAF1DE;--muted:#8EB69B;--accent:#8EB69B;--warn:#8a5a12;--ok:#2c6a4c;--red:#7a1f1f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Nunito Sans',sans-serif;padding:16px;display:flex;flex-direction:column;align-items:center;gap:30px}
+.frame{width:420px;padding:12px}
+.lbl{font-family:Fredoka;color:#f0c070;font-size:15px;margin-bottom:10px}
+h1{font-family:Fredoka;font-size:20px;margin:4px 0 14px;display:flex;justify-content:space-between;align-items:center}
+.icons span{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:10px;margin-left:6px;font-size:14px}
+.tabs{display:flex;gap:6px;background:var(--card);padding:5px;border-radius:16px;margin-bottom:12px}
+.tabs div{flex:1;text-align:center;padding:9px 0;border-radius:12px;color:var(--muted)}
+.tabs .on{background:var(--accent);color:var(--bg);font-weight:700}
+.day{background:var(--item);border-radius:14px;margin-bottom:8px;padding:12px 14px}
+.day.today{outline:2px solid #fff}
+.day.past{background:#2a2410;outline:1px solid #c98a2a}
+.dh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dh b{font-size:16px}.dh small{color:var(--muted);font-weight:600}
+.hint{margin-left:auto;color:var(--muted);font-size:13px}
+.tl{background:#fff;color:var(--bg);font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px}
+.chip{background:var(--card);border-radius:8px;padding:4px 8px;font-size:12px}.chip i{font-style:normal;color:var(--muted);font-size:10px;margin-right:4px}
+.q{margin-top:10px;font-weight:700;color:#f0c070}
+.yn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.btn{text-align:center;padding:11px;border-radius:12px;font-weight:700;border:1px solid var(--line)}
+.btn.y{background:var(--accent);color:var(--bg);border:0}.btn.n{background:var(--red);color:#ffb3b3;border:0}
+.btn.full{grid-column:1/3}
+.kt{display:flex;gap:6px;margin:10px 0}
+.kt div{flex:1;text-align:center;padding:8px 0;border-radius:10px;background:var(--card);font-size:13px;font-weight:700;color:var(--muted)}
+.kt .on{background:var(--fg);color:var(--bg)}
+.f{display:flex;justify-content:space-between;background:var(--ok);border-radius:10px;padding:10px 12px;margin-bottom:6px;font-weight:700;font-size:14px}
+.f.warn{background:var(--warn)}
+.ta{border:2px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;font-weight:700;font-size:14px}
+.next{background:var(--accent);color:var(--bg);text-align:center;border-radius:12px;padding:11px;font-weight:700;margin-top:6px}
+.urow{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:10px;padding:8px 10px;margin-top:6px;font-weight:700}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:12px}
+.seg span{padding:6px 10px;color:var(--muted)}.seg .on{background:var(--accent);color:var(--bg)}
+.inp{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px;margin-top:8px;font-size:18px}
+.pop{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.pop h2{font-family:Fredoka;font-size:18px;margin:0 0 12px}.pop h2 small{font-family:'Nunito Sans';color:var(--muted);font-weight:600}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g .bin{background:var(--red);color:#ffb3b3;border:0}.g .part{background:var(--warn);border:0}
+.card{background:var(--card);border-radius:16px;padding:12px 14px;margin-top:10px;font-weight:700}
+.muted{color:var(--muted);font-weight:600;font-size:13px}
+.tag{font-size:11px;background:var(--warn);padding:2px 6px;border-radius:6px;margin-left:6px}
+</style></head><body>
+
+<div class="frame" id="s1"><div class="lbl">1 · Meals page</div>
+  <h1>📅 Today · Fri 9 Oct <span class="icons"><span>🖨️</span><span>🌙</span><span>🌞</span></span></h1>
+  <div class="tabs"><div>🧊 Fridge</div><div class="on">🍽️ Meals</div><div>➕ Add</div></div>
+  <div class="day past"><div class="dh"><b>Wed</b><small>7 Oct</small><span class="chip"><i>MAIN</i>Chicken</span><span class="chip"><i>SIDE</i>Mash</span><span class="chip"><i>VEG</i>Peas</span></div>
+    <div class="q">Had this meal?</div><div class="yn"><div class="btn y">✅ Yes</div><div class="btn n">❌ No</div></div></div>
+  <div class="day today"><div class="dh"><b>Fri</b><small>9 Oct</small><span class="tl">TODAY</span></div>
+    <div class="kt"><div class="on">🍖 Mains</div><div>🥔 Sides</div><div>🥕 Veg</div></div>
+    <div class="ta">🥡 Takeaway</div>
+    <div class="f warn"><span>Gammon</span><span>1 day left</span></div>
+    <div class="f"><span>Sausages</span><span>4 days left</span></div>
+    <div class="f"><span>Mince</span><span>Sun 18 Oct</span></div>
+    <div class="next">Next day ▸</div></div>
+  <div class="day"><div class="dh"><b>Sat</b><small>10 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+  <div class="day"><div class="dh"><b>Sun</b><small>11 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+  <div class="day"><div class="dh"><b>Mon</b><small>12 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+  <div class="day"><div class="dh"><b>Tue</b><small>13 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+  <div class="day"><div class="dh"><b>Wed</b><small>14 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+  <div class="day"><div class="dh"><b>Thu</b><small>15 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+</div>
+
+<div class="frame" id="s2"><div class="lbl">2 · Tapped ✅ Yes</div>
+  <div class="day past"><div class="dh"><b>Wed</b><small>7 Oct</small></div>
+    <div class="q">How much did you use?</div>
+    <div class="urow">Chicken <span class="seg"><span class="on">All used</span><span>Part used</span></span></div>
+    <div class="urow">Mash <span class="seg"><span class="on">All used</span><span>Part used</span></span></div>
+    <div class="urow">Peas <span class="seg"><span>All used</span><span class="on">Part used</span></span></div>
+    <div class="muted" style="margin-top:8px">Part used stays in the fridge · use within 3 days</div>
+    <div class="yn"><div class="btn y full">Done</div></div></div>
+</div>
+
+<div class="frame" id="s3"><div class="lbl">3 · Tapped ❌ No</div>
+  <div class="day past"><div class="dh"><b>Wed</b><small>7 Oct</small></div>
+    <div class="q">What did you have?</div>
+    <div class="kt"><div class="on">🍖 Mains</div><div>🥔 Sides</div><div>🥕 Veg</div></div>
+    <div class="ta">🥡 Takeaway</div>
+    <div class="f"><span>Chicken</span><span>back in fridge</span></div>
+    <div class="f"><span>Sausages</span><span>4 days left</span></div>
+    <div class="yn"><div class="btn full">Skip</div></div></div>
+</div>
+
+<div class="frame" id="s4"><div class="lbl">4 · Picked 🥡 Takeaway</div>
+  <div class="day past"><div class="dh"><b>Wed</b><small>7 Oct</small><span class="chip">🥡 Takeaway</span></div>
+    <div class="q">How much was it?</div>
+    <div class="inp">£ 24.50</div>
+    <div class="yn"><div class="btn">Skip</div><div class="btn y">Save</div></div></div>
+</div>
+
+<div class="frame" id="s5"><div class="lbl">5 · Fridge popup + Used tab</div>
+  <div class="pop"><h2>Chicken <small>· Sat 10 Oct</small></h2>
+    <div class="g"><div class="btn y">✅ Used</div><div class="btn part">🌗 Part used</div><div class="btn bin">🗑️ Thrown away</div><div class="btn">🧊 Freeze</div><div class="btn">🗑️ Delete</div><div class="btn">Cancel</div></div></div>
+  <div class="card">🥡 Takeaways this month: 3 · £42.50</div>
+  <div class="card">Peas <span class="tag">part used · 3 days</span></div>
+</div>
+</body></html>
