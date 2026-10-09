@@ -6,6 +6,7 @@
   // Meal planner state
   let selDay = today;
   let selSlot = 'main';
+  const NEXT_SLOT = { main: 'side', side: 'veg' };
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
   let openDay = today;    // day whose card is open (null = all closed); today is open on load
   let meals = [];         // meals history, saved in DB.meals
@@ -48,7 +49,7 @@
       const more = word.charAt(0).toUpperCase() + word.slice(1);
       const rows = sec.rows.map(r =>
         `<tr><td class="id">${r.no}</td><td>${esc(r.name)}</td><td class="d">${esc(r.date)}</td>${boxes}</tr>`).join('');
-      return `<h2${sec.key === 'soon' ? ' class="soon"' : ''}>${esc(sec.title)}<span class="ub">U ½ B</span></h2>` +
+      return `<h2${sec.key === 'soon' ? ' class="soon"' : ''}>${esc(sec.title)}<span class="ub">U P B</span></h2>` +
         `<table>${rows}</table>` +
         (sec.more > 0 ? `<div class="more">+${sec.more} more ${esc(more)} · see app</div>` : '');
     };
@@ -61,7 +62,7 @@
       `<tr><td class="dn">${esc(m.day)}</td><td>${m.text ? esc(m.text) : '&nbsp;'}</td></tr>`).join('');
 
     const hidden = sheet.total - sheet.shown;
-    const footer = `${sheet.total} items${hidden > 0 ? ` (${hidden} more in app)` : ''} · U = Used · ½ = Part used · B = Binned`;
+    const footer = `${sheet.total} items${hidden > 0 ? ` (${hidden} more in app)` : ''} · U = Used · P = Part used · B = Binned`;
 
     return `<div class="ps-page">
   <i class="ps-mk ps-tl"></i><i class="ps-mk ps-tr"></i><i class="ps-mk ps-bl"></i><i class="ps-mk ps-br"></i>
@@ -69,7 +70,7 @@
     <div><h1>🥶 Fridge sheet</h1><div class="ps-sub">Week ${esc(sheet.range)} · printed ${esc(FT.formatDate(today))}, ${hhmm}</div></div>
     <div class="ps-code">SHEET ${esc(FT.sheetCode(today, hhmm))}</div>
   </header>
-  <div class="ps-key">Mark with an <b>✕</b> when gone: U = Used · ½ = Part used · B = Binned</div>
+  <div class="ps-key">Mark with an <b>✕</b> when gone: U = Used · P = Part used · B = Binned</div>
   <div class="ps-top"><div>${column(sheet.left)}</div><div>${column(sheet.right)}</div></div>
   <div class="ps-bottom"><div>
     <div class="ps-added"><h2>✍️ ADDED (write in)</h2><table class="blank">${added}</table></div>
@@ -231,8 +232,12 @@
     document.getElementById('name').addEventListener('input', () => {
       document.getElementById('days').value = '';
       document.getElementById('ddmm').value = '';
+      // Typing a food we already know moves to its tab (the name stays)
+      const known = FT.rememberedKind(packs, document.getElementById('name').value);
+      if (known && known !== currentKind()) selectKind(known);
       applyNoDateRule();
       updateDatePreview();
+      refreshUsuals();
     });
 
     document.getElementById('minus').addEventListener('click', () => changeCount(-1));
@@ -266,6 +271,10 @@
     // Meals: slot tabs, next day
     document.querySelectorAll('#mtabs .sb').forEach(btn => {
       btn.addEventListener('click', () => { selSlot = btn.dataset.s; renderMeals(); });
+    });
+    document.getElementById('nextSlot').addEventListener('click', () => {
+      selSlot = NEXT_SLOT[selSlot] || 'main';
+      renderMeals();
     });
     document.getElementById('nextDay').addEventListener('click', () => {
       finishHad();
@@ -551,12 +560,15 @@
     }
   }
 
+  // With text in the name box: matching foods of every kind. Otherwise the usuals of this tab.
   function refreshUsuals() {
-    const kind = currentKind();
-    const names = FT.usuals(packs, kind);
+    const typed = document.getElementById('name').value.trim();
+    const items = typed
+      ? FT.searchFoods(packs, typed)
+      : FT.usuals(packs, currentKind()).slice(0, 10).map(name => ({ name, kind: currentKind() }));
     const usuals = document.getElementById('usuals');
     usuals.innerHTML = '';
-    names.forEach(name => {
+    items.forEach(({ name, kind }) => {
       const btn = document.createElement('button');
       btn.className = 'qc usual';
       btn.textContent = name;
@@ -564,6 +576,7 @@
         document.getElementById('name').value = name;
         document.getElementById('days').value = '';
         document.getElementById('ddmm').value = '';
+        if (kind !== currentKind()) selectKind(kind);
         applyNoDateRule();
         updateDatePreview();
       });
@@ -1157,6 +1170,9 @@
     FT.mealDays(today).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
     document.getElementById('nextDay').hidden = inHad();
+    const nextSlot = document.getElementById('nextSlot');
+    nextSlot.hidden = selSlot === 'veg';
+    nextSlot.textContent = selSlot === 'main' ? 'Sides ▸' : 'Veg ▸';
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();
@@ -1537,7 +1553,6 @@
     const slot = selSlot;
     const updated = FT.markUsed(pack, today);
     hadPicked[day] = [...(hadPicked[day] || []), { ...updated, slot }];
-    selSlot = slot === 'main' ? 'side' : 'veg';
     renderMeals();
     renderAll();
     return persistAll([setPack(updated), autoAddFinished(updated, 'used')]);
@@ -1573,7 +1588,6 @@
       renderMeals();
       return;
     }
-    selSlot = slot === 'main' ? 'side' : 'veg';
     renderMeals();
     renderAll();
   }
