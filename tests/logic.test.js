@@ -671,3 +671,72 @@ test("boughtBefore veg tab includes veg-kind packs", () => {
   const packs = [fp(1,"Carrots","veg",null), fp(2,"Carrots","veg",null), fp(3,"Peas","side",null)];
   assert.deepEqual(L.boughtBefore(packs, "veg"), ["Carrots", "Peas"]);
 });
+
+// ---------- Meals v2: rolling days, had this meal?, part used, takeaway cost ----------
+
+test("mealDays: today then the next 6 days", () => {
+  assert.deepEqual(L.mealDays("2026-10-09"), [
+    "2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15"]);
+});
+
+test("pastToAsk: last 3 days with a plan still waiting, oldest first", () => {
+  const T = "2026-10-09";
+  const packs = [
+    pk(1, "Chicken", "main", "2026-10-12", { plannedFor: "2026-10-07", slot: "main" }),
+    pk(2, "Peas", "veg", null, { plannedFor: "2026-10-07", slot: "veg" }),
+    { id: 3, name: "Takeaway", kind: "takeaway", status: "plan", plannedFor: "2026-10-08", slot: "main" },
+    pk(4, "Ham", "main", "2026-10-20", { plannedFor: "2026-10-05", slot: "main" }), // 4 days ago: too old
+    pk(5, "Pie", "main", "2026-10-20", { plannedFor: "2026-10-09", slot: "main" }), // today: not past
+    pk(6, "Old", "main", "2026-10-20", { plannedFor: "2026-10-06", slot: "main", status: "used" }), // not waiting
+  ];
+  assert.deepEqual(L.pastToAsk(packs, T), ["2026-10-07", "2026-10-08"]);
+  assert.deepEqual(L.pastToAsk([], T), []);
+});
+
+test("expiredPlans: plans older than 3 days drop off", () => {
+  const T = "2026-10-09";
+  const packs = [
+    pk(1, "Ham", "main", "2026-10-20", { plannedFor: "2026-10-05", slot: "main" }),
+    { id: 2, name: "Takeaway", kind: "takeaway", status: "plan", plannedFor: "2026-10-04", slot: "main" },
+    pk(3, "Chicken", "main", "2026-10-12", { plannedFor: "2026-10-06", slot: "main" }), // 3 days ago: still asked
+    pk(4, "Pie", "main", "2026-10-20", { plannedFor: "2026-10-10", slot: "main" }),
+  ];
+  assert.deepEqual(L.expiredPlans(packs, T).map(p => p.id), [1, 2]);
+});
+
+test("partUse: stays in the fridge, unplanned, tagged, 3-day timer", () => {
+  const T = "2026-10-09";
+  const a = L.partUse(pk(1, "Chicken", "main", "2026-10-20", { plannedFor: "2026-10-08", slot: "main" }), T);
+  assert.equal(a.status, "in_fridge");
+  assert.equal(a.partUsed, true);
+  assert.equal(a.plannedFor, null);
+  assert.equal(a.slot, null);
+  assert.equal(a.date, "2026-10-12");             // 3 days from today
+  const b = L.partUse(pk(2, "Milk", "misc", "2026-10-10"), T);
+  assert.equal(b.date, "2026-10-10");             // its own date is sooner
+  const c = L.partUse(pk(3, "Peas", "veg", null), T);
+  assert.equal(c.date, "2026-10-12");             // no date -> 3 days
+  assert.equal(c.dateType, "use_by");
+});
+
+test("mealRecord: what was eaten on a day, and takeaway cost", () => {
+  const r = L.mealRecord("2026-10-07", [
+    pk(1, "Chicken", "main", "2026-10-12", { slot: "main" }),
+    pk(2, "Peas", "veg", null, { slot: "veg" })]);
+  assert.deepEqual(r, { day: "2026-10-07", items: [{ name: "Chicken", slot: "main" }, { name: "Peas", slot: "veg" }], takeaway: false, cost: null });
+  const t = L.mealRecord("2026-10-08", [], { takeaway: true, cost: "£24.50" });
+  assert.deepEqual(t, { day: "2026-10-08", items: [], takeaway: true, cost: 24.5 });
+  assert.equal(L.mealRecord("2026-10-08", [], { takeaway: true, cost: "" }).cost, null);
+});
+
+test("takeawaySummary: count and total this month", () => {
+  const meals = [
+    { day: "2026-10-02", items: [], takeaway: true, cost: 20 },
+    { day: "2026-10-08", items: [], takeaway: true, cost: 22.5 },
+    { day: "2026-10-05", items: [], takeaway: true, cost: null },
+    { day: "2026-09-30", items: [], takeaway: true, cost: 15 },     // last month
+    { day: "2026-10-06", items: [{ name: "Ham", slot: "main" }], takeaway: false, cost: null },
+  ];
+  assert.deepEqual(L.takeawaySummary(meals, "2026-10-09"), { count: 3, total: 42.5 });
+  assert.deepEqual(L.takeawaySummary([], "2026-10-09"), { count: 0, total: 0 });
+});
