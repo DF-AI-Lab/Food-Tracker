@@ -705,7 +705,7 @@ process.on("exit", () => server && server.kill());
     await page.goto(URL);
     await page.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
     await page.click("#printF");
-    assert.equal(await page.evaluate(() => window.__printed), 1);
+    await until(async () => assert.equal(await page.evaluate(() => window.__printed), 1));
     const sheet = page.locator("#printSheet");
     assert.match(await sheet.locator(".ps-head").innerText(), /7–13 Oct/);
     assert.match(await sheet.locator(".ps-code").innerText(), /SHEET 0710-\d{4}/);
@@ -820,6 +820,20 @@ process.on("exit", () => server && server.kill());
       assert.equal(p2.partUsed, true);
     });
     assert.equal(await page.locator("#scanPanel").isVisible(), false);
+  });
+
+  await step("print warns when the sheet can't be saved (old server)", async () => {
+    await page.route("**/api/sheets", r => r.request().method() === "POST" ? r.fulfill({ status: 404, body: "{}" }) : r.continue());
+    await page.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
+    let msg = "";
+    page.once("dialog", d => { msg = d.message(); d.dismiss(); });
+    await page.click("#printF");
+    await until(async () => assert.match(msg, /couldn't be saved/i));
+    assert.equal(await page.evaluate(() => window.__printed), 0, "cancel = no print");
+    page.once("dialog", d => d.accept());
+    await page.click("#printF");
+    await until(async () => assert.equal(await page.evaluate(() => window.__printed), 1, "OK = print anyway"));
+    await page.unroute("**/api/sheets");
   });
 
   await step("📷 no sheet found in the photo says so", async () => {

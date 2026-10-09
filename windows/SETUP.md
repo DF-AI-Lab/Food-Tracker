@@ -34,3 +34,4 @@ After that, new changes arrive within about 5 minutes. **Just refresh the app.**
 - The test copy shows a red **TEST COPY** banner, so you can tell it apart.
 - To start again with fresh random data, double-click **`windows\reset-test.vbs`**.
 - Your real data is never touched. The test copy has its own data folder, `FoodTrackerTestData`, next to the app folder, and its own port (5179).
+- The test copy starts itself with `windows\start-test-server.vbs` and restarts after server changes, like the real copy does (the real copy does the updates).

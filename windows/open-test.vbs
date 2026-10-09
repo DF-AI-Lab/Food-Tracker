@@ -24,12 +24,8 @@ If Not fso.FileExists(shortcutFile) Then
 End If
 
 ' Start the TEST server hidden, on its own port (5179) and data folder.
-' If it is already running, the new copy just exits.
-sh.Environment("PROCESS")("FT_PORT") = "5179"
-sh.Environment("PROCESS")("FT_DATA_DIR") = testDir
-sh.Environment("PROCESS")("FT_TEST") = "1"
-sh.CurrentDirectory = appDir
-sh.Run "node """ & appDir & "\server\server.js""", 0, False
+' It restarts itself after changes (see start-test-server.vbs). If it is already running, the new copy just exits.
+sh.Run "wscript.exe """ & here & "\start-test-server.vbs""", 0, False
 WScript.Sleep 1500
 
 ' Open it in its own window, the same way open-app.vbs does
