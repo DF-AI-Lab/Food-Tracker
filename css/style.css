@@ -323,11 +323,15 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 #printSheet td.id{font:bold 9pt monospace;width:7mm}
 #printSheet td.bx{width:7mm;text-align:center}
 #printSheet td.bx span{display:inline-block;width:5mm;height:5mm;border:1.5px solid #000}
-#printSheet td.d{width:20mm;white-space:nowrap;font-size:9pt;text-align:right}
+#printSheet td.d{width:17mm;white-space:nowrap;font-size:8.5pt;text-align:right}
 #printSheet .more{font-size:9pt;font-style:italic;text-align:right;padding:1mm}
 #printSheet .ps-bottom{position:absolute;left:14mm;right:14mm;bottom:20mm;display:grid;grid-template-columns:2fr 1fr;gap:6mm;align-items:start}
-#printSheet .ps-hint{font-size:8pt;font-style:italic;margin:-0.5mm 0 1mm}
+#printSheet .ps-hint{font-size:7.5pt;font-style:italic;font-weight:400;float:right;margin-top:1mm}
 #printSheet table.blank td{height:5.5mm;padding:1mm}
+#printSheet .ps-added table.blank td{height:8mm}
+/* one line per food: long names are cut with "…" so the lists keep their height */
+#printSheet .ps-top table{table-layout:fixed}
+#printSheet .ps-top td:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #printSheet .ps-meals td{height:8mm;padding:1mm}
 #printSheet .ps-meals td.dn{width:24mm;white-space:nowrap;font-weight:700}
 #printSheet .ps-foot{position:absolute;bottom:14mm;left:14mm;right:14mm;font-size:8pt}
