@@ -718,6 +718,15 @@ process.on("exit", () => server && server.kill());
     assert.equal(await sheet.locator(".ps-need tr").count(), 3);
     assert.equal(await sheet.locator(".ps-meals tr").count(), 7);
     assert.match(await sheet.locator(".ps-meals tr").first().innerText(), /Wed 7 Oct/);
+    // corner marks and black bars must print even with "Background graphics" off:
+    // marks are drawn with borders, and the sheet asks for exact colours
+    const mk = await sheet.locator(".ps-mk").first().evaluate(e => {
+      const c = getComputedStyle(e);
+      return { border: parseFloat(c.borderTopWidth), bg: c.backgroundColor };
+    });
+    assert.ok(mk.border >= 10, "corner mark drawn with a thick border: " + mk.border);
+    const adjust = await sheet.evaluate(e => getComputedStyle(e).printColorAdjust || getComputedStyle(e).webkitPrintColorAdjust);
+    assert.equal(adjust, "exact");
     // on screen the sheet stays hidden; only the print view shows it
     assert.equal(await sheet.isVisible(), false);
     await page.emulateMedia({ media: "print" });
@@ -818,6 +827,7 @@ process.on("exit", () => server && server.kill());
     await page.evaluate(() => { window.FT_OMR.readSheet = () => ({ ok: false, reason: "corners" }); });
     await page.setInputFiles("#scanFile", path.join(__dirname, "..", "docs", "mockup-scan.png"));
     await until(async () => assert.match(await text("#scanMsg"), /4 black corners/));
+    assert.match(await page.locator("#scanMsg").getAttribute("class"), /\berr\b/);
     await page.click("#scanCancel");
   });
 
