@@ -816,7 +816,7 @@ test("printSheet: date labels (use by, BB, undated shows added)", () => {
   const s = L.printSheet(packs, TODAY);
   const all = [...s.left, ...s.right].flatMap(sec => sec.rows);
   const label = name => all.find(r => r.name === name).date;
-  assert.equal(label("Beef"), "Use by 14 Oct");
+  assert.equal(label("Beef"), "UB 14 Oct");
   assert.equal(label("Cheese"), "BB 30 Oct");
   assert.equal(label("Rice"), "added 2 Oct");
 });
@@ -950,4 +950,16 @@ test("sheetChanges: marked rows for packs still in the fridge, with notes", () =
   assert.equal(ch[0].note, "");
   assert.equal(ch[2].note, "U and P both marked → Used");
   assert.equal(ch[3].note, "U and B both marked · pick one");
+});
+
+test("sheetChanges: N (need more) is its own flag and can come alone", () => {
+  const rows = [{ no: "01", id: 1, name: "Mash" }, { no: "02", id: 2, name: "Eggs" }, { no: "03", id: 3, name: "Milk" }];
+  const marks = {
+    "01": { u: true, p: false, b: false, n: true },
+    "02": { u: false, p: false, b: false, n: true },
+    "03": { u: false, p: true, b: false }            // old 3-box sheet: no n
+  };
+  const packs = [pk(1, "Mash", "side", "2026-10-09"), pk(2, "Eggs", "misc", "2026-10-10"), pk(3, "Milk", "misc", "2026-10-10")];
+  const ch = L.sheetChanges(rows, marks, packs);
+  assert.deepEqual(ch.map(c => [c.no, c.mark, c.need]), [["01", "u", true], ["02", null, true], ["03", "p", false]]);
 });
