@@ -7,6 +7,7 @@
   let selDay = today;
   let selSlot = 'main';
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
+  let openDay = null;     // day whose card is open (null = all closed)
   // Shopping list state
   let shop = [];          // shopping items, saved in DB.shop
   let ratings = {};       // idea ratings: name -> 1..5, saved in DB.ratings
@@ -138,17 +139,14 @@
       await undo();
     });
 
-    // Meals: print is coming soon, slot tabs, next day
-    document.getElementById('printWeek').addEventListener('click', () => {
-      const n = document.getElementById('printWeekNote');
-      n.hidden = !n.hidden;
-    });
+    // Meals: slot tabs, next day
     document.querySelectorAll('#mtabs .sb').forEach(btn => {
       btn.addEventListener('click', () => { selSlot = btn.dataset.s; renderMeals(); });
     });
     document.getElementById('nextDay').addEventListener('click', () => {
       const days = FT.weekDays(today);
       selDay = days[(days.indexOf(selDay) + 1) % 7];
+      openDay = selDay;
       selSlot = 'main';
       pendingPlan = null;
       renderMeals();
@@ -903,34 +901,78 @@
     if (i !== -1) packs[i] = updated;
   }
 
+  // Tap a day header: open that day (closing any other), or close it if already open
+  function toggleDay(day) {
+    if (openDay === day) {
+      openDay = null;
+    } else {
+      openDay = day;
+      selDay = day;
+      selSlot = 'main';
+      pendingPlan = null;
+    }
+    renderMeals();
+  }
+
   function renderMeals() {
+    const pane = document.querySelector('[data-tab-pane="meals"]');
+    const picker = document.getElementById('picker');
     const dayListEl = document.getElementById('dayList');
+    // Park the picker (hidden) before the day cards are rebuilt, so it is not destroyed
+    pane.appendChild(picker);
+    picker.hidden = true;
     dayListEl.innerHTML = '';
+
     FT.weekDays(today).forEach(day => {
-      const btn = document.createElement('button');
-      btn.className = 'day' + (day === selDay ? ' on' : '');
+      const isOpen = day === openDay;
+      const card = document.createElement('div');
+      card.className = 'day' + (isOpen ? ' open' : '');
+
+      const head = document.createElement('div');
+      head.className = 'dh';
+      head.setAttribute('role', 'button');
+      head.setAttribute('aria-expanded', String(isOpen));
+      head.tabIndex = 0;
       const dn = document.createElement('span');
       dn.className = 'dn';
       dn.append(shortDay(day) + ' ');
       const date = document.createElement('small');
       date.textContent = FT.formatDate(day).split(' ').slice(1).join(' ');
       dn.appendChild(date);
-      btn.appendChild(dn);
-      FT.dayMeals(packs, day).forEach(item => btn.appendChild(mealChip(item, day)));
-      btn.addEventListener('click', () => {
-        selDay = day;
-        selSlot = 'main';
-        pendingPlan = null;
-        renderMeals();
+      head.appendChild(dn);
+
+      const meals = FT.dayMeals(packs, day);
+      meals.forEach(item => head.appendChild(mealChip(item, day)));
+      if (meals.length === 0) {
+        const hint = document.createElement('span');
+        hint.className = 'hint';
+        hint.textContent = 'Tap to plan ›';
+        head.appendChild(hint);
+      }
+      head.addEventListener('click', () => toggleDay(day));
+      head.addEventListener('keydown', e => {
+        if (e.target !== head) return; // chip ✕ buttons keep their own keys
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleDay(day);
+        }
       });
-      dayListEl.appendChild(btn);
+      card.appendChild(head);
+
+      if (isOpen) {
+        const body = document.createElement('div');
+        body.className = 'dbody';
+        body.appendChild(picker);
+        picker.hidden = false;
+        card.appendChild(body);
+      }
+      dayListEl.appendChild(card);
     });
 
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();
     renderPickList();
-    renderWeekSummary();
   }
 
   function mealChip(item, day) {
@@ -1023,29 +1065,6 @@
     }
   }
 
-  function renderWeekSummary() {
-    const el = document.getElementById('weekSum');
-    el.innerHTML = '';
-    FT.weekDays(today).forEach(day => {
-      const row = document.createElement('div');
-      row.className = 'wrow';
-      const d = document.createElement('b');
-      d.textContent = shortDay(day);
-      const list = document.createElement('span');
-      const names = FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? '🥡 Takeaway' : p.name));
-      if (names.length) {
-        list.textContent = names.join(' + ');
-      } else {
-        const none = document.createElement('span');
-        none.className = 'note';
-        none.textContent = '—';
-        list.appendChild(none);
-      }
-      row.append(d, list);
-      el.appendChild(row);
-    });
-  }
-
   // Tap a food: warn first if it will be out of date on that day
   async function choosePick(pack) {
     if (FT.outByDay(pack, selDay) > 0) {
@@ -1084,6 +1103,7 @@
     }
     const days = FT.weekDays(today);
     selDay = days[(days.indexOf(day) + 1) % 7];
+    openDay = selDay;
     selSlot = 'main';
     pendingPlan = null;
     renderMeals();
