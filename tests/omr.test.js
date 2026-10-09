@@ -66,6 +66,7 @@ for (const name of Object.keys(truth)) {
 }
 
 test("readSheet: at most 2 wrong boxes over all 5 photos (390 boxes)", () => {
+  assert.equal(Object.keys(results).length, 5, "all 5 photos were read");
   const all = Object.values(results).flat();
   assert.ok(all.length <= 2, `${all.length} wrong: ${all.join(", ")}`);
 });
