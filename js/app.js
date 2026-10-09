@@ -109,7 +109,7 @@
   }
 
   // Fill the sheet, measure it (shown off-screen at A4 size for a moment), save it, then print
-  function printFridgeSheet() {
+  async function printFridgeSheet() {
     const stamp = printStamp();
     const box = document.getElementById('printSheet');
     box.innerHTML = buildPrintSheet(stamp);
@@ -122,8 +122,15 @@
     } finally {
       box.classList.remove('measuring');
     }
-    // Saved in the background: a failed save never stops the print
-    if (rows) DB.sheets.add({ code: stamp.code, printed: stamp.printed, rows }).catch(() => {});
+    // Save first. If the save fails, the photo can't be read later, so ask before printing
+    if (rows) {
+      try {
+        await DB.sheets.add({ code: stamp.code, printed: stamp.printed, rows });
+      } catch (e) {
+        const printAnyway = confirm("This sheet couldn't be saved, so a photo of it can't be read later.\n\nClose the app and open it again, then print.\n\nPrint anyway?");
+        if (!printAnyway) return;
+      }
+    }
     window.print();
   }
 

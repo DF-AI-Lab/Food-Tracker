@@ -705,7 +705,7 @@ process.on("exit", () => server && server.kill());
     await page.goto(URL);
     await page.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
     await page.click("#printF");
-    assert.equal(await page.evaluate(() => window.__printed), 1);
+    await until(async () => assert.equal(await page.evaluate(() => window.__printed), 1));
     const sheet = page.locator("#printSheet");
     assert.match(await sheet.locator(".ps-head").innerText(), /7–13 Oct/);
     assert.match(await sheet.locator(".ps-code").innerText(), /SHEET 0710-\d{4}/);
