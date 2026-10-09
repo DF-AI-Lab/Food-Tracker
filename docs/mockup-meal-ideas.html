@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meals Mockup v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#051F20;--card:#0B2B26;--item:#163832;--line:#235347;--fg:#DAF1DE;--muted:#8EB69B;--accent:#8EB69B;--warn:#8a5a12;--ok:#2c6a4c;--red:#7a1f1f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Nunito Sans',sans-serif;padding:16px;display:flex;flex-direction:column;align-items:center;gap:30px}
+.frame{width:420px;padding:12px}
+.lbl{font-family:Fredoka;color:#f0c070;font-size:15px;margin-bottom:10px}
+h1{font-family:Fredoka;font-size:20px;margin:4px 0 14px;display:flex;justify-content:space-between;align-items:center}
+.icons span{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:10px;margin-left:6px;font-size:14px}
+.tabs{display:flex;gap:6px;background:var(--card);padding:5px;border-radius:16px;margin-bottom:12px}
+.tabs div{flex:1;text-align:center;padding:9px 0;border-radius:12px;color:var(--muted)}
+.tabs .on{background:var(--accent);color:var(--bg);font-weight:700}
+.day{background:var(--item);border-radius:14px;margin-bottom:8px;padding:12px 14px}
+.day.today{outline:2px solid #fff}
+.day.past{background:#2a2410;outline:1px solid #c98a2a}
+.dh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dh b{font-size:16px}.dh small{color:var(--muted);font-weight:600}
+.hint{margin-left:auto;color:var(--muted);font-size:13px}
+.tl{background:#fff;color:var(--bg);font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px}
+.chip{background:var(--card);border-radius:8px;padding:4px 8px;font-size:12px}.chip i{font-style:normal;color:var(--muted);font-size:10px;margin-right:4px}
+.q{margin-top:10px;font-weight:700;color:#f0c070}
+.yn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.btn{text-align:center;padding:11px;border-radius:12px;font-weight:700;border:1px solid var(--line)}
+.btn.y{background:var(--accent);color:var(--bg);border:0}.btn.n{background:var(--red);color:#ffb3b3;border:0}
+.btn.full{grid-column:1/3}
+.kt{display:flex;gap:6px;margin:10px 0}
+.kt div{flex:1;text-align:center;padding:8px 0;border-radius:10px;background:var(--card);font-size:13px;font-weight:700;color:var(--muted)}
+.kt .on{background:var(--fg);color:var(--bg)}
+.f{display:flex;justify-content:space-between;background:var(--ok);border-radius:10px;padding:10px 12px;margin-bottom:6px;font-weight:700;font-size:14px}
+.f.warn{background:var(--warn)}
+.ta{border:2px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;font-weight:700;font-size:14px}
+.next{background:var(--accent);color:var(--bg);text-align:center;border-radius:12px;padding:11px;font-weight:700;margin-top:6px}
+.urow{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:10px;padding:8px 10px;margin-top:6px;font-weight:700}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:12px}
+.seg span{padding:6px 10px;color:var(--muted)}.seg .on{background:var(--accent);color:var(--bg)}
+.inp{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px;margin-top:8px;font-size:18px}
+.pop{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.pop h2{font-family:Fredoka;font-size:18px;margin:0 0 12px}.pop h2 small{font-family:'Nunito Sans';color:var(--muted);font-weight:600}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g .bin{background:var(--red);color:#ffb3b3;border:0}.g .part{background:var(--warn);border:0}
+.card{background:var(--card);border-radius:16px;padding:12px 14px;margin-top:10px;font-weight:700}
+.muted{color:var(--muted);font-weight:600;font-size:13px}
+.tag{font-size:11px;background:var(--warn);padding:2px 6px;border-radius:6px;margin-left:6px}
+</style><style>.ideas{background:var(--card);border-radius:16px;padding:12px 14px;margin-top:6px}
+.ideas h3{font-family:Fredoka;font-size:17px;margin:0 0 4px}.ideas .sub{color:var(--muted);font-size:12px;margin-bottom:8px}
+.il{max-height:310px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px}
+.idea{display:flex;align-items:center;gap:8px;background:var(--item);border-radius:10px;padding:9px 10px}
+.idea .t{flex:1}.idea .t b{display:block;font-size:14px}.idea .t span{font-size:12px;color:var(--muted)}
+.idea .t span.miss{color:#f0c070}
+.plus{background:var(--accent);color:var(--bg);font-weight:800;border-radius:9px;padding:6px 11px}
+.plus.off{background:none;border:1px solid var(--line);color:var(--muted)}
+.more{text-align:center;color:var(--muted);font-size:12px;margin-top:6px}</style></head><body><div class="frame" id="s6"><div class="lbl">6 · Meal ideas (under the days)</div>
+<div class="day today"><div class="dh"><b>Fri</b><small>9 Oct</small><span class="tl">TODAY</span><span class="chip"><i>MAIN</i>Chicken</span></div></div>
+<div class="day"><div class="dh"><b>Sat</b><small>10 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+<div class="day"><div class="dh"><b>Sun</b><small>11 Oct</small><span class="hint">Tap to plan ›</span></div></div>
+<div class="ideas"><h3>💡 Meal ideas</h3><div class="sub">Most had first · tap + to add to the open day</div>
+<div class="il"><div class="idea"><div class="t"><b>Chicken + Mash + Peas</b><span class="">had 6× · all in fridge</span></div><span class="plus ">+</span></div><div class="idea"><div class="t"><b>Sausages + Mash + Beans</b><span class="">had 4× · all in fridge</span></div><span class="plus ">+</span></div><div class="idea"><div class="t"><b>Gammon + Chips + Peas</b><span class="miss">had 3× · need Chips</span></div><span class="plus off">+</span></div><div class="idea"><div class="t"><b>Mince + Tagliatelle</b><span class="">had 3× · all in fridge</span></div><span class="plus ">+</span></div><div class="idea"><div class="t"><b>Bacon + Potatoes + Carrots</b><span class="">had 2× · all in fridge</span></div><span class="plus ">+</span></div><div class="idea"><div class="t"><b>Chicken + Rice + Broccoli</b><span class="miss">had 2× · need Rice</span></div><span class="plus off">+</span></div><div class="idea"><div class="t"><b>Fish + Chips</b><span class="miss">had 1× · need Fish, Chips</span></div><span class="plus off">+</span></div></div><div class="more">scroll for more ↓</div></div></div></body></html>
