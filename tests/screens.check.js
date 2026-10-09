@@ -762,6 +762,19 @@ process.on("exit", () => server && server.kill());
     assert.match(await text("#today"), /Wed 7 Oct/);
   });
 
+  await step("server from before version numbers (no version at all): says restart, not v?", async () => {
+    await page.route("**/api/info", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ test: true }) }));
+    await page.goto(URL);
+    await until(async () => assert.match(await text("#ver"), /Close the app and open it again/));
+    await page.route("**/api/update", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ updated: false, restart: false }) }));
+    await page.click("#refresh");
+    await until(async () => assert.match(await text("#updNote"), /Close the app and open it again/));
+    assert.doesNotMatch(await text("#updNote"), /v\?/);
+    await page.unroute("**/api/update");
+    await page.unroute("**/api/info");
+    await page.goto(URL);
+  });
+
   await step("old server still running: the version line says restart", async () => {
     await page.route("**/api/info", r => r.fulfill({ status: 200, contentType: "application/json",
       body: JSON.stringify({ test: false, version: { n: 5, hash: "aaaaaaa", date: "2026-10-09" }, disk: { n: 6, hash: "bbbbbbb", date: "2026-10-10" } }) }));
