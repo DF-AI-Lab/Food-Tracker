@@ -1044,6 +1044,80 @@
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();
     renderPickList();
+    renderMealIdeas();
+  }
+
+  // ---- Meal ideas: combos eaten before, under the days ----
+
+  // Day that a green + plans into: the open day if it is today or later, else today
+  function ideaDay() {
+    return openDay && openDay >= today ? openDay : today;
+  }
+
+  // Soonest free fridge pack for a food name; undated packs last
+  function soonestFree(name) {
+    const key = name.toLowerCase();
+    const byDate = (a, b) => (!a.date) - (!b.date) || (a.date || '').localeCompare(b.date || '') || a.id - b.id;
+    return packs
+      .filter(p => p.status === 'in_fridge' && !p.plannedFor && p.name.toLowerCase() === key)
+      .sort(byDate)[0] || null;
+  }
+
+  async function planIdea(idea) {
+    const day = ideaDay();
+    try {
+      for (const item of idea.items) {
+        const pack = soonestFree(item.name);
+        if (pack) await savePack(FT.planPack(pack, day, item.slot));
+      }
+    } catch (e) {
+      // a save failed: the screen below shows what was saved
+    }
+    renderMeals();
+    renderAll();
+  }
+
+  // Grey +: put the missing foods on the shopping list
+  async function shopIdea(idea, button) {
+    for (const name of idea.missing) await autoAdd(name, 'for a meal');
+    const sub = document.querySelector('#mealIdeas .sub');
+    sub.textContent = 'Added to shopping list';
+    setTimeout(() => { sub.textContent = 'Most had first · tap + to add to the open day'; }, 2500);
+  }
+
+  function renderMealIdeas() {
+    const box = document.getElementById('mealIdeas');
+    const list = box.querySelector('.il');
+    const ideas = FT.mealIdeas(meals, packs);
+    list.innerHTML = '';
+    box.hidden = ideas.length === 0;
+    for (const idea of ideas) {
+      const row = document.createElement('div');
+      row.className = 'idea';
+
+      const t = document.createElement('div');
+      t.className = 't';
+      const b = document.createElement('b');
+      b.textContent = idea.name;
+      const span = document.createElement('span');
+      const had = `had ${idea.count}×`;
+      if (idea.missing.length) {
+        span.className = 'miss';
+        span.textContent = `${had} · need ${idea.missing.join(', ')}`;
+      } else {
+        span.textContent = `${had} · all in fridge`;
+      }
+      t.append(b, span);
+
+      const plus = document.createElement('button');
+      plus.className = 'plus' + (idea.missing.length ? ' off' : '');
+      plus.type = 'button';
+      plus.textContent = '+';
+      plus.addEventListener('click', () => (idea.missing.length ? shopIdea(idea, plus) : planIdea(idea)));
+
+      row.append(t, plus);
+      list.appendChild(row);
+    }
   }
 
   // A day in the next 7 days: header, and the picker when it is the open day

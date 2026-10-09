@@ -573,6 +573,43 @@
       .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
   }
 
+  // Meal ideas: food combos eaten at home (2+ foods), most had first, then latest.
+  // missing = food names with no free fridge pack (in fridge, not planned)
+  function mealIdeas(meals, packs) {
+    const groups = new Map();
+    for (const m of meals) {
+      if (m.takeaway === true || !Array.isArray(m.items) || m.items.length < 2) continue;
+      const names = m.items.map(i => String(i.name).toLowerCase()).sort();
+      const key = names.join("\u0001");
+      if (!groups.has(key)) groups.set(key, { count: 0, day: "", items: [] });
+      const g = groups.get(key);
+      g.count++;
+      if (m.day >= g.day) { // most recent meal of the combo supplies the items
+        g.day = m.day;
+        g.items = m.items.map(i => ({ name: i.name, slot: i.slot }));
+      }
+    }
+
+    const slotRank = slot => (slot in SLOT_ORDER ? SLOT_ORDER[slot] : 3);
+    const freeNames = new Set(
+      packs.filter(p => p.status === "in_fridge" && !p.plannedFor).map(p => p.name.toLowerCase())
+    );
+
+    return [...groups.values()]
+      .map(g => {
+        const items = [...g.items].sort((a, b) => slotRank(a.slot) - slotRank(b.slot));
+        // Casing as in the fridge when the food is there; otherwise as the meal had it
+        const named = items.map(i => {
+          const pack = packs.find(p => p.name.toLowerCase() === String(i.name).toLowerCase());
+          return { ...i, name: pack ? pack.name : i.name };
+        });
+        const missing = named.filter(i => !freeNames.has(i.name.toLowerCase())).map(i => i.name);
+        return { name: named.map(i => i.name).join(" + "), items: named, count: g.count, day: g.day, missing };
+      })
+      .sort((a, b) => b.count - a.count || b.day.localeCompare(a.day))
+      .map(({ day, ...rest }) => rest);
+  }
+
   // Shopping list
   // Order: to get (newest first), then crossed out, then deleted today or yesterday
   function byNewest(a, b) {
@@ -757,6 +794,7 @@
     outByDay,
     makeTakeaway,
     dayMeals,
+    mealIdeas,
     shopOrder,
     expiredShopDeletes,
     timesBought,
