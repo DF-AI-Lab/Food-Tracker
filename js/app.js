@@ -211,8 +211,10 @@
     const v = info && info.version;
     const disk = info && info.disk;
     el.classList.remove('stale');
-    if (!v) { el.textContent = 'v?'; return; }
-    if (disk && disk.n !== v.n) {
+    // No "version" field at all = a server from before version numbers, still running
+    const oldServer = info && !('version' in info);
+    if (!oldServer && !v) { el.textContent = 'v?'; return; }
+    if (oldServer || (disk && disk.n !== v.n)) {
       el.textContent = '⚠️ New version waiting · Close the app and open it again';
       el.classList.add('stale');
       return;
@@ -220,11 +222,20 @@
     el.textContent = ['v' + v.n, shortDate(v.date)].filter(Boolean).join(' · ');
   }
 
-  // Latest version number on disk, for the "up to date" note ('?' if unknown)
+  // "Up to date" note, or the restart warning when an old server is still running
+  async function upToDateNote() {
+    const n = await latestNumber();
+    return n === null
+      ? ['⚠️ Close the app and open it again to finish updating', 6000]
+      : ['✓ Up to date · v' + n, 3000];
+  }
+
+  // Latest version number on disk, for the "up to date" note ('?' if unknown, null if old server)
   async function latestNumber() {
     try {
       const info = await (await fetch('/api/info')).json();
       renderVersion(info);
+      if (!('version' in info)) return null; // old server still running
       const v = info.disk || info.version;
       return v ? v.n : '?';
     } catch (e) {
@@ -265,7 +276,7 @@
     if (!updated && force) {
       note = failed
         ? ["Couldn't check for updates", 3000]
-        : ['✓ Up to date · v' + await latestNumber(), 3000];
+        : await upToDateNote();
     }
     // Keep the spinner going long enough to be seen
     const wait = MIN_SPIN_MS - (Date.now() - started);
