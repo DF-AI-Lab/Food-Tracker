@@ -37,8 +37,8 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
 .scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain;padding-right:2px}
 .veg{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;border-top:2px dashed var(--line);padding-top:8px}
 .pane .card,.pane .age{background:var(--bg)}
-.today{font-family:var(--display);font-size:18px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.today .pal button{padding:5px 9px;font-size:15px}
+#top{font-family:var(--display);font-size:18px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+#top .pal button{padding:5px 9px;font-size:15px}
 .age{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
 .age b{font-weight:700} .age.old{background:var(--soonbg);color:var(--soon);border-color:transparent}
 .age:focus-visible{outline:2px solid var(--accent)}
@@ -166,7 +166,7 @@ button.act.ghost{box-shadow:none}
 [data-sub-pane]{gap:14px}
 [data-tab-pane="add"]{gap:14px}
 #top{margin:0}
-.today b{font-weight:600}
+#top b{font-weight:600}
 /* Fridge: Use soon strip, then four full-width folding boxes */
 #fridgeView{display:flex;flex-direction:column;gap:10px;min-width:0}
 #useSoon[hidden]{display:none}
@@ -246,3 +246,26 @@ summary{cursor:pointer;font-weight:700;color:var(--muted)}
 .qf-kind .qc{flex:1 1 auto;font-size:12px;padding:6px 8px}
 .qf-price{font-size:12px;color:var(--muted);font-weight:600}
 
+
+/* ---- Meals v2: today, past days to answer, part used ---- */
+:root{--todayline:#fff;--pastbg:#2a2410;--pastline:#c98a2a}
+html[data-theme="light"]{--todayline:#051F20;--pastbg:#f3e3b8;--pastline:#a8701a}
+.day.today{outline:2px solid var(--todayline);outline-offset:-2px}
+.day.today.open{outline-color:var(--todayline)}
+.tl{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--todayline);margin-left:2px}
+.day.past{background:var(--pastbg);outline:1px solid var(--pastline);outline-offset:-1px}
+.day.past .dh{cursor:default}
+.day.past .dbody{display:flex;flex-direction:column;gap:10px}
+.day.past .q{color:var(--soon);font-weight:700;font-size:15px}
+.day.past .btns{margin:0}
+.day.past .btns .act{flex:1 1 40%}
+button.act.had-yes{background:var(--accent);color:var(--bg)}
+button.act.had-no{background:var(--offbg);color:var(--off)}
+button.act.part{background:var(--soonbg);color:var(--soon)}
+.use-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.use-row b{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.seg{display:flex;flex:none;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:12px}
+.seg button{font:inherit;font-size:12px;font-weight:700;background:transparent;color:var(--muted);border:0;padding:6px 10px;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--bg)}
+.cost-in{width:100%;box-sizing:border-box;font:inherit;font-size:16px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.day.open .hint{display:none}

@@ -151,3 +151,15 @@ test("ratings: saved by food name, a new rating replaces the old one", async () 
     assert.deepEqual(all.sort((a, b) => a.name.localeCompare(b.name)), [{ name: "Garlic bread", rating: 5 }, { name: "Mince", rating: 1 }]);
   });
 });
+
+test("meals history: add, list, update", async () => {
+  await withServer(async ({ api }) => {
+    const rec = { day: "2026-10-07", items: [{ name: "Chicken", slot: "main" }], takeaway: false, cost: null };
+    const { body: { id } } = await api("POST", "/api/meals", rec);
+    assert.ok(id > 0);
+    await api("PUT", `/api/meals/${id}`, { ...rec, takeaway: true, cost: 12 });
+    const { body } = await api("GET", "/api/meals");
+    assert.equal(body.length, 1);
+    assert.equal(body[0].cost, 12);
+  });
+});

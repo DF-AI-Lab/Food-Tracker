@@ -50,6 +50,9 @@
     // Shopping list items
     shop: store("shop"),
 
+    // Meals history: one record per day that was eaten (or a takeaway with a cost)
+    meals: store("meals"),
+
     // Idea ratings, one per food name: { name, rating }
     ratings: {
       async all() {

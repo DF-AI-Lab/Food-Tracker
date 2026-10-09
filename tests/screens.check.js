@@ -224,9 +224,14 @@ process.on("exit", () => server && server.kill());
     assert.equal(await page.locator("#weekSum").count(), 0);
     assert.equal(await page.locator("#printWeek").count(), 0);
     assert.equal(await page.locator("#dayList .day").count(), 7);
-    // nothing open until a day is tapped
-    assert.equal(await page.locator("#dayList .day.open").count(), 0);
-    assert.equal(await page.locator("#pickList").isVisible(), false);
+    // today (Wed 7) is first, white-bordered, labelled and open; then the next 6 days
+    const first = page.locator("#dayList .day").first();
+    assert.match(await first.getAttribute("class"), /\btoday\b/);
+    assert.match(await first.locator(".dh").innerText(), /Wed[\s\S]*TODAY/i);
+    assert.equal(await page.locator("#dayList .day.open").count(), 1);
+    assert.match(await page.locator("#dayList .day.open .dh").innerText(), /Wed/);
+    assert.match(await page.locator("#dayList .day").last().locator(".dh").innerText(), /Tue/);
+    assert.equal(await page.locator("#dayList .day.today").count(), 1);
     const dh = d => page.locator(`#dayList .dh:has-text("${d}")`);
     await dh("Thu").click();
     assert.equal(await page.locator("#dayList .day.open").count(), 1);
@@ -568,6 +573,83 @@ process.on("exit", () => server && server.kill());
     await page.locator('#useSoon :text("Kippers")').first().click();
     assert.equal(await page.locator("#actUsed").isVisible(), true);
     await page.click("#actCancel");
+  });
+
+  const goToday = async iso => {
+    await page.goto(URL.replace("today=2026-10-07", "today=" + iso));
+    await page.click('[data-tab="meals"]');
+  };
+  const pastDay = () => page.locator("#dayList .day.past");
+
+  await step("meals v2: past day asks 'Had this meal?' -> yes, all/part used", async () => {
+    await goToday("2026-10-10"); // Sat: Thu 8 had Pork + Coleslaw + Peas planned
+    assert.equal(await pastDay().count(), 1);
+    assert.match(await pastDay().locator(".dh").innerText(), /Thu/);
+    assert.match(await pastDay().innerText(), /Had this meal\?/);
+    // past day sits above today
+    assert.match(await page.locator("#dayList .day").nth(1).getAttribute("class"), /\btoday\b/);
+    await pastDay().locator(".had-yes").click();
+    assert.equal(await pastDay().locator(".use-row").count(), 3);
+    // default is all used; switch Peas to part used
+    assert.match(await pastDay().locator('.use-row:has-text("Pork") .all').getAttribute("class"), /\bon\b/);
+    await pastDay().locator('.use-row:has-text("Peas") .part').click();
+    await pastDay().locator(".had-done").click();
+    await until(async () => assert.equal(await pastDay().count(), 0));
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    await until(async () => assert.doesNotMatch(await text("#fridgeView"), /Pork/));
+    assert.match(await text("#veg"), /Peas/);
+    assert.match(await text("#veg"), /part used/i);
+    await openShop();
+    await until(async () => assert.match(await shopRow("Pork").innerText(), /used up/i));
+  });
+
+  await step("meals v2: takeaway day -> yes -> how much was it?", async () => {
+    await goToday("2026-10-11"); // Sun: Sat 10 was a takeaway
+    assert.equal(await pastDay().count(), 1);
+    assert.match(await pastDay().innerText(), /Takeaway/);
+    await pastDay().locator(".had-yes").click();
+    assert.match(await pastDay().innerText(), /How much was it\?/);
+    await pastDay().locator(".cost-in").fill("24.50");
+    await pastDay().locator(".cost-save").click();
+    await until(async () => assert.equal(await pastDay().count(), 0));
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="used"]');
+    await until(async () => assert.match(await text("#takeawaySum"), /1 · £24\.50/));
+  });
+
+  await step("meals v2: no -> what did you have? -> pick, then done", async () => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="quick"]');
+    await page.fill("#qfText", JSON.stringify([
+      { name: "Lamb", kind: "main", date: "2026-10-25" }, { name: "Beef", kind: "main", date: "2026-10-25" }]));
+    await page.click("#qfCheck");
+    await page.click("#qfAdd");
+    await until(async () => assert.match(await text("#qfMsg"), /added 2/i));
+    await page.click('[data-tab="meals"]');
+    // plan Lamb for today (Sun 11), which is open
+    await page.click('#dayList .day.open #pickList .item:has-text("Lamb")');
+    await until(async () => assert.match(await page.locator("#dayList .day.today .dh").innerText(), /Lamb/));
+    await goToday("2026-10-12");
+    assert.equal(await pastDay().count(), 1);
+    await pastDay().locator(".had-no").click();
+    assert.match(await pastDay().innerText(), /What did you have\?/);
+    // Lamb is back in the picker; pick Beef instead
+    assert.equal(await pastDay().locator('#pickList .item:has-text("Lamb")').count(), 1);
+    await pastDay().locator('#pickList .item:has-text("Beef")').click();
+    await pastDay().locator(".had-skip").click();
+    await until(async () => assert.equal(await pastDay().count(), 0));
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    await until(async () => assert.doesNotMatch(await text("#mains"), /Beef/));
+    assert.match(await text("#mains"), /Lamb/);
+  });
+
+  await step("fridge popup: part used keeps it with a 3-day timer", async () => {
+    await page.locator('#mains .card:has-text("Lamb") .pack').first().click();
+    await page.click("#actPart");
+    await until(async () => assert.match(await page.locator('#mains .card:has-text("Lamb")').innerText(), /3 days left/));
+    assert.match(await page.locator('#mains .card:has-text("Lamb")').innerText(), /part used/i);
   });
 
   await step("data is in the SQLite file outside the app folder", async () => {
