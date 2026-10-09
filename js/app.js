@@ -31,6 +31,13 @@
   }
 
   async function init() {
+    // The TEST copy shows a red banner (the real copy stays hidden)
+    try {
+      const banner = document.getElementById('testBanner');
+      fetch('/api/info').then(r => r.json()).then(i => { if (i.test) banner.hidden = false; }).catch(() => {});
+    } catch (e) {
+      // no banner
+    }
     await DB.open();
     packs = await DB.all();
     // Remove deletes that are older than yesterday (they can no longer be undone)
