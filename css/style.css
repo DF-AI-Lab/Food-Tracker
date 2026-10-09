@@ -297,9 +297,9 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
   #printSheet{display:block}
   @page{size:A4;margin:0}
 }
-#printSheet{font-family:Arial,sans-serif;color:#000}
+#printSheet{font-family:Arial,sans-serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 #printSheet .ps-page{width:210mm;height:297mm;background:#fff;position:relative;box-sizing:border-box;padding:14mm 14mm 12mm;overflow:hidden;margin:0 auto}
-#printSheet .ps-mk{position:absolute;width:8mm;height:8mm;background:#000}
+#printSheet .ps-mk{position:absolute;width:0;height:0;border:4mm solid #000;box-sizing:content-box}
 #printSheet .ps-tl{top:5mm;left:5mm}
 #printSheet .ps-tr{top:5mm;right:5mm}
 #printSheet .ps-bl{bottom:5mm;left:5mm}
@@ -337,6 +337,7 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 #scanPanel select{font:inherit;font-size:14px;font-weight:700;color:var(--fg);background:var(--tile);border:0;border-radius:10px;padding:9px 12px}
 #scanPanel .scan-photo{display:block;text-align:center;cursor:pointer;margin-top:4px}
 #scanPanel #scanMsg{min-height:1em;color:var(--soon)}
+#scanPanel #scanMsg.err{color:#fff;background:var(--offbg);border-radius:12px;padding:10px 12px;font-weight:800;font-size:15px}
 #scanPanel #scanFood{width:100%}
 #scanPanel #scanCancel{width:100%;margin-top:4px}
 #scanPanel #scanApply{width:100%;margin-top:6px}

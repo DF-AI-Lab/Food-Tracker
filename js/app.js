@@ -398,8 +398,10 @@
   const CHIP_NAME = { u: 'Used', p: 'Part used', b: 'Binned', none: 'No change' };
   const NO_SHEET = 'No printed sheet yet. Print the fridge sheet first.';
 
-  function scanMsg(text) {
-    document.getElementById('scanMsg').textContent = text;
+  function scanMsg(text, err = false) {
+    const el = document.getElementById('scanMsg');
+    el.textContent = text;
+    el.classList.toggle('err', err);
   }
 
   async function openScan() {
@@ -486,7 +488,7 @@
     }
     input.value = '';
     if (!result || !result.ok) {
-      scanMsg("Couldn't find the sheet. Take the photo flat, with all 4 black corners in.");
+      scanMsg("⚠️ Couldn't find the sheet. Take the photo flat, with all 4 black corners in.", true);
       return;
     }
     scanMsg('');
