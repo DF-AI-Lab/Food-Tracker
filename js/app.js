@@ -7,7 +7,12 @@
   let selDay = today;
   let selSlot = 'main';
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
-  let openDay = null;     // day whose card is open (null = all closed)
+  let openDay = today;    // day whose card is open (null = all closed); today is open on load
+  let meals = [];         // meals history, saved in DB.meals
+  let askDay = null;      // past day in "What did you have?" (or cost) mode
+  const pastState = {};   // past day -> 'ask' | 'use' | 'cost' | 'had'
+  const hadPicked = {};   // past day -> foods picked in "had" mode
+  let cleaning = false;   // guards dropExpiredPlans against re-entry
   // Shopping list state
   let shop = [];          // shopping items, saved in DB.shop
   let ratings = {};       // idea ratings: name -> 1..5, saved in DB.ratings
@@ -38,6 +43,7 @@
     }
     // Shopping list and idea ratings
     shop = await DB.shop.all();
+    meals = await DB.meals.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     // Shop items deleted before yesterday are removed for good
     const expiredShop = FT.expiredShopDeletes(shop, today);
@@ -129,6 +135,7 @@
 
     // Sheet actions
     document.getElementById('actUsed').addEventListener('click', actUsed);
+    document.getElementById('actPart').addEventListener('click', actPart);
     document.getElementById('actThrown').addEventListener('click', actThrown);
     document.getElementById('actFreeze').addEventListener('click', actFreeze);
     document.getElementById('actDelete').addEventListener('click', actDelete);
@@ -144,7 +151,8 @@
       btn.addEventListener('click', () => { selSlot = btn.dataset.s; renderMeals(); });
     });
     document.getElementById('nextDay').addEventListener('click', () => {
-      const days = FT.weekDays(today);
+      finishHad();
+      const days = FT.mealDays(today);
       selDay = days[(days.indexOf(selDay) + 1) % 7];
       openDay = selDay;
       selSlot = 'main';
@@ -583,6 +591,20 @@
     renderAll();
   }
 
+  // Part used: some is left, so it stays in the fridge with a 3-day timer (no shopping list entry)
+  async function actPart() {
+    if (!selectedPackId) return;
+    const pack = packs.find(p => p.id === selectedPackId);
+    const beforeState = JSON.parse(JSON.stringify(pack));
+    const updated = FT.partUse(pack, today);
+    await DB.put(updated);
+    Object.assign(pack, updated);
+    lastAction = { type: 'update', packId: selectedPackId, before: beforeState };
+    hideSheet();
+    showUndoBar();
+    renderAll();
+  }
+
   async function actThrown() {
     if (!selectedPackId) return;
     const pack = packs.find(p => p.id === selectedPackId);
@@ -698,7 +720,7 @@
         when.textContent = FT.countdown(pack.date, today);
         const tag = document.createElement('span');
         tag.className = 'tag';
-        tag.textContent = pack.dateType === 'best_before' ? 'BB' : 'USE BY';
+        tag.textContent = pack.partUsed ? 'PART USED' : (pack.dateType === 'best_before' ? 'BB' : 'USE BY');
         if (plannedThisWeek(pack)) {
           btn.classList.add('plan');
           tag.textContent = '🍽️ ' + shortDay(pack.plannedFor);
@@ -716,7 +738,7 @@
   function datedButton(pack) {
     const btn = packButton(pack);
     const name = document.createElement('span');
-    name.textContent = pack.name;
+    name.textContent = pack.name + (pack.partUsed ? ' · part used' : '');
     const when = document.createElement('span');
     when.textContent = FT.countdown(pack.date, today);
     btn.append(name, when);
@@ -733,7 +755,7 @@
     const name = document.createElement('b');
     name.textContent = pack.name;
     const age = document.createElement('span');
-    age.textContent = FT.ageLabel(pack.added, today) + (old ? ' ⚠️' : '');
+    age.textContent = FT.ageLabel(pack.added, today) + (old ? ' ⚠️' : '') + (pack.partUsed ? ' · part used' : '');
     btn.append(name, age);
     btn.addEventListener('click', () => packTap(pack));
     return btn;
@@ -862,6 +884,9 @@
     const summary = FT.usedSummary(packs, today);
     document.getElementById('usedCount').textContent = summary.used;
     document.getElementById('wastedCount').textContent = summary.wasted;
+    const takeaways = FT.takeawaySummary(meals, today);
+    document.getElementById('takeawaySum').textContent =
+      `🥡 Takeaways this month: ${takeaways.count} · £${takeaways.total.toFixed(2)}`;
 
     const listEl = document.getElementById('usedList');
     listEl.innerHTML = '';
@@ -891,8 +916,19 @@
     return FT.formatDate(iso).split(' ')[0];
   }
 
+  // Day name + date, for a card header
+  function dayName(day) {
+    const dn = document.createElement('span');
+    dn.className = 'dn';
+    dn.append(shortDay(day) + ' ');
+    const date = document.createElement('small');
+    date.textContent = FT.formatDate(day).split(' ').slice(1).join(' ');
+    dn.appendChild(date);
+    return dn;
+  }
+
   function plannedThisWeek(pack) {
-    return !!pack.plannedFor && FT.weekDays(today).includes(pack.plannedFor);
+    return !!pack.plannedFor && FT.mealDays(today).includes(pack.plannedFor);
   }
 
   async function savePack(updated) {
@@ -901,8 +937,84 @@
     if (i !== -1) packs[i] = updated;
   }
 
+  // Change a pack in the list at once; the returned promise is the database write
+  function setPack(updated) {
+    packs = packs.map(p => (p.id === updated.id ? updated : p));
+    return DB.put(updated);
+  }
+
+  function dropPack(pack) {
+    packs = packs.filter(p => p.id !== pack.id);
+    return DB.remove(pack.id);
+  }
+
+  // If a write fails, the list is reloaded from the database so the screen matches what was saved
+  async function persistAll(writes) {
+    try {
+      await Promise.all(writes);
+    } catch (e) {
+      try {
+        packs = await DB.all();
+      } catch (err) {
+        // keep what is on screen
+      }
+      renderMeals();
+      renderAll();
+    }
+  }
+
+  // Meals history: the record shows at once; the database write follows
+  function saveMeal(record) {
+    meals.push(record);
+    return DB.meals.add(record).then(id => { record.id = id; });
+  }
+
+  // Plans more than 3 days old drop off: the list is changed at once, the database follows
+  function dropExpiredPlans() {
+    if (cleaning) return;
+    cleaning = true;
+    try {
+      for (const p of FT.expiredPlans(packs, today)) {
+        if (p.kind === 'takeaway') {
+          packs = packs.filter(x => x.id !== p.id);
+          DB.remove(p.id).catch(() => {});
+        } else {
+          const updated = FT.unplanPack(p);
+          packs = packs.map(x => (x.id === p.id ? updated : x));
+          DB.put(updated).catch(() => {});
+        }
+      }
+    } finally {
+      cleaning = false;
+    }
+  }
+
+  // "Had this meal?" is asked for past days with a plan still waiting, plus askDay while it is open
+  function pastDays() {
+    const days = new Set(FT.pastToAsk(packs, today));
+    if (askDay) days.add(askDay);
+    return [...days].sort();
+  }
+
+  function inHad() {
+    return !!askDay && pastState[askDay] === 'had';
+  }
+
+  // Close a "What did you have?" question early (another day was tapped): keep what was picked
+  function finishHad() {
+    if (!askDay) return;
+    const day = askDay;
+    const takeaway = pastState[day] === 'cost';
+    const picked = hadPicked[day] || [];
+    if (takeaway || picked.length) persistAll([saveMeal(FT.mealRecord(day, picked, { takeaway }))]);
+    askDay = null;
+    delete pastState[day];
+    delete hadPicked[day];
+  }
+
   // Tap a day header: open that day (closing any other), or close it if already open
   function toggleDay(day) {
+    finishHad();
     if (openDay === day) {
       openDay = null;
     } else {
@@ -915,6 +1027,7 @@
   }
 
   function renderMeals() {
+    dropExpiredPlans();
     const pane = document.querySelector('[data-tab-pane="meals"]');
     const picker = document.getElementById('picker');
     const dayListEl = document.getElementById('dayList');
@@ -923,56 +1036,162 @@
     picker.hidden = true;
     dayListEl.innerHTML = '';
 
-    FT.weekDays(today).forEach(day => {
-      const isOpen = day === openDay;
-      const card = document.createElement('div');
-      card.className = 'day' + (isOpen ? ' open' : '');
+    pastDays().forEach(day => dayListEl.appendChild(pastCard(day, picker)));
+    FT.mealDays(today).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
-      const head = document.createElement('div');
-      head.className = 'dh';
-      head.setAttribute('role', 'button');
-      head.setAttribute('aria-expanded', String(isOpen));
-      head.tabIndex = 0;
-      const dn = document.createElement('span');
-      dn.className = 'dn';
-      dn.append(shortDay(day) + ' ');
-      const date = document.createElement('small');
-      date.textContent = FT.formatDate(day).split(' ').slice(1).join(' ');
-      dn.appendChild(date);
-      head.appendChild(dn);
-
-      const meals = FT.dayMeals(packs, day);
-      meals.forEach(item => head.appendChild(mealChip(item, day)));
-      if (meals.length === 0) {
-        const hint = document.createElement('span');
-        hint.className = 'hint';
-        hint.textContent = 'Tap to plan ›';
-        head.appendChild(hint);
-      }
-      head.addEventListener('click', () => toggleDay(day));
-      head.addEventListener('keydown', e => {
-        if (e.target !== head) return; // chip ✕ buttons keep their own keys
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          toggleDay(day);
-        }
-      });
-      card.appendChild(head);
-
-      if (isOpen) {
-        const body = document.createElement('div');
-        body.className = 'dbody';
-        body.appendChild(picker);
-        picker.hidden = false;
-        card.appendChild(body);
-      }
-      dayListEl.appendChild(card);
-    });
-
+    document.getElementById('nextDay').hidden = inHad();
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();
     renderPickList();
+  }
+
+  // A day in the next 7 days: header, and the picker when it is the open day
+  function dayCard(day, picker) {
+    const isToday = day === today;
+    const isOpen = day === openDay && !inHad();
+    const card = document.createElement('div');
+    card.className = 'day' + (isOpen ? ' open' : '') + (isToday ? ' today' : '');
+
+    const head = document.createElement('div');
+    head.className = 'dh';
+    head.setAttribute('role', 'button');
+    head.setAttribute('aria-expanded', String(isOpen));
+    head.tabIndex = 0;
+    head.appendChild(dayName(day));
+    if (isToday) {
+      const tl = document.createElement('span');
+      tl.className = 'tl';
+      tl.textContent = 'Today';
+      head.appendChild(tl);
+    }
+
+    const meals = FT.dayMeals(packs, day);
+    meals.forEach(item => head.appendChild(mealChip(item, day)));
+    if (meals.length === 0) {
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = 'Tap to plan ›';
+      head.appendChild(hint);
+    }
+    head.addEventListener('click', () => toggleDay(day));
+    head.addEventListener('keydown', e => {
+      if (e.target !== head) return; // chip ✕ buttons keep their own keys
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleDay(day);
+      }
+    });
+    card.appendChild(head);
+
+    if (isOpen) {
+      const body = document.createElement('div');
+      body.className = 'dbody';
+      body.appendChild(picker);
+      picker.hidden = false;
+      card.appendChild(body);
+    }
+    return card;
+  }
+
+  // A past day with a plan still waiting: "Had this meal?" then how much was used, or the takeaway cost
+  function pastCard(day, picker) {
+    const state = pastState[day] || 'ask';
+    const card = document.createElement('div');
+    card.className = 'day past';
+
+    const head = document.createElement('div');
+    head.className = 'dh';
+    head.appendChild(dayName(day));
+    FT.dayMeals(packs, day).forEach(item => head.appendChild(mealChip(item, day)));
+    card.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'dbody past-body';
+    const q = text => {
+      const el = document.createElement('div');
+      el.className = 'q';
+      el.textContent = text;
+      body.appendChild(el);
+    };
+    const button = (cls, label, onClick) => {
+      const b = document.createElement('button');
+      b.className = 'act ' + cls;
+      b.textContent = label;
+      b.addEventListener('click', onClick);
+      return b;
+    };
+    const btns = () => {
+      const row = document.createElement('div');
+      row.className = 'btns';
+      body.appendChild(row);
+      return row;
+    };
+
+    if (state === 'ask') {
+      q('Had this meal?');
+      const row = btns();
+      row.append(
+        button('had-yes', '✅ Yes', () => answerYes(day)),
+        button('had-no', '❌ No', () => answerNo(day)));
+    } else if (state === 'use') {
+      q('How much did you use?');
+      const planned = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway');
+      planned.forEach(pack => {
+        const row = document.createElement('div');
+        row.className = 'use-row';
+        row.dataset.id = pack.id;
+        const name = document.createElement('b');
+        name.textContent = pack.name;
+        const seg = document.createElement('div');
+        seg.className = 'seg';
+        const all = document.createElement('button');
+        all.type = 'button';
+        all.className = 'all on';
+        all.textContent = 'All used';
+        const part = document.createElement('button');
+        part.type = 'button';
+        part.className = 'part';
+        part.textContent = 'Part used';
+        all.addEventListener('click', () => { all.classList.add('on'); part.classList.remove('on'); });
+        part.addEventListener('click', () => { part.classList.add('on'); all.classList.remove('on'); });
+        seg.append(all, part);
+        row.append(name, seg);
+        body.appendChild(row);
+      });
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Part used stays in the fridge · use within 3 days';
+      body.appendChild(note);
+      btns().appendChild(button('had-done', 'Done', () => {
+        const rows = [...body.querySelectorAll('.use-row')].map(el => ({
+          pack: planned.find(p => String(p.id) === el.dataset.id),
+          part: el.querySelector('.part').classList.contains('on')
+        }));
+        finishUse(day, rows);
+      }));
+    } else if (state === 'cost') {
+      q('How much was it?');
+      const input = document.createElement('input');
+      input.className = 'cost-in';
+      input.type = 'text';
+      input.inputMode = 'decimal';
+      input.placeholder = '£';
+      body.appendChild(input);
+      const row = btns();
+      row.append(
+        button('cost-skip', 'Skip', () => finishCost(day, null)),
+        button('cost-save', 'Save', () => finishCost(day, input.value)));
+    } else if (state === 'had') {
+      q('What did you have?');
+      body.appendChild(picker);
+      picker.hidden = false;
+      const picked = (hadPicked[day] || []).length;
+      btns().appendChild(button('had-skip', picked ? 'Done' : 'Skip', endHad));
+    }
+
+    card.appendChild(body);
+    return card;
   }
 
   function mealChip(item, day) {
@@ -1065,8 +1284,87 @@
     }
   }
 
+  // Past card, "Yes": a takeaway goes to the cost question, anything else to how much was used
+  function answerYes(day) {
+    finishHad();
+    const hasTakeaway = FT.dayMeals(packs, day).some(p => p.kind === 'takeaway');
+    pastState[day] = hasTakeaway ? 'cost' : 'use';
+    renderMeals();
+  }
+
+  // Past card, "No": the plans come off the day, and the picker asks what was eaten instead
+  function answerNo(day) {
+    finishHad();
+    const writes = FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p))));
+    askDay = day;
+    pastState[day] = 'had';
+    hadPicked[day] = [];
+    selDay = day;
+    selSlot = 'main';
+    pendingPlan = null;
+    renderMeals();
+    renderAll();
+    return persistAll(writes);
+  }
+
+  // Past card, "Done" on use: all used goes on the shopping list if needed, part used stays in the fridge
+  function finishUse(day, rows) {
+    const planned = rows.map(r => r.pack).filter(Boolean);
+    const writes = [];
+    for (const { pack, part } of rows) {
+      if (!pack) continue;
+      if (part) {
+        writes.push(setPack(FT.partUse(pack, today)));
+      } else {
+        const updated = FT.markUsed(pack, today);
+        writes.push(setPack(updated), autoAddFinished(updated, 'used'));
+      }
+    }
+    delete pastState[day];
+    writes.push(saveMeal(FT.mealRecord(day, planned)));
+    renderMeals();
+    renderAll();
+    return persistAll(writes);
+  }
+
+  // Takeaway cost: the takeaway goes, any other plans on the day come off, and the meal is kept
+  function finishCost(day, cost) {
+    const picked = hadPicked[day] || [];
+    const writes = FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p))));
+    writes.push(saveMeal(FT.mealRecord(day, picked, { takeaway: true, cost })));
+    delete pastState[day];
+    delete hadPicked[day];
+    if (askDay === day) askDay = null;
+    renderMeals();
+    renderAll();
+    return persistAll(writes);
+  }
+
+  // "Had" mode: a food picked is eaten now (marked used), and the slot moves on as in planning
+  function hadPick(pack) {
+    const day = askDay;
+    const slot = selSlot;
+    const updated = FT.markUsed(pack, today);
+    hadPicked[day] = [...(hadPicked[day] || []), { ...updated, slot }];
+    selSlot = slot === 'main' ? 'side' : 'veg';
+    renderMeals();
+    renderAll();
+    return persistAll([setPack(updated), autoAddFinished(updated, 'used')]);
+  }
+
+  // Done / Skip in "had" mode: keep what was picked, then back to today
+  function endHad() {
+    finishHad();
+    selDay = today;
+    openDay = today;
+    selSlot = 'main';
+    pendingPlan = null;
+    renderMeals();
+  }
+
   // Tap a food: warn first if it will be out of date on that day
   async function choosePick(pack) {
+    if (inHad()) return hadPick(pack);
     if (FT.outByDay(pack, selDay) > 0) {
       pendingPlan = { pack, day: selDay, slot: selSlot };
       renderMeals();
@@ -1090,6 +1388,12 @@
   }
 
   async function addTakeaway() {
+    if (inHad()) {
+      // "had" mode: a takeaway asks for its cost
+      pastState[askDay] = 'cost';
+      renderMeals();
+      return;
+    }
     const day = selDay;
     if (!FT.dayMeals(packs, day).some(p => p.kind === 'takeaway')) {
       try {
@@ -1101,7 +1405,7 @@
         return;
       }
     }
-    const days = FT.weekDays(today);
+    const days = FT.mealDays(today);
     selDay = days[(days.indexOf(day) + 1) % 7];
     openDay = selDay;
     selSlot = 'main';

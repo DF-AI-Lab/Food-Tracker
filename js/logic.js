@@ -657,6 +657,65 @@
     return out;
   }
 
+  // Meals v2: rolling days, "had this meal?", part used, takeaway cost
+  // Today plus the next 6 days
+  function mealDays(today) {
+    return [0, 1, 2, 3, 4, 5, 6].map(i => addDays(today, i));
+  }
+
+  // A plan still waiting to be marked: a fridge pack, or a takeaway not yet done
+  function isWaitingPlan(p) {
+    return !!p.plannedFor && (p.status === "in_fridge" || (p.kind === "takeaway" && p.status === "plan"));
+  }
+
+  // Days 1-3 ago that still have a waiting plan (oldest first)
+  function pastToAsk(packs, today) {
+    const days = new Set();
+    for (const p of packs) {
+      if (!isWaitingPlan(p)) continue;
+      const left = daysLeft(p.plannedFor, today);
+      if (left >= -3 && left <= -1) days.add(p.plannedFor);
+    }
+    return [...days].sort();
+  }
+
+  // Waiting plans more than 3 days old: these drop off
+  function expiredPlans(packs, today) {
+    return packs.filter(p => isWaitingPlan(p) && daysLeft(p.plannedFor, today) < -3);
+  }
+
+  // Part used: back in the fridge, unplanned, with a 3-day timer (or its own sooner date)
+  function partUse(pack, today) {
+    const threeDays = addDays(today, 3);
+    return {
+      ...pack,
+      status: "in_fridge",
+      partUsed: true,
+      plannedFor: null,
+      slot: null,
+      date: pack.date && pack.date < threeDays ? pack.date : threeDays,
+      dateType: pack.dateType || "use_by"
+    };
+  }
+
+  // What was eaten on a day (for the meals history)
+  function mealRecord(day, packs, { takeaway = false, cost = null } = {}) {
+    return {
+      day,
+      items: packs.map(p => ({ name: p.name, slot: p.slot })),
+      takeaway,
+      cost: parsePrice(cost)
+    };
+  }
+
+  // Takeaways this month: count, and total cost (unknown costs count as 0)
+  function takeawaySummary(meals, today) {
+    const month = today.slice(0, 7);
+    const mine = meals.filter(m => m.takeaway === true && String(m.day).slice(0, 7) === month);
+    const total = mine.reduce((sum, m) => sum + (typeof m.cost === "number" ? m.cost : 0), 0);
+    return { count: mine.length, total: Math.round(total * 100) / 100 };
+  }
+
   // Export
   const FT = {
     addDays,
@@ -704,7 +763,13 @@
     boughtBefore,
     ideas,
     autoOnFinish,
-    autoOutOfDate
+    autoOutOfDate,
+    mealDays,
+    pastToAsk,
+    expiredPlans,
+    partUse,
+    mealRecord,
+    takeawaySummary
   };
 
   if (typeof module !== "undefined") {
