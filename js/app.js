@@ -30,6 +30,56 @@
     return `${year}-${month}-${date}`;
   }
 
+  // Text put into HTML must be escaped (food names are typed by the user)
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  }
+
+  // The printable A4 fridge sheet (styled by #printSheet in css/style.css)
+  function buildPrintSheet() {
+    const sheet = FT.printSheet(packs, today);
+    const now = new Date();
+    const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const boxes = '<td class="bx"><span></span></td>'.repeat(3);
+
+    const section = sec => {
+      const word = sec.title.replace(/[^A-Za-z ]/g, '').trim().toLowerCase();
+      const more = word.charAt(0).toUpperCase() + word.slice(1);
+      const rows = sec.rows.map(r =>
+        `<tr><td class="id">${r.no}</td><td>${esc(r.name)}</td><td class="d">${esc(r.date)}</td>${boxes}</tr>`).join('');
+      return `<h2${sec.key === 'soon' ? ' class="soon"' : ''}>${esc(sec.title)}<span class="ub">U ½ B</span></h2>` +
+        `<table>${rows}</table>` +
+        (sec.more > 0 ? `<div class="more">+${sec.more} more ${esc(more)} · see app</div>` : '');
+    };
+    const column = secs => secs.map(section).join('');
+
+    const blankRows = (n, cells) => Array.from({ length: n }, () => `<tr>${cells}</tr>`).join('');
+    const added = blankRows(4, '<td class="id">+</td><td>&nbsp;</td><td class="d">__/__</td>');
+    const need = blankRows(3, '<td class="bx"><span></span></td><td>&nbsp;</td>');
+    const meals = sheet.meals.map(m =>
+      `<tr><td class="day">${esc(m.day)}</td><td>${m.text ? esc(m.text) : '&nbsp;'}</td></tr>`).join('');
+
+    const hidden = sheet.total - sheet.shown;
+    const footer = `${sheet.total} items${hidden > 0 ? ` (${hidden} more in app)` : ''} · U = Used · ½ = Part used · B = Binned`;
+
+    return `<div class="ps-page">
+  <i class="ps-mk ps-tl"></i><i class="ps-mk ps-tr"></i><i class="ps-mk ps-bl"></i><i class="ps-mk ps-br"></i>
+  <header class="ps-head">
+    <div><h1>🥶 Fridge sheet</h1><div class="ps-sub">Week ${esc(sheet.range)} · printed ${esc(FT.formatDate(today))}, ${hhmm}</div></div>
+    <div class="ps-code">SHEET ${esc(FT.sheetCode(today, hhmm))}</div>
+  </header>
+  <div class="ps-key">Mark with an <b>✕</b> when gone: U = Used · ½ = Part used · B = Binned</div>
+  <div class="ps-top"><div>${column(sheet.left)}</div><div>${column(sheet.right)}</div></div>
+  <div class="ps-botl">
+    <div class="ps-added"><h2>✍️ ADDED (write in)</h2><table class="blank">${added}</table></div>
+    <div class="ps-need"><h2>🛒 NEED</h2><table class="blank">${need}</table></div>
+  </div>
+  <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div>
+  <div class="ps-foot">${esc(footer)}</div>
+</div>`;
+  }
+
   async function init() {
     // The TEST copy shows a red banner (the real copy stays hidden)
     try {
@@ -87,11 +137,12 @@
       btn.addEventListener('click', () => setTheme(btn.dataset.m));
     });
 
-    // Print + mic: coming soon
+    // Print: fill the A4 fridge sheet, then open the print dialog
     document.getElementById('printF').addEventListener('click', () => {
-      const n = document.getElementById('printFNote');
-      n.hidden = !n.hidden;
+      document.getElementById('printSheet').innerHTML = buildPrintSheet();
+      window.print();
     });
+    // Mic: coming soon
     document.getElementById('mic').addEventListener('click', () => {
       document.getElementById('micNote').textContent = '🎤 Voice input: coming soon';
     });
