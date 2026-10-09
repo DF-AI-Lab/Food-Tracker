@@ -720,8 +720,9 @@ process.on("exit", () => server && server.kill());
     assert.match(await sheet.locator(".ps-key").innerText(), /N = Need more/);
     // bottom: Meals (2/3, left) + Added names (1/3, right); no Need box any more
     assert.equal(await sheet.locator(".ps-need").count(), 0);
-    assert.equal(await sheet.locator(".ps-added tr").count(), 5);
-    assert.match(await sheet.locator(".ps-added").innerText(), /Add these in the app too/);
+    assert.equal(await sheet.locator(".ps-added tr").count(), 7);
+    assert.match(await sheet.locator(".ps-added tr").first().innerText(), /__\/__/);
+    assert.match(await sheet.locator(".ps-added").innerText(), /add in the app too/i);
     assert.equal(await sheet.locator(".ps-meals tr").count(), 7);
     assert.match(await sheet.locator(".ps-meals tr").first().innerText(), /Wed 7 Oct/);
     // corner marks and black bars must print even with "Background graphics" off:
@@ -737,6 +738,19 @@ process.on("exit", () => server && server.kill());
     assert.equal(await sheet.isVisible(), false);
     await page.emulateMedia({ media: "print" });
     assert.equal(await sheet.isVisible(), true);
+    {
+      const a1 = await sheet.locator(".ps-added tr").first().boundingBox(), m1 = await sheet.locator(".ps-meals tr").first().boundingBox();
+      const a7 = await sheet.locator(".ps-added tr").last().boundingBox(), m7 = await sheet.locator(".ps-meals tr").last().boundingBox();
+      assert.ok(Math.abs(a1.y - m1.y) < 3 && Math.abs((a7.y + a7.height) - (m7.y + m7.height)) < 3, "Added rows line up with Meals rows");
+    }
+    // long names stay on one line, so the food lists never run under the bottom boxes
+    {
+      const top = await sheet.locator(".ps-top").boundingBox();
+      const bottom = await sheet.locator(".ps-bottom").boundingBox();
+      assert.ok(top.y + top.height <= bottom.y + 1, "food lists end above Meals/Added");
+      const nameCell = sheet.locator(".ps-top tr td:nth-child(2)").first();
+      assert.equal(await nameCell.evaluate(e => getComputedStyle(e).whiteSpace), "nowrap");
+    }
     assert.equal(await page.locator(".phone").isVisible(), false);
     await page.emulateMedia({ media: "screen" });
   });

@@ -62,7 +62,7 @@
     const column = secs => secs.map(section).join('');
 
     const blankRows = (n, cells) => Array.from({ length: n }, () => `<tr>${cells}</tr>`).join('');
-    const added = blankRows(5, '<td>&nbsp;</td>');
+    const added = blankRows(7, '<td>&nbsp;</td><td class="d">__/__</td>');
     const meals = sheet.meals.map(m =>
       `<tr><td class="dn">${esc(m.day)}</td><td>${m.text ? esc(m.text) : '&nbsp;'}</td></tr>`).join('');
 
@@ -79,7 +79,7 @@
   <div class="ps-top"><div>${column(sheet.left)}</div><div>${column(sheet.right)}</div></div>
   <div class="ps-bottom">
     <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div>
-    <div class="ps-added"><h2>✍️ ADDED</h2><div class="ps-hint">Add these in the app too</div><table class="blank">${added}</table></div>
+    <div class="ps-added"><h2>✍️ ADDED<span class="ps-hint">add in the app too</span></h2><table class="blank">${added}</table></div>
   </div>
   <div class="ps-foot">${esc(footer)}</div>
 </div>`;
