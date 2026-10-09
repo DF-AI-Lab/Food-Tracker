@@ -13,7 +13,7 @@ const pack = (extra = {}) => ({
 
 async function withServer(fn, opts = {}) {
   const dataDir = opts.dataDir || fs.mkdtempSync(path.join(os.tmpdir(), "ft-test-"));
-  const srv = await startServer({ port: 0, dataDir, today: opts.today });
+  const srv = await startServer({ port: 0, dataDir, today: opts.today, update: opts.update, onRestart: opts.onRestart });
   const base = `http://localhost:${srv.port}`;
   const api = async (method, url, body) => {
     const res = await fetch(base + url, {
@@ -161,5 +161,46 @@ test("meals history: add, list, update", async () => {
     const { body } = await api("GET", "/api/meals");
     assert.equal(body.length, 1);
     assert.equal(body[0].cost, 12);
+  });
+});
+
+// ---------- update now (🔄 button) ----------
+
+test("POST /api/update with no updater says nothing changed", async () => {
+  await withServer(async ({ api }) => {
+    const r = await api("POST", "/api/update");
+    assert.equal(r.status, 200);
+    assert.equal(r.body.updated, false); assert.equal(r.body.restart, false);
+  });
+});
+
+test("POST /api/update runs the updater and reports the result", async () => {
+  let calls = 0;
+  const update = async () => { calls++; return { updated: true, restart: false }; };
+  await withServer(async ({ api }) => {
+    const r = await api("POST", "/api/update");
+    assert.equal(r.body.updated, true); assert.equal(r.body.restart, false);
+    assert.equal(calls, 1);
+    assert.equal((await api("GET", "/api/update")).status, 405);
+  }, { update });
+});
+
+test("POST /api/update restarts the server after answering when server files changed", async () => {
+  let restarted = 0;
+  const update = async () => ({ updated: true, restart: true });
+  await withServer(async ({ api }) => {
+    const r = await api("POST", "/api/update");
+    assert.equal(r.body.updated, true); assert.equal(r.body.restart, true);
+    await new Promise(done => setTimeout(done, 50));
+    assert.equal(restarted, 1);
+  }, { update, onRestart: () => { restarted++; } });
+});
+
+test("POST /api/update reports a version stamp that changes when app files change", async () => {
+  await withServer(async ({ api }) => {
+    const a = (await api("POST", "/api/update")).body.version;
+    assert.equal(typeof a, "string");
+    assert.ok(a.length > 0);
+    assert.equal((await api("POST", "/api/update")).body.version, a);
   });
 });
