@@ -315,9 +315,14 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 #printSheet h2{font-family:Arial,sans-serif;font-weight:700;font-size:11pt;margin:3mm 0 1mm;background:#000;color:#fff;padding:1mm 2mm;border-radius:0;box-shadow:none;border:0}
 #printSheet h2.soon{background:#fff;color:#000;border:2px solid #000;padding:0.8mm 2mm}
 #printSheet h2{display:flex;justify-content:space-between;align-items:center}
-#printSheet h2 .ub{display:flex;align-items:center;font:bold 8pt monospace;margin-right:-2mm}
-#printSheet h2 .ub b{display:block;width:7mm;text-align:center}
-#printSheet h2 .ub b.dt{width:20mm;text-align:right;padding-right:1mm}
+/* section header row: black bar, labels in the same columns as the rows below */
+#printSheet tr.hd th{background:#000;color:#fff;font:bold 8pt monospace;padding:1.6mm 1mm;border:0;text-align:center}
+#printSheet tr.hd th:first-child{font:bold 11pt Arial,sans-serif;text-align:left;padding-left:2mm}
+#printSheet tr.hd th.d{text-align:right}
+#printSheet tr.hd.soon th{background:#fff;color:#000;border-top:2px solid #000;border-bottom:2px solid #000}
+#printSheet tr.hd.soon th:first-child{border-left:2px solid #000}
+#printSheet tr.hd.soon th:last-child{border-right:2px solid #000}
+#printSheet .ps-top table{margin-top:3mm}
 #printSheet table{width:100%;border-collapse:collapse;font-size:10pt;margin:0}
 #printSheet td{border-bottom:1px solid #999;padding:1.3mm 1mm;height:6mm;color:#000;text-align:left;vertical-align:middle}
 #printSheet td.id{font:bold 9pt monospace;width:7mm}
@@ -332,6 +337,9 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 /* one line per food: long names are cut with "…" so the lists keep their height */
 #printSheet .ps-top table{table-layout:fixed}
 #printSheet .ps-top td:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#printSheet .ps-top col.c-id{width:7mm}
+#printSheet .ps-top col.c-d{width:17mm}
+#printSheet .ps-top col.c-bx{width:7mm}
 #printSheet .ps-meals td{height:8mm;padding:1mm}
 #printSheet .ps-meals td.dn{width:24mm;white-space:nowrap;font-weight:700}
 #printSheet .ps-foot{position:absolute;bottom:14mm;left:14mm;right:14mm;font-size:8pt}
