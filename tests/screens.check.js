@@ -219,37 +219,59 @@ process.on("exit", () => server && server.kill());
     await page.click("#qfAdd");
     await until(async () => assert.match(await text("#qfMsg"), /added 4/i));
     await page.click('[data-tab="meals"]');
+    // one column: no right-hand picker, no summary card, no tip line
+    assert.equal(await page.locator(".mgrid").count(), 0);
+    assert.equal(await page.locator("#weekSum").count(), 0);
+    assert.equal(await page.locator("#printWeek").count(), 0);
     assert.equal(await page.locator("#dayList .day").count(), 7);
-    await page.click('#dayList .day:has-text("Thu")');
+    // nothing open until a day is tapped
+    assert.equal(await page.locator("#dayList .day.open").count(), 0);
+    assert.equal(await page.locator("#pickList").isVisible(), false);
+    const dh = d => page.locator(`#dayList .dh:has-text("${d}")`);
+    await dh("Thu").click();
+    assert.equal(await page.locator("#dayList .day.open").count(), 1);
+    assert.equal(await page.locator('#dayList .day.open #pickList').count(), 1);
+    assert.match(await page.locator("#dayList .day.open .dh").innerText(), /Thu/);
     assert.match(await text("#pickFor"), /Thu/);
+    // days are full width
+    const list = await page.locator("#dayList").boundingBox();
+    const day = await page.locator("#dayList .day.open").boundingBox();
+    assert.ok(day.width >= list.width - 2, "day full width");
     await page.click('#pickList .item:has-text("Pork")');
-    await until(async () => assert.match(await page.locator('#dayList .day:has-text("Thu")').innerText(), /Pork/));
+    await until(async () => assert.match(await dh("Thu").innerText(), /Pork/));
     assert.match(await page.locator("#mtabs .on").innerText(), /Sides/);
     await page.click('#pickList .item:has-text("Coleslaw")');
     await until(async () => assert.match(await page.locator("#mtabs .on").innerText(), /Veg/));
     await page.click('#pickList .item:has-text("Peas")');
-    await until(async () => assert.match(await text("#weekSum"), /Pork \+ Coleslaw \+ Peas/));
-    assert.equal(await page.locator("#printWeek").count(), 1);
+    await until(async () => assert.match(await dh("Thu").innerText(), /Pork[\s\S]*Coleslaw[\s\S]*Peas/));
+    // tapping the open day's header closes it
+    await dh("Thu").click();
+    assert.equal(await page.locator("#dayList .day.open").count(), 0);
+    await dh("Thu").click();
   });
 
   await step("meals: out-of-date warning, add anyway, then remove", async () => {
+    const dh = d => page.locator(`#dayList .dh:has-text("${d}")`);
     await page.click("#nextDay");
+    assert.match(await page.locator("#dayList .day.open .dh").innerText(), /Fri/);
     assert.match(await text("#pickFor"), /Fri/);
     assert.match(await page.locator("#mtabs .on").innerText(), /Mains/);
     await page.click('#pickList .item:has-text("Salmon")');
     await until(async () => assert.match(await text("#warnBar"), /Salmon will be 3 days out by Fri/));
     await page.click("#wYes");
-    const fri = page.locator('#dayList .day:has-text("Fri")');
+    const fri = dh("Fri");
     await until(async () => assert.equal(await fri.locator(".chip2.warn:has-text('Salmon')").count(), 1));
     await fri.locator(".chip2:has-text('Salmon') .x").click();
     await until(async () => assert.doesNotMatch(await fri.innerText(), /Salmon/));
   });
 
   await step("meals: takeaway fills the day and moves on", async () => {
-    await page.click('#dayList .day:has-text("Sat")');
+    const dh = d => page.locator(`#dayList .dh:has-text("${d}")`);
+    await dh("Sat").click();
     await page.click("#pickList .item.ta");
-    await until(async () => assert.match(await page.locator('#dayList .day:has-text("Sat")').innerText(), /Takeaway/));
+    await until(async () => assert.match(await dh("Sat").innerText(), /Takeaway/));
     assert.match(await text("#pickFor"), /Sun/);
+    assert.match(await page.locator("#dayList .day.open .dh").innerText(), /Sun/);
   });
 
   await step("meals: planned pack shows white outline + day on the fridge", async () => {
