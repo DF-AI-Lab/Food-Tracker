@@ -3,7 +3,7 @@
 // Uses Node built-ins only.
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFile } = require("node:child_process");
+const { execFile, execFileSync } = require("node:child_process");
 
 // Exit code that tells windows/start-server.vbs "restart me" (it loops on this code)
 const RESTART_CODE = 3;
@@ -90,4 +90,22 @@ function serverStamp(appDir) {
   return String(newest);
 }
 
-module.exports = { RESTART_CODE, checkForUpdate, startAutoUpdate, serverStamp };
+// Version of the app folder from git: { n, hash, date } (n = commit count), or null
+// when it is not a git copy or git fails. Quick and synchronous (a few ms).
+function gitVersion(appDir) {
+  try {
+    if (!fs.existsSync(path.join(appDir, ".git"))) return null;
+    const git = args => String(execFileSync("git", args, {
+      cwd: appDir, timeout: 3000, windowsHide: true, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"]
+    })).trim();
+    const n = Number(git(["rev-list", "--count", "HEAD"]));
+    const hash = git(["log", "-1", "--format=%h"]);
+    const date = git(["log", "-1", "--format=%cs"]);
+    if (!Number.isInteger(n) || !hash) return null;
+    return { n, hash, date };
+  } catch (err) {
+    return null;
+  }
+}
+
+module.exports = { RESTART_CODE, checkForUpdate, startAutoUpdate, serverStamp, gitVersion };

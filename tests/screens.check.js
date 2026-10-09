@@ -596,7 +596,7 @@ process.on("exit", () => server && server.kill());
 
   await step("meals v2: past day asks 'Had this meal?' -> yes, all/part used", async () => {
     await goToday("2026-10-10"); // Sat: Thu 8 had Pork + Coleslaw + Peas planned
-    assert.equal(await pastDay().count(), 1);
+    await until(async () => assert.equal(await pastDay().count(), 1));
     assert.match(await pastDay().locator(".dh").innerText(), /Thu/);
     assert.match(await pastDay().innerText(), /Had this meal\?/);
     // past day sits above today
@@ -619,7 +619,7 @@ process.on("exit", () => server && server.kill());
 
   await step("meals v2: takeaway day -> yes -> how much was it?", async () => {
     await goToday("2026-10-11"); // Sun: Sat 10 was a takeaway
-    assert.equal(await pastDay().count(), 1);
+    await until(async () => assert.equal(await pastDay().count(), 1));
     assert.match(await pastDay().innerText(), /Takeaway/);
     await pastDay().locator(".had-yes").click();
     assert.match(await pastDay().innerText(), /How much was it\?/);
@@ -644,7 +644,7 @@ process.on("exit", () => server && server.kill());
     await page.click('#dayList .day.open #pickList .item:has-text("Lamb")');
     await until(async () => assert.match(await page.locator("#dayList .day.today .dh").innerText(), /Lamb/));
     await goToday("2026-10-12");
-    assert.equal(await pastDay().count(), 1);
+    await until(async () => assert.equal(await pastDay().count(), 1));
     await pastDay().locator(".had-no").click();
     assert.match(await pastDay().innerText(), /What did you have\?/);
     // Lamb is back in the picker; pick Beef instead
@@ -735,14 +735,40 @@ process.on("exit", () => server && server.kill());
     await page.emulateMedia({ media: "screen" });
   });
 
-  await step("🔄 button checks for updates, then reloads the page", async () => {
+  await step("version number shows on the page", async () => {
+    await page.goto(URL);
+    await until(async () => assert.match(await text("#ver"), /^v\d+/));
+    assert.ok(await page.locator("#ver").isVisible());
+  });
+
+  await step("🔄 with nothing new: spins, says up to date, no reload", async () => {
     await page.goto(URL);
     await page.evaluate(() => { window.__notReloaded = true; });
     const asked = page.waitForRequest(r => r.url().endsWith("/api/update") && r.method() === "POST");
     await page.click("#refresh");
+    assert.match(await page.locator("#refresh").getAttribute("class") || "", /\bspin\b/);
     await asked;
+    await until(async () => assert.match(await text("#updNote"), /Up to date · v\d+/));
+    assert.equal(await page.evaluate(() => window.__notReloaded), true, "no reload");
+    await until(async () => assert.doesNotMatch(await page.locator("#refresh").getAttribute("class") || "", /\bspin\b/));
+  });
+
+  await step("🔄 with an update: reloads the page", async () => {
+    await page.route("**/api/update", r => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ updated: true, restart: false, version: "x" }) }));
+    await page.evaluate(() => { window.__notReloaded = true; });
+    await page.click("#refresh");
     await page.waitForFunction(() => !window.__notReloaded);
+    await page.unroute("**/api/update");
     assert.match(await text("#today"), /Wed 7 Oct/);
+  });
+
+  await step("old server still running: the version line says restart", async () => {
+    await page.route("**/api/info", r => r.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ test: false, version: { n: 5, hash: "aaaaaaa", date: "2026-10-09" }, disk: { n: 6, hash: "bbbbbbb", date: "2026-10-10" } }) }));
+    await page.goto(URL);
+    await until(async () => assert.match(await text("#ver"), /Close the app and open it again/));
+    await page.unroute("**/api/info");
+    await page.goto(URL);
   });
 
   await step("after an update the app says so once", async () => {
@@ -798,7 +824,7 @@ process.on("exit", () => server && server.kill());
 
     await page.click("#scanBtn");
     assert.ok(await page.locator("#scanPanel").isVisible());
-    assert.match(await text("#scanSheet"), new RegExp(sheet.code));
+    await until(async () => assert.match(await text("#scanSheet"), new RegExp(sheet.code)));
     // pretend the photo shows row 01 used and row 02 binned
     const [r1, r2] = sheet.rows;
     await page.evaluate(([a, b]) => {

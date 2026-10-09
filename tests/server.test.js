@@ -215,3 +215,14 @@ test("sheets: a printed sheet is saved and listed newest first", async () => {
     assert.equal(list[0].rows[0].name, "Milk");
   });
 });
+
+test("/api/info gives the version the server started with and the files on disk now", async () => {
+  await withServer(async ({ api }) => {
+    const { body } = await api("GET", "/api/info");
+    assert.equal(typeof body.version.n, "number");
+    assert.ok(body.version.n > 0);
+    assert.match(body.version.hash, /^[0-9a-f]{7,}$/);
+    assert.equal(typeof body.version.date, "string");
+    assert.deepEqual(body.disk, body.version);
+  });
+});

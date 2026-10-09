@@ -4,7 +4,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
-const { RESTART_CODE, checkForUpdate, startAutoUpdate, serverStamp } = require("./updater");
+const { RESTART_CODE, checkForUpdate, startAutoUpdate, serverStamp, gitVersion } = require("./updater");
 
 const APP_DIR = path.join(__dirname, "..");
 const KEEP_BACKUPS = 14;
@@ -112,7 +112,8 @@ async function handleApi(req, res, url, ctx) {
   // Says whether this is the TEST copy (the app shows a banner then)
   if (url.pathname === "/api/info") {
     if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed" });
-    return sendJson(res, 200, { test: !!ctx.test });
+    // version: what this server started with; disk: what is on disk now
+    return sendJson(res, 200, { test: !!ctx.test, version: ctx.version, disk: gitVersion(APP_DIR) });
   }
 
   // "Update now" (the 🔄 button): pull the latest app from GitHub
@@ -243,7 +244,7 @@ function startServer({ port = 0, dataDir = defaultDataDir(), today, test = false
   const dbFile = path.join(dataDir, "food.db");
   withDb(dbFile, () => {}); // create the file and table now
 
-  const ctx = { dataDir, dbFile, today, test, update, onRestart };
+  const ctx = { dataDir, dbFile, today, test, update, onRestart, version: gitVersion(APP_DIR) };
   const server = http.createServer((req, res) => {
     handle(req, res, ctx).catch(err => {
       if (res.headersSent) return res.end();
