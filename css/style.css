@@ -40,7 +40,8 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
 .veg{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;border-top:2px dashed var(--line);padding-top:8px}
 .pane .card,.pane .age{background:var(--bg)}
 #top{font-family:var(--display);font-size:18px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-#top .pal button{padding:5px 9px;font-size:15px}
+#top .pal{gap:5px;flex-wrap:nowrap}
+#top .pal button{padding:5px 7px;font-size:15px}
 #refresh.spin{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .age{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}

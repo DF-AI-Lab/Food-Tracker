@@ -21,7 +21,7 @@
   const C = 18;           // how much darker than its neighbourhood a pixel must be to count as ink
   const SHRINK = 0.25;    // skip this fraction of each box edge (the printed border)
   const GRID = 24;        // sample points per box side
-  const THRESHOLD = 0.12; // share of ink samples needed to call a box marked
+  const THRESHOLD = 0.06; // share of ink samples needed to call a box marked (empty boxes score 0, marked >= ~0.11)
 
   // Ink mask: a pixel is ink when it is darker than the mean of its neighbourhood
   // by at least C. This copes with shadows and uneven light. Uses an integral image.
@@ -123,7 +123,6 @@
         area = Math.abs(area) / 2;
         if (area > bestArea) { bestArea = area; best = lab; }
       }
-    if (!best) return null;
     return best;
   }
 
@@ -177,6 +176,79 @@
     return n ? hits / n : 0;
   }
 
+  // The photo lens bends the grid a little (more at the edges), so the homography
+  // alone is a few pixels off. Find each box's printed outline in the ink mask,
+  // then fit a smooth offset field (quadratic in position) that corrects the map.
+  const SEARCH = 10; // max pixel shift tried per box
+
+  // Best whole-pixel shift that lines a box's outline up with the ink mask.
+  function outlineShift(ink, w, h, map, box) {
+    const [u, v, bw, bh] = box;
+    const pts = [];
+    for (let t = 0; t <= 1.0001; t += 0.05) pts.push([u + bw * t, v], [u + bw * t, v + bh], [u, v + bh * t], [u + bw, v + bh * t]);
+    const P = pts.map(([a, b]) => map(a, b));
+    const scores = [];
+    let best = 0;
+    for (let dy = -SEARCH; dy <= SEARCH; dy++) for (let dx = -SEARCH; dx <= SEARCH; dx++) {
+      let hits = 0;
+      for (const p of P) {
+        const x = Math.floor(p.x + dx + 0.5), y = Math.floor(p.y + dy + 0.5);
+        if (x >= 0 && y >= 0 && x < w && y < h) hits += ink[y * w + x];
+      }
+      const s = hits / P.length;
+      scores.push({ dx, dy, s });
+      if (s > best) best = s;
+    }
+    // average the shifts that tie for best (ties are common on straight lines)
+    const tied = scores.filter(o => o.s >= best - 0.02);
+    return {
+      dx: tied.reduce((a, o) => a + o.dx, 0) / tied.length,
+      dy: tied.reduce((a, o) => a + o.dy, 0) / tied.length,
+      s: best
+    };
+  }
+
+  // Quadratic terms of a position normalised to -1..1, and a dot product with coefficients.
+  const terms = (x, y) => [1, x, y, x * x, x * y, y * y];
+  const dot = (c, t) => t.reduce((a, x, i) => a + x * c[i], 0);
+
+  // Weighted least-squares fit of a quadratic surface: pts = [{ t: terms, v: value, wt: weight }].
+  function fitSurface(pts) {
+    const M = Array.from({ length: 6 }, () => new Array(6).fill(0));
+    const r = new Array(6).fill(0);
+    for (const { t, v, wt } of pts) for (let i = 0; i < 6; i++) {
+      r[i] += wt * t[i] * v;
+      for (let j = 0; j < 6; j++) M[i][j] += wt * t[i] * t[j];
+    }
+    for (let i = 0; i < 6; i++) M[i][i] += 1e-9; // keep the solve stable
+    return solve(M, r);
+  }
+
+  // Corrected map: homography plus the fitted offset field. Falls back to the homography.
+  function calibrate(ink, w, h, map0, rows) {
+    const norm = (x, y) => terms((x - w / 2) / (w / 2), (y - h / 2) / (h / 2));
+    const obs = [];
+    for (const row of rows) for (const box of row.boxes) {
+      const p = map0(box[0] + box[2] / 2, box[1] + box[3] / 2);
+      const s = outlineShift(ink, w, h, map0, box);
+      obs.push({ t: norm(p.x, p.y), dx: s.dx, dy: s.dy, wt: s.s });
+    }
+    let use = obs.filter(o => o.wt > 0.5);
+    let cx = null, cy = null;
+    for (let pass = 0; pass < 3 && use.length > 12; pass++) {
+      cx = fitSurface(use.map(o => ({ t: o.t, v: o.dx, wt: o.wt })));
+      cy = fitSurface(use.map(o => ({ t: o.t, v: o.dy, wt: o.wt })));
+      // drop boxes more than 1.5 px off the surface, then refit
+      use = use.filter(o => Math.hypot(dot(cx, o.t) - o.dx, dot(cy, o.t) - o.dy) < 1.5);
+    }
+    if (!cx || !cy || ![...cx, ...cy].every(Number.isFinite)) return map0;
+    return (u, v) => {
+      const p = map0(u, v);
+      const t = norm(p.x, p.y);
+      return { x: p.x + dot(cx, t), y: p.y + dot(cy, t) };
+    };
+  }
+
   // img: { gray: Uint8Array, width, height }; rows: [{ no, boxes: [[u,v,w,h] x3] }]
   // Returns { ok: true, marks: { "01": { u, p, b }, ... } } or { ok: false, reason }.
   function readSheet(img, rows) {
@@ -184,7 +256,8 @@
     const ink = inkMask(gray, w, h);
     const corners = findCorners(ink, w, h);
     if (!corners) return { ok: false, reason: "corners" };
-    const map = homography([corners.tl, corners.tr, corners.br, corners.bl]);
+    const map0 = homography([corners.tl, corners.tr, corners.br, corners.bl]);
+    const map = calibrate(ink, w, h, map0, rows);
     const marks = {};
     for (const row of rows) {
       const s = row.boxes.map(box => boxScore(ink, w, h, map, box));
