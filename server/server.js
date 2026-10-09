@@ -4,7 +4,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
-const { RESTART_CODE, startAutoUpdate } = require("./updater");
+const { RESTART_CODE, checkForUpdate, startAutoUpdate } = require("./updater");
 
 const APP_DIR = path.join(__dirname, "..");
 const KEEP_BACKUPS = 14;
@@ -92,11 +92,37 @@ async function readPackBody(req) {
   return pack;
 }
 
+// Version stamp: newest change time of the page files. The background
+// auto-update changes it too, so an open page can tell it is out of date.
+function appVersion() {
+  let newest = 0;
+  const look = p => {
+    try {
+      const st = fs.statSync(p);
+      if (st.isDirectory()) fs.readdirSync(p).forEach(f => look(path.join(p, f)));
+      else newest = Math.max(newest, st.mtimeMs);
+    } catch (e) { /* missing: ignore */ }
+  };
+  ["index.html", "js", "css"].forEach(p => look(path.join(APP_DIR, p)));
+  return String(Math.floor(newest));
+}
+
 async function handleApi(req, res, url, ctx) {
   // Says whether this is the TEST copy (the app shows a banner then)
   if (url.pathname === "/api/info") {
     if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed" });
     return sendJson(res, 200, { test: !!ctx.test });
+  }
+
+  // "Update now" (the 🔄 button): pull the latest app from GitHub
+  if (url.pathname === "/api/update") {
+    if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed" });
+    const r = ctx.update ? await ctx.update() : {};
+    const body = { updated: !!r.updated, restart: !!r.restart, version: appVersion() };
+    sendJson(res, 200, body);
+    // Restart only after the answer has gone out
+    if (body.restart && ctx.onRestart) setTimeout(ctx.onRestart, 0);
+    return;
   }
 
   // Ratings: one row per food name
@@ -211,12 +237,12 @@ async function handle(req, res, ctx) {
   return serveStatic(req, res, url.pathname);
 }
 
-function startServer({ port = 0, dataDir = defaultDataDir(), today, test = false } = {}) {
+function startServer({ port = 0, dataDir = defaultDataDir(), today, test = false, update, onRestart } = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   const dbFile = path.join(dataDir, "food.db");
   withDb(dbFile, () => {}); // create the file and table now
 
-  const ctx = { dataDir, dbFile, today, test };
+  const ctx = { dataDir, dbFile, today, test, update, onRestart };
   const server = http.createServer((req, res) => {
     handle(req, res, ctx).catch(err => {
       if (res.headersSent) return res.end();
@@ -247,13 +273,19 @@ module.exports = { startServer, defaultDataDir };
 if (require.main === module) {
   const port = Number(process.env.FT_PORT) || 5178;
   const dataDir = process.env.FT_DATA_DIR || defaultDataDir();
-  startServer({ port, dataDir, test: process.env.FT_TEST === "1" })
+  // Auto-update from GitHub only when the Windows launcher turns it on
+  const autoUpdate = process.env.FT_AUTO_UPDATE === "1";
+  const restart = () => process.exit(RESTART_CODE);
+  startServer({
+    port,
+    dataDir,
+    test: process.env.FT_TEST === "1",
+    update: autoUpdate ? () => checkForUpdate({ cwd: APP_DIR }) : undefined,
+    onRestart: autoUpdate ? restart : undefined
+  })
     .then(srv => {
       console.log(`Food Tracker running at http://localhost:${srv.port}`);
-      // Auto-update from GitHub only when the Windows launcher turns it on
-      if (process.env.FT_AUTO_UPDATE === "1") {
-        startAutoUpdate({ cwd: APP_DIR, onRestart: () => process.exit(RESTART_CODE) });
-      }
+      if (autoUpdate) startAutoUpdate({ cwd: APP_DIR, onRestart: restart });
     })
     .catch(err => {
       if (err.code === "EADDRINUSE") process.exit(0); // already running

@@ -113,6 +113,62 @@
     setupTheme();
     setupEventListeners();
     renderAll();
+
+    // Say so once if the last reload picked up a new version
+    let justUpdated = false;
+    try {
+      justUpdated = sessionStorage.getItem('ftUpdated') === '1';
+      sessionStorage.removeItem('ftUpdated');
+    } catch (e) { /* ignore */ }
+    if (justUpdated) showUpdateNote();
+
+    // Look for updates now, then every hour
+    checkUpdate(false);
+    setInterval(() => checkUpdate(false), 60 * 60 * 1000);
+  }
+
+  function showUpdateNote() {
+    const note = document.getElementById('updNote');
+    note.textContent = '✨ Updated to the latest version';
+    note.hidden = false;
+    setTimeout(() => { note.hidden = true; }, 6000);
+  }
+
+  // Ask the server to pull the latest app from GitHub. Reloads if it changed
+  // (or always, when force is true, i.e. the 🔄 button was pressed).
+  let checkingUpdate = false;
+  let loadedVersion = null; // version stamp of the files this page was loaded from
+  async function checkUpdate(force) {
+    if (checkingUpdate) return;
+    checkingUpdate = true;
+    const btn = document.getElementById('refresh');
+    btn.disabled = true;
+    btn.classList.add('spin');
+    let updated = false;
+    let restart = false;
+    try {
+      const r = await fetch('/api/update', { method: 'POST' });
+      const body = await r.json();
+      updated = !!body.updated;
+      restart = !!body.restart;
+      // The PC also updates itself in the background: a new stamp means new files
+      if (loadedVersion === null) loadedVersion = body.version;
+      else if (body.version && body.version !== loadedVersion) updated = true;
+    } catch (e) {
+      // offline or no update support: nothing changed
+    }
+    if (updated) {
+      try { sessionStorage.setItem('ftUpdated', '1'); } catch (e) { /* ignore */ }
+    }
+    if (updated || force) {
+      // The server restarts itself after a server-side change, so give it a moment
+      if (restart) await new Promise(done => setTimeout(done, 4000));
+      location.reload();
+      return;
+    }
+    btn.disabled = false;
+    btn.classList.remove('spin');
+    checkingUpdate = false;
   }
 
   function applyTheme(theme) {
@@ -136,6 +192,9 @@
     document.querySelectorAll('.pal [data-m]').forEach(btn => {
       btn.addEventListener('click', () => setTheme(btn.dataset.m));
     });
+
+    // 🔄: get the latest version now
+    document.getElementById('refresh').addEventListener('click', () => checkUpdate(true));
 
     // Print: fill the A4 fridge sheet, then open the print dialog
     document.getElementById('printF').addEventListener('click', () => {

@@ -377,7 +377,7 @@ process.on("exit", () => server && server.kill());
     const moon = await page.locator("#themeDark").boundingBox();
     assert.ok(pr.x >= d.x + d.width && pr.x + pr.width <= moon.x, "print between date and moon");
     // moon + sun buttons
-    assert.equal(await page.locator("#top button").count(), 3); // print + moon + sun
+    assert.equal(await page.locator("#top button").count(), 4); // refresh + print + moon + sun
     await page.click('[data-tab="add"]');
     await page.click('[data-sub="fridge"]');
     assert.match(await page.locator("body").innerText(), /USUAL · TAP ONE/i);
@@ -711,6 +711,24 @@ process.on("exit", () => server && server.kill());
     assert.equal(await sheet.isVisible(), true);
     assert.equal(await page.locator(".phone").isVisible(), false);
     await page.emulateMedia({ media: "screen" });
+  });
+
+  await step("🔄 button checks for updates, then reloads the page", async () => {
+    await page.goto(URL);
+    await page.evaluate(() => { window.__notReloaded = true; });
+    const asked = page.waitForRequest(r => r.url().endsWith("/api/update") && r.method() === "POST");
+    await page.click("#refresh");
+    await asked;
+    await page.waitForFunction(() => !window.__notReloaded);
+    assert.match(await text("#today"), /Wed 7 Oct/);
+  });
+
+  await step("after an update the app says so once", async () => {
+    await page.evaluate(() => sessionStorage.setItem("ftUpdated", "1"));
+    await page.reload();
+    await until(async () => assert.match(await text("#updNote"), /Updated/));
+    await page.reload();
+    assert.equal(await page.locator("#updNote").isVisible(), false);
   });
 
   await step("real copy shows no TEST banner", async () => {
