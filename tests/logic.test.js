@@ -915,3 +915,39 @@ test("searchFoods: includes starters, names starting with the text come first, m
   for (let i = 0; i < 20; i++) many.push(pk(i + 1, "Pie " + i, "main", null));
   assert.equal(L.searchFoods(many, "pie").length, 10);
 });
+
+// ---------- sheet changes (photo of the printed sheet) ----------
+
+test("resolveMark: one mark wins as is; U beats P; B beats P; U + B asks", () => {
+  assert.equal(L.resolveMark({ u: false, p: false, b: false }), null);
+  assert.equal(L.resolveMark({ u: true, p: false, b: false }), "u");
+  assert.equal(L.resolveMark({ u: false, p: true, b: false }), "p");
+  assert.equal(L.resolveMark({ u: false, p: false, b: true }), "b");
+  assert.equal(L.resolveMark({ u: true, p: true, b: false }), "u");
+  assert.equal(L.resolveMark({ u: false, p: true, b: true }), "b");
+  assert.equal(L.resolveMark({ u: true, p: false, b: true }), "ask");
+  assert.equal(L.resolveMark({ u: true, p: true, b: true }), "ask");
+});
+
+test("sheetChanges: marked rows for packs still in the fridge, with notes", () => {
+  const rows = [
+    { no: "01", id: 1, name: "Mash" }, { no: "02", id: 2, name: "Eggs" },
+    { no: "03", id: 3, name: "Potatoes" }, { no: "04", id: 4, name: "Beans" },
+    { no: "05", id: 5, name: "Gone" }, { no: "06", id: 6, name: "Plain" }
+  ];
+  const marks = {
+    "01": { u: true, p: false, b: false }, "02": { u: false, p: true, b: false },
+    "03": { u: true, p: true, b: false }, "04": { u: true, p: false, b: true },
+    "05": { u: true, p: false, b: false }, "06": { u: false, p: false, b: false }
+  };
+  const packs = [pk(1, "Mash", "side", "2026-10-09"), pk(2, "Eggs", "misc", "2026-10-10"),
+    pk(3, "Potatoes", "side", "2026-10-13"), pk(4, "Beans", "veg", null),
+    pk(5, "Gone", "main", "2026-10-10", { status: "used" }), pk(6, "Plain", "main", "2026-10-10")];
+  const ch = L.sheetChanges(rows, marks, packs);
+  assert.deepEqual(ch.map(c => [c.no, c.id, c.name, c.mark]), [
+    ["01", 1, "Mash", "u"], ["02", 2, "Eggs", "p"], ["03", 3, "Potatoes", "u"], ["04", 4, "Beans", "ask"]
+  ]);
+  assert.equal(ch[0].note, "");
+  assert.equal(ch[2].note, "U and P both marked → Used");
+  assert.equal(ch[3].note, "U and B both marked · pick one");
+});

@@ -204,3 +204,14 @@ test("POST /api/update reports a version stamp that changes when app files chang
     assert.equal((await api("POST", "/api/update")).body.version, a);
   });
 });
+
+test("sheets: a printed sheet is saved and listed newest first", async () => {
+  await withServer(async ({ api }) => {
+    const a = await api("POST", "/api/sheets", { code: "0910-1210", printed: "2026-10-09T12:10", rows: [{ no: "01", id: 1, name: "Milk", boxes: [[0, 0, 0.1, 0.1]] }] });
+    assert.equal(a.status, 200);
+    await api("POST", "/api/sheets", { code: "1010-0900", printed: "2026-10-10T09:00", rows: [] });
+    const list = (await api("GET", "/api/sheets")).body;
+    assert.deepEqual(list.map(s => s.code), ["0910-1210", "1010-0900"]);
+    assert.equal(list[0].rows[0].name, "Milk");
+  });
+});
