@@ -889,3 +889,29 @@ test("printSheet: range across months", () => {
 test("sheetCode: day, month and time", () => {
   assert.equal(L.sheetCode("2026-10-09", "18:40"), "0910-1840");
 });
+
+// ---------- food search (add screen) ----------
+
+test("searchFoods: matches any part of the name across all kinds, best first", () => {
+  const packs = [
+    pk(1, "Pastry", "side", null), pk(2, "Pasta", "side", null), pk(3, "Pasta", "side", null),
+    pk(4, "Pork", "main", "2026-10-10"), pk(5, "Gone", "main", null, { status: "deleted" })
+  ];
+  const r = L.searchFoods(packs, "pas");
+  assert.deepEqual(r.map(x => x.name), ["Pasta", "Pastry"]); // most added first
+  assert.deepEqual(r[0], { name: "Pasta", kind: "side" });
+  assert.deepEqual(L.searchFoods(packs, "  "), []);
+  assert.deepEqual(L.searchFoods(packs, "gone"), []);
+});
+
+test("searchFoods: includes starters, names starting with the text come first, max 10", () => {
+  const r = L.searchFoods([], "o");
+  assert.ok(r.length <= 10);
+  assert.ok(r.some(x => x.name === "Onions" && x.kind === "veg"));
+  const idx = r.findIndex(x => x.name === "Onions");
+  const notStart = r.findIndex(x => !x.name.toLowerCase().startsWith("o"));
+  assert.ok(notStart === -1 || idx < notStart);
+  const many = [];
+  for (let i = 0; i < 20; i++) many.push(pk(i + 1, "Pie " + i, "main", null));
+  assert.equal(L.searchFoods(many, "pie").length, 10);
+});

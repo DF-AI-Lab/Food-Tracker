@@ -244,9 +244,18 @@ process.on("exit", () => server && server.kill());
     assert.ok(day.width >= list.width - 2, "day full width");
     await page.click('#pickList .item:has-text("Pork")');
     await until(async () => assert.match(await dh("Thu").innerText(), /Pork/));
+    // stays on Mains so more can be picked; "Sides ▸" moves on
+    assert.match(await page.locator("#mtabs .on").innerText(), /Mains/);
+    assert.match(await text("#nextSlot"), /Sides ▸/);
+    await page.click("#nextSlot");
     assert.match(await page.locator("#mtabs .on").innerText(), /Sides/);
     await page.click('#pickList .item:has-text("Coleslaw")');
-    await until(async () => assert.match(await page.locator("#mtabs .on").innerText(), /Veg/));
+    await until(async () => assert.match(await dh("Thu").innerText(), /Coleslaw/));
+    assert.match(await page.locator("#mtabs .on").innerText(), /Sides/);
+    assert.match(await text("#nextSlot"), /Veg ▸/);
+    await page.click("#nextSlot");
+    assert.match(await page.locator("#mtabs .on").innerText(), /Veg/);
+    assert.equal(await page.locator("#nextSlot").isVisible(), false);
     await page.click('#pickList .item:has-text("Peas")');
     await until(async () => assert.match(await dh("Thu").innerText(), /Pork[\s\S]*Coleslaw[\s\S]*Peas/));
     // tapping the open day's header closes it
@@ -729,6 +738,35 @@ process.on("exit", () => server && server.kill());
     await until(async () => assert.match(await text("#updNote"), /Updated/));
     await page.reload();
     assert.equal(await page.locator("#updNote").isVisible(), false);
+  });
+
+  await step("add: typing a saved food jumps to its tab; usuals filter", async () => {
+    await page.goto(URL);
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click('[data-kind="main"]');
+    assert.ok((await page.locator("#usuals .usual").count()) <= 10, "10 usuals at most");
+    // Carrots is a veg starter: typing it moves to the Veg tab, name kept
+    await page.fill("#name", "carrots");
+    await until(async () => assert.match(await page.locator('.mtabs [data-kind].on').innerText(), /Veg/));
+    assert.equal(await page.inputValue("#name"), "carrots");
+    // can still change it
+    await page.click('[data-kind="side"]');
+    assert.match(await page.locator('.mtabs [data-kind].on').innerText(), /Side/);
+    assert.equal(await page.inputValue("#name"), "carrots");
+    // typing filters the buttons across all foods
+    await page.fill("#name", "sau");
+    const hits = await page.locator("#usuals .usual").allInnerTexts();
+    assert.ok(hits.length >= 1 && hits.every(h => /sau/i.test(h)), "only matches: " + hits);
+    await page.fill("#name", "");
+    assert.ok((await page.locator("#usuals .usual").count()) > 1);
+  });
+
+  await step("print sheet uses P for part used", async () => {
+    await page.evaluate(() => { window.print = () => {}; });
+    await page.click("#printF");
+    assert.match(await text("#printSheet .ps-key"), /P = Part used/);
+    assert.doesNotMatch(await page.locator("#printSheet").innerHTML(), /½/);
   });
 
   await step("real copy shows no TEST banner", async () => {

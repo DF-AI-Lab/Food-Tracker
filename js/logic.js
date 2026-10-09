@@ -194,6 +194,40 @@
     return starter || null;
   }
 
+  // Add-screen search: foods (from packs, then starters) whose name contains the text.
+  // Names starting with the text come first, then most-added, then alphabetical. Max 10.
+  function searchFoods(allPacks, query) {
+    const q = String(query ?? "").trim().toLowerCase();
+    if (!q) return [];
+    const live = (allPacks || []).filter(p => p.status !== "deleted");
+    const counts = {};
+    const cands = []; // { name, kind, count }, deduped case-insensitively, first spelling kept
+    const seen = new Set();
+    for (const p of live) {
+      const name = String(p.name ?? "").trim();
+      const key = name.toLowerCase();
+      if (!key) continue;
+      counts[key] = (counts[key] || 0) + 1;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cands.push({ name, key, kind: rememberedKind(allPacks, name) });
+    }
+    for (const kind of KINDS) {
+      for (const name of STARTERS[kind] || []) {
+        const key = name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        cands.push({ name, key, kind });
+      }
+    }
+    return cands
+      .filter(c => c.key.includes(q))
+      .map(c => ({ ...c, count: counts[c.key] || 0, starts: c.key.startsWith(q) }))
+      .sort((a, b) => (b.starts - a.starts) || (b.count - a.count) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+      .slice(0, 10)
+      .map(c => ({ name: c.name, kind: c.kind }));
+  }
+
   // How many packs of this food were ever added (not counting deleted ones)
   function boughtCount(allPacks, name) {
     const key = String(name ?? "").trim().toLowerCase();
@@ -887,6 +921,7 @@
     usuals,
     rememberedNoDate,
     rememberedKind,
+    searchFoods,
     boughtCount,
     quickFillRow,
     parseQuickFill,
