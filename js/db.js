@@ -15,7 +15,7 @@
     return rest;
   }
 
-  // all / get / add / put / remove for one collection (packs or shop)
+  // all / get / add / put / remove for one collection (packs, shop, meals, sheets)
   function store(name) {
     const base = `/api/${name}`;
     return {
@@ -52,6 +52,9 @@
 
     // Meals history: one record per day that was eaten (or a takeaway with a cost)
     meals: store("meals"),
+
+    // Printed fridge sheets: { code, printed, rows } (rows give the box positions for photo reading)
+    sheets: store("sheets"),
 
     // Idea ratings, one per food name: { name, rating }
     ratings: {

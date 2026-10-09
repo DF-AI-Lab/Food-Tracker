@@ -383,10 +383,11 @@ process.on("exit", () => server && server.kill());
     assert.equal(await page.locator("#fridgeView .pbtn").count(), 0);
     const d = await page.locator("#today").boundingBox();
     const pr = await page.locator("#printF").boundingBox();
-    const moon = await page.locator("#themeDark").boundingBox();
-    assert.ok(pr.x >= d.x + d.width && pr.x + pr.width <= moon.x, "print between date and moon");
-    // moon + sun buttons
-    assert.equal(await page.locator("#top button").count(), 4); // refresh + print + moon + sun
+    const moon = await page.locator("#theme").boundingBox();
+    assert.ok(pr.x >= d.x + d.width && pr.x + pr.width <= moon.x, "print between date and theme");
+    // one theme button: shows the other mode's icon
+    assert.equal(await page.locator("#top button").count(), 4); // refresh + scan + print + theme
+    assert.equal(await page.locator("#themeDark").count(), 0);
     await page.click('[data-tab="add"]');
     await page.click('[data-sub="fridge"]');
     assert.match(await page.locator("body").innerText(), /USUAL · TAP ONE/i);
@@ -482,8 +483,11 @@ process.on("exit", () => server && server.kill());
 
   await step("theme toggle", async () => {
     const before = await page.getAttribute("html", "data-theme");
+    assert.equal(await text("#theme"), before === "light" ? "🌙" : "☀️");
     await page.click("#theme");
-    assert.notEqual(await page.getAttribute("html", "data-theme"), before);
+    const after = await page.getAttribute("html", "data-theme");
+    assert.notEqual(after, before);
+    assert.equal(await text("#theme"), after === "light" ? "🌙" : "☀️");
   });
 
   await step("look: light mode is mid sage, not pale", async () => {
@@ -767,6 +771,61 @@ process.on("exit", () => server && server.kill());
     await page.click("#printF");
     assert.match(await text("#printSheet .ps-key"), /P = Part used/);
     assert.doesNotMatch(await page.locator("#printSheet").innerHTML(), /½/);
+  });
+
+  await step("📷 read a sheet: print saves it, a photo gives Changes found, Apply all updates the fridge", async () => {
+    await page.goto(URL);
+    await page.evaluate(() => { window.print = () => {}; });
+    await page.click("#printF");
+    // the printed sheet is saved with its numbered rows and box positions
+    const sheets = await page.evaluate(async () => (await fetch("/api/sheets")).json());
+    assert.ok(sheets.length >= 1);
+    const sheet = sheets[sheets.length - 1];
+    assert.match(sheet.code, /^0710-\d{4}$/);
+    assert.ok(sheet.rows.length >= 2);
+    assert.equal(sheet.rows[0].no, "01");
+    assert.equal(sheet.rows[0].boxes.length, 3);
+    for (const b of sheet.rows[0].boxes) assert.ok(b.every(n => n >= 0 && n <= 1), "boxes are 0..1: " + b);
+
+    await page.click("#scanBtn");
+    assert.ok(await page.locator("#scanPanel").isVisible());
+    assert.match(await text("#scanSheet"), new RegExp(sheet.code));
+    // pretend the photo shows row 01 used and row 02 binned
+    const [r1, r2] = sheet.rows;
+    await page.evaluate(([a, b]) => {
+      window.FT_OMR.readSheet = () => ({ ok: true, marks: { [a]: { u: true, p: false, b: false }, [b]: { u: false, p: false, b: true } } });
+    }, [r1.no, r2.no]);
+    await page.setInputFiles("#scanFile", path.join(__dirname, "..", "docs", "mockup-scan.png"));
+    await until(async () => assert.match(await text("#scanChanges"), /Changes found · 2/));
+    const row1 = page.locator(`#scanChanges .chg[data-no="${r1.no}"]`);
+    assert.match(await row1.innerText(), new RegExp(r1.name));
+    assert.match(await row1.locator(".u").getAttribute("class"), /\bon\b/);
+    // fix row 02 to Part used
+    await page.locator(`#scanChanges .chg[data-no="${r2.no}"] .p`).click();
+    await page.click("#scanApply");
+    await until(async () => {
+      const packs = await page.evaluate(async () => (await fetch("/api/packs")).json());
+      assert.equal(packs.find(p => p.id === r1.id).status, "used");
+      const p2 = packs.find(p => p.id === r2.id);
+      assert.equal(p2.status, "in_fridge");
+      assert.equal(p2.partUsed, true);
+    });
+    assert.equal(await page.locator("#scanPanel").isVisible(), false);
+  });
+
+  await step("📷 no sheet found in the photo says so", async () => {
+    await page.click("#scanBtn");
+    await page.evaluate(() => { window.FT_OMR.readSheet = () => ({ ok: false, reason: "corners" }); });
+    await page.setInputFiles("#scanFile", path.join(__dirname, "..", "docs", "mockup-scan.png"));
+    await until(async () => assert.match(await text("#scanMsg"), /4 black corners/));
+    await page.click("#scanCancel");
+  });
+
+  await step("📷 add food from photos opens quick fill", async () => {
+    await page.click("#scanBtn");
+    await page.click("#scanFood");
+    assert.equal(await page.locator("#scanPanel").isVisible(), false);
+    assert.ok(await page.locator("#qfCheck").isVisible(), "quick fill shown");
   });
 
   await step("real copy shows no TEST banner", async () => {

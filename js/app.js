@@ -37,18 +37,24 @@
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   }
 
-  // The printable A4 fridge sheet (styled by #printSheet in css/style.css)
-  function buildPrintSheet() {
-    const sheet = FT.printSheet(packs, today);
+  // Time of printing: the code on the sheet and the saved record use the same stamp
+  function printStamp() {
     const now = new Date();
     const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    return { hhmm, code: FT.sheetCode(today, hhmm), printed: `${today}T${hhmm}` };
+  }
+
+  // The printable A4 fridge sheet (styled by #printSheet in css/style.css)
+  function buildPrintSheet(stamp) {
+    const sheet = FT.printSheet(packs, today);
+    const hhmm = stamp.hhmm;
     const boxes = '<td class="bx"><span></span></td>'.repeat(3);
 
     const section = sec => {
       const word = sec.title.replace(/[^A-Za-z ]/g, '').trim().toLowerCase();
       const more = word.charAt(0).toUpperCase() + word.slice(1);
       const rows = sec.rows.map(r =>
-        `<tr><td class="id">${r.no}</td><td>${esc(r.name)}</td><td class="d">${esc(r.date)}</td>${boxes}</tr>`).join('');
+        `<tr data-id="${r.id}"><td class="id">${r.no}</td><td>${esc(r.name)}</td><td class="d">${esc(r.date)}</td>${boxes}</tr>`).join('');
       return `<h2${sec.key === 'soon' ? ' class="soon"' : ''}>${esc(sec.title)}<span class="ub">U P B</span></h2>` +
         `<table>${rows}</table>` +
         (sec.more > 0 ? `<div class="more">+${sec.more} more ${esc(more)} · see app</div>` : '');
@@ -68,7 +74,7 @@
   <i class="ps-mk ps-tl"></i><i class="ps-mk ps-tr"></i><i class="ps-mk ps-bl"></i><i class="ps-mk ps-br"></i>
   <header class="ps-head">
     <div><h1>🥶 Fridge sheet</h1><div class="ps-sub">Week ${esc(sheet.range)} · printed ${esc(FT.formatDate(today))}, ${hhmm}</div></div>
-    <div class="ps-code">SHEET ${esc(FT.sheetCode(today, hhmm))}</div>
+    <div class="ps-code">SHEET ${esc(stamp.code)}</div>
   </header>
   <div class="ps-key">Mark with an <b>✕</b> when gone: U = Used · P = Part used · B = Binned</div>
   <div class="ps-top"><div>${column(sheet.left)}</div><div>${column(sheet.right)}</div></div>
@@ -79,6 +85,46 @@
   <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div></div>
   <div class="ps-foot">${esc(footer)}</div>
 </div>`;
+  }
+
+  // Where the boxes are on the printed page, relative to the 4 corner marks (for photo reading)
+  function measureSheet(page) {
+    const rectOf = el => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left, y: r.top, w: r.width, h: r.height };
+    };
+    const corners = {
+      tl: rectOf(page.querySelector('.ps-tl')),
+      tr: rectOf(page.querySelector('.ps-tr')),
+      bl: rectOf(page.querySelector('.ps-bl')),
+      br: rectOf(page.querySelector('.ps-br'))
+    };
+    const rows = Array.from(page.querySelectorAll('.ps-top tr[data-id]')).map(tr => ({
+      no: tr.querySelector('td.id').textContent.trim(),
+      id: Number(tr.dataset.id),
+      name: tr.children[1].textContent.trim(),
+      boxes: Array.from(tr.querySelectorAll('td.bx span')).map(rectOf)
+    }));
+    return window.FT_OMR.layoutFromRects(corners, rows);
+  }
+
+  // Fill the sheet, measure it (shown off-screen at A4 size for a moment), save it, then print
+  function printFridgeSheet() {
+    const stamp = printStamp();
+    const box = document.getElementById('printSheet');
+    box.innerHTML = buildPrintSheet(stamp);
+    let rows = null;
+    box.classList.add('measuring');
+    try {
+      rows = measureSheet(box.querySelector('.ps-page'));
+    } catch (e) {
+      rows = null; // the sheet still prints; it just cannot be read from a photo
+    } finally {
+      box.classList.remove('measuring');
+    }
+    // Saved in the background: a failed save never stops the print
+    if (rows) DB.sheets.add({ code: stamp.code, printed: stamp.printed, rows }).catch(() => {});
+    window.print();
   }
 
   async function init() {
@@ -174,7 +220,11 @@
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    document.querySelectorAll('.pal [data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === theme));
+    // One button: it shows the mode a click switches to
+    const btn = document.getElementById('theme');
+    btn.textContent = theme === 'light' ? '🌙' : '☀️';
+    btn.title = theme === 'light' ? 'Dark mode' : 'Light mode';
+    btn.setAttribute('aria-label', btn.title);
   }
 
   function setupTheme() {
@@ -189,19 +239,17 @@
   }
 
   function setupEventListeners() {
-    // Theme
-    document.querySelectorAll('.pal [data-m]').forEach(btn => {
-      btn.addEventListener('click', () => setTheme(btn.dataset.m));
+    // Theme: one button, flips between dark and light
+    document.getElementById('theme').addEventListener('click', () => {
+      const now = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      setTheme(now === 'light' ? 'dark' : 'light');
     });
 
     // 🔄: get the latest version now
     document.getElementById('refresh').addEventListener('click', () => checkUpdate(true));
 
     // Print: fill the A4 fridge sheet, then open the print dialog
-    document.getElementById('printF').addEventListener('click', () => {
-      document.getElementById('printSheet').innerHTML = buildPrintSheet();
-      window.print();
-    });
+    document.getElementById('printF').addEventListener('click', printFridgeSheet);
     // Mic: coming soon
     document.getElementById('mic').addEventListener('click', () => {
       document.getElementById('micNote').textContent = '🎤 Voice input: coming soon';
@@ -315,6 +363,17 @@
         renderIdeas();
       });
     });
+    // 📷 Read a sheet photo
+    document.getElementById('scanBtn').addEventListener('click', openScan);
+    document.getElementById('scanFile').addEventListener('change', readScanPhoto);
+    document.getElementById('scanCancel').addEventListener('click', closeScan);
+    document.getElementById('scanApply').addEventListener('click', applyScan);
+    document.getElementById('scanRows').addEventListener('click', chooseScanMark);
+    document.getElementById('scanFood').addEventListener('click', () => {
+      closeScan();
+      switchTab('add');
+      switchSub('quick');
+    });
     // Drag a .json file onto the app to load it into Quick fill
     document.body.addEventListener('dragover', e => e.preventDefault());
     document.body.addEventListener('drop', dropJsonFile);
@@ -330,6 +389,184 @@
     switchSub('quick');
     document.getElementById('qfText').value = text;
     checkQuickFill();
+  }
+
+  // ---- Read a sheet photo (📷) ----
+  let scanSheets = [];   // saved printed sheets, oldest first (as the server lists them)
+  let scanChanges = null; // { sheet, changes: [{ no, id, name, mark, note, choice }] } while "Changes found" shows
+  const CHIP_LABEL = { u: 'U', p: 'P', b: 'B', none: '–' };
+  const CHIP_NAME = { u: 'Used', p: 'Part used', b: 'Binned', none: 'No change' };
+  const NO_SHEET = 'No printed sheet yet. Print the fridge sheet first.';
+
+  function scanMsg(text) {
+    document.getElementById('scanMsg').textContent = text;
+  }
+
+  async function openScan() {
+    scanChanges = null;
+    document.getElementById('scanPanel').hidden = false;
+    document.getElementById('scanPick').hidden = false;
+    document.getElementById('scanChanges').hidden = true;
+    scanMsg('');
+    const sel = document.getElementById('scanSheet');
+    sel.innerHTML = '';
+    try {
+      scanSheets = await DB.sheets.all();
+    } catch (e) {
+      scanSheets = [];
+    }
+    const newest = [...scanSheets].reverse();
+    for (const sheet of newest) {
+      const opt = document.createElement('option');
+      opt.value = String(sheet.id);
+      opt.textContent = `SHEET ${sheet.code} · printed ${FT.formatDate(String(sheet.printed).slice(0, 10))}`;
+      sel.appendChild(opt);
+    }
+    if (!newest.length) scanMsg(NO_SHEET);
+  }
+
+  function closeScan() {
+    document.getElementById('scanPanel').hidden = true;
+    document.getElementById('scanFile').value = '';
+    scanChanges = null;
+  }
+
+  // Photo → grayscale pixels, long side at most 1200px
+  function photoToGray(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight));
+          const width = Math.round(img.naturalWidth * scale);
+          const height = Math.round(img.naturalHeight * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, width, height);
+          const data = ctx.getImageData(0, 0, width, height).data;
+          const gray = new Uint8Array(width * height);
+          for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+            gray[j] = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+          }
+          resolve({ gray, width, height });
+        } catch (e) {
+          reject(e);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('photo could not be loaded'));
+      };
+      img.src = url;
+    });
+  }
+
+  async function readScanPhoto(e) {
+    const input = e.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const sheet = scanSheets.find(s => String(s.id) === document.getElementById('scanSheet').value);
+    if (!sheet) {
+      scanMsg(NO_SHEET);
+      input.value = '';
+      return;
+    }
+    scanMsg('Reading the photo…');
+    let result = null;
+    try {
+      const img = await photoToGray(file);
+      result = window.FT_OMR ? window.FT_OMR.readSheet(img, sheet.rows || []) : null;
+    } catch (err) {
+      result = null;
+    }
+    input.value = '';
+    if (!result || !result.ok) {
+      scanMsg("Couldn't find the sheet. Take the photo flat, with all 4 black corners in.");
+      return;
+    }
+    scanMsg('');
+    const changes = FT.sheetChanges(sheet.rows || [], result.marks, packs);
+    scanChanges = {
+      sheet,
+      changes: changes.map(c => ({ ...c, choice: c.mark === 'ask' ? null : c.mark }))
+    };
+    document.getElementById('scanPick').hidden = true;
+    document.getElementById('scanChanges').hidden = false;
+    renderScanChanges();
+  }
+
+  // Tap a letter on a change row: that choice wins
+  function chooseScanMark(e) {
+    const btn = e.target.closest('button[data-c]');
+    if (!btn || !scanChanges) return;
+    const no = btn.closest('.chg').dataset.no;
+    const c = scanChanges.changes.find(x => x.no === no);
+    if (!c) return;
+    c.choice = btn.dataset.c;
+    renderScanChanges();
+  }
+
+  function renderScanChanges() {
+    const { changes } = scanChanges;
+    document.getElementById('scanHead').textContent = `📷 Changes found · ${changes.length}`;
+    const list = document.getElementById('scanRows');
+    list.innerHTML = '';
+    if (!changes.length) {
+      const none = document.createElement('div');
+      none.className = 'note';
+      none.textContent = 'No marks on this photo for food still in the fridge.';
+      list.appendChild(none);
+    }
+    for (const c of changes) {
+      const row = document.createElement('div');
+      const unresolved = c.mark === 'ask' && c.choice === null;
+      row.className = 'chg' + (unresolved ? ' ask' : '');
+      row.dataset.no = c.no;
+      const chips = ['u', 'p', 'b', 'none'].map(k =>
+        `<button type="button" class="${k}${c.choice === k ? ' on' : ''}" data-c="${k}" title="${CHIP_NAME[k]}" aria-label="${CHIP_NAME[k]}">${CHIP_LABEL[k]}</button>`
+      ).join('');
+      row.innerHTML = `<span><span class="no">${esc(c.no)}</span><b>${esc(c.name)}</b></span><span class="chips">${chips}</span>`;
+      list.appendChild(row);
+      if (c.note && (c.mark !== 'ask' || unresolved)) {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = c.note;
+        list.appendChild(note);
+      }
+    }
+    const chosen = changes.filter(c => ['u', 'p', 'b'].includes(c.choice)).length;
+    const ready = changes.every(c => !(c.mark === 'ask' && c.choice === null));
+    const apply = document.getElementById('scanApply');
+    apply.textContent = `✅ Apply all (${chosen})`;
+    apply.disabled = !ready;
+  }
+
+  // Apply the chosen marks: Used, Part used or Binned, same as the fridge pop-up buttons
+  async function applyScan() {
+    if (!scanChanges) return;
+    const todo = scanChanges.changes.filter(c => ['u', 'p', 'b'].includes(c.choice));
+    closeScan();
+    const writes = [];
+    for (const c of todo) {
+      const pack = packs.find(p => p.id === c.id);
+      if (!pack) continue;
+      if (c.choice === 'p') {
+        writes.push(setPack(FT.partUse(pack, today)));
+      } else if (c.choice === 'u') {
+        const updated = FT.markUsed(pack, today);
+        writes.push(setPack(updated), autoAddFinished(updated, 'used'));
+      } else {
+        const updated = FT.markThrown(pack, today);
+        writes.push(setPack(updated), autoAddFinished(updated, 'thrown_away'));
+      }
+    }
+    renderAll();
+    await persistAll(writes);
   }
 
   function switchSub(sub) {

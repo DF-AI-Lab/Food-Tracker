@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Scan sheet mockup</title>
+<style>
+:root{--bg:#051F20;--surface:#0B2B26;--tile:#163832;--fg:#DAF1DE;--muted:#8EB69B;--line:#235347;--okbg:#2c6a4c;--soonbg:#7a5a1a;--offbg:#6b2323}
+body{margin:0;background:#000;font-family:"Nunito Sans",system-ui,sans-serif;color:var(--fg);display:flex;gap:24px;padding:24px}
+.phone{width:390px;background:var(--bg);border-radius:24px;padding:16px;box-sizing:border-box}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:18px;margin-bottom:14px}
+.pal button{background:var(--surface);border:0;border-radius:12px;width:40px;height:36px;font-size:16px;margin-left:4px}
+.pal .hl{outline:2px solid #f2c46b}
+.card{background:var(--surface);border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 6px 14px rgba(0,0,0,.4)}
+h3{margin:0 0 10px;font-size:17px}
+.muted{color:var(--muted);font-size:13px}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:13px;font-weight:800;font-size:15px;background:var(--muted);color:#051F20;margin-top:10px}
+.btn.alt{background:var(--tile);color:var(--fg)}
+.photo{height:120px;border-radius:12px;background:repeating-linear-gradient(45deg,#cfd8d0,#cfd8d0 6px,#e8efe9 6px,#e8efe9 12px);display:flex;align-items:center;justify-content:center;color:#163832;font-weight:800;margin:8px 0}
+.sel{background:var(--tile);border-radius:10px;padding:9px 12px;font-size:14px;margin-top:6px}
+.row{display:flex;align-items:center;justify-content:space-between;background:var(--tile);border-radius:12px;padding:8px 10px;margin:6px 0;font-size:14px}
+.row b{font-weight:700}
+.row .no{color:var(--muted);font-family:monospace;margin-right:8px}
+.chips{display:flex;gap:4px}
+.chips span{width:30px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:var(--surface);color:var(--muted)}
+.chips .u.on{background:var(--okbg);color:#fff}.chips .p.on{background:var(--soonbg);color:#fff}.chips .b.on{background:var(--offbg);color:#fff}
+.row.ask{outline:2px solid #f2c46b}
+.note{font-size:12px;color:#f2c46b;margin:-2px 0 6px 4px}
+</style></head><body>
+
+<div class="phone">
+  <div class="top">📅 Today · Fri 9 Oct <span class="pal"><button>🔄</button><button class="hl">📷</button><button>🖨️</button><button>🌙</button></span></div>
+  <div class="card">
+    <h3>📷 Read a sheet</h3>
+    <div class="muted">Take the photo flat, with all 4 black corners in.</div>
+    <div class="photo">sheet photo</div>
+    <div class="muted">Sheet</div>
+    <div class="sel">SHEET 0910-1210 · printed Fri 9 Oct ▾</div>
+    <button class="btn">Choose photo</button>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="top">📷 Changes found · 14</div>
+  <div class="card">
+    <div class="muted" style="margin-bottom:6px">Tap a letter to fix it. – = no change.</div>
+    <div class="row"><span><span class="no">04</span><b>Mash</b></span><span class="chips"><span class="u on">U</span><span class="p">P</span><span class="b">B</span><span>–</span></span></div>
+    <div class="row"><span><span class="no">06</span><b>Eggs</b></span><span class="chips"><span class="u">U</span><span class="p on">P</span><span class="b">B</span><span>–</span></span></div>
+    <div class="row"><span><span class="no">02</span><b>Pasta</b></span><span class="chips"><span class="u">U</span><span class="p">P</span><span class="b on">B</span><span>–</span></span></div>
+    <div class="row"><span><span class="no">17</span><b>Potatoes</b></span><span class="chips"><span class="u on">U</span><span class="p">P</span><span class="b">B</span><span>–</span></span></div>
+    <div class="note">U and P both marked → Used</div>
+    <div class="row ask"><span><span class="no">21</span><b>Green beans</b></span><span class="chips"><span class="u">U</span><span class="p">P</span><span class="b">B</span><span>–</span></span></div>
+    <div class="note">U and B both marked · pick one</div>
+    <div class="muted" style="text-align:center;margin-top:8px">… 9 more</div>
+    <button class="btn">✅ Apply all (13)</button>
+    <button class="btn alt">Cancel</button>
+  </div>
+</div>
+
+</body></html>

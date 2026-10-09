@@ -40,7 +40,8 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
 .veg{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;border-top:2px dashed var(--line);padding-top:8px}
 .pane .card,.pane .age{background:var(--bg)}
 #top{font-family:var(--display);font-size:18px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-#top .pal button{padding:5px 9px;font-size:15px}
+#top .pal{gap:5px;flex-wrap:nowrap}
+#top .pal button{padding:5px 7px;font-size:15px}
 #refresh.spin{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .age{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
@@ -326,3 +327,33 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 #printSheet .ps-meals td{height:6mm;padding:1mm}
 #printSheet .ps-meals td.dn{width:24mm;white-space:nowrap;font-weight:700}
 #printSheet .ps-foot{position:absolute;bottom:14mm;left:14mm;right:14mm;font-size:8pt}
+
+/* Read a sheet photo (📷): overlay card like the pack-actions sheet */
+#scanPanel{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;padding:16px;box-sizing:border-box;overflow-y:auto}
+#scanPanel[hidden],#scanChanges[hidden],#scanPick[hidden]{display:none}
+#scanPanel .scan-card{max-width:388px;margin:6vh auto 0;background:var(--surface);gap:10px}
+#scanPanel h3{font-family:var(--display);font-size:18px;margin:0}
+#scanPanel .tag{margin-top:2px}
+#scanPanel select{font:inherit;font-size:14px;font-weight:700;color:var(--fg);background:var(--tile);border:0;border-radius:10px;padding:9px 12px}
+#scanPanel .scan-photo{display:block;text-align:center;cursor:pointer;margin-top:4px}
+#scanPanel #scanMsg{min-height:1em;color:var(--soon)}
+#scanPanel #scanFood{width:100%}
+#scanPanel #scanCancel{width:100%;margin-top:4px}
+#scanPanel #scanApply{width:100%;margin-top:6px}
+#scanPanel #scanApply:disabled{opacity:.5;cursor:not-allowed}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#scanRows{display:flex;flex-direction:column}
+#scanRows .chg{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--tile);border-radius:12px;padding:8px 10px;margin:6px 0 0;font-size:14px}
+#scanRows .chg.ask{outline:2px solid var(--soon)}
+#scanRows .chg .no{color:var(--muted);font-family:monospace;margin-right:8px}
+#scanRows .chg b{font-weight:700}
+#scanRows .chips{display:flex;gap:4px;flex:none}
+#scanRows .chips button{width:30px;height:28px;border:0;border-radius:8px;padding:0;font:inherit;font-weight:800;font-size:13px;background:var(--surface);color:var(--muted);cursor:pointer}
+#scanRows .chips .u.on{background:var(--okbg);color:var(--fg)}
+#scanRows .chips .p.on{background:var(--soonbg);color:var(--fg)}
+#scanRows .chips .b.on{background:var(--offbg);color:var(--fg)}
+#scanRows .chips .none.on{background:var(--line);color:var(--fg)}
+#scanRows .note{color:var(--soon);font-size:12px;margin:2px 0 0 4px}
+
+/* Measuring the printed sheet (saved with the print): off-screen at A4 width */
+#printSheet.measuring{display:block;position:fixed;left:-10000px;top:0;width:210mm}

@@ -14,7 +14,7 @@
   <div id="testBanner" class="testbanner" hidden>🧪 TEST COPY · not your real food</div>
   <div id="top" class="today">
     <span id="today">📅 Today · <b>Loading...</b></span>
-    <span class="pal"><button id="refresh" title="Get the latest version" aria-label="Get the latest version">🔄</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="themeDark" data-m="dark" aria-label="Dark mode">🌙</button><button id="theme" data-m="light" aria-label="Light mode">☀️</button></span>
+    <span class="pal"><button id="refresh" title="Get the latest version" aria-label="Get the latest version">🔄</button><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="theme" title="Switch theme" aria-label="Switch theme">☀️</button></span>
   </div>
   <div class="note" id="updNote" hidden></div>
 
@@ -201,12 +201,36 @@
     </div>
   </div>
 
+  <!-- Read a sheet photo (opened by 📷) -->
+  <div id="scanPanel" hidden>
+    <div class="sheet scan-card">
+      <div id="scanPick">
+        <h3>📷 Read a sheet</h3>
+        <div class="note">Take the photo flat, with all 4 black corners in.</div>
+        <div class="tag">Sheet</div>
+        <select id="scanSheet" aria-label="Which printed sheet"></select>
+        <label class="act big scan-photo" for="scanFile">Choose photo</label>
+        <input type="file" id="scanFile" accept="image/*" capture="environment" class="sr-only">
+        <div class="note" id="scanMsg"></div>
+        <button type="button" class="act ghost" id="scanFood">🥫 Add food from photos</button>
+      </div>
+      <div id="scanChanges" hidden>
+        <h3 id="scanHead">📷 Changes found · 0</h3>
+        <div class="note">Tap a letter to fix it. – = no change.</div>
+        <div id="scanRows"></div>
+        <button type="button" class="act big" id="scanApply" disabled>✅ Apply all (0)</button>
+      </div>
+      <button type="button" class="act ghost" id="scanCancel">Cancel</button>
+    </div>
+  </div>
+
   <!-- Undo bar -->
   <div id="undoBar">
     <button class="undo" id="undoBtn">↩ Undo</button>
   </div>
 
   <script src="js/logic.js"></script>
+  <script src="js/omr.js"></script>
   <script src="js/db.js"></script>
   <script src="js/app.js"></script>
 </body>
