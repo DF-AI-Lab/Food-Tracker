@@ -38,6 +38,7 @@ function withDb(dbFile, fn) {
     db.exec("CREATE TABLE IF NOT EXISTS packs (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)");
     db.exec("CREATE TABLE IF NOT EXISTS shop (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)");
     db.exec("CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)");
+    db.exec("CREATE TABLE IF NOT EXISTS sheets (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL)");
     db.exec("CREATE TABLE IF NOT EXISTS ratings (name TEXT PRIMARY KEY, rating INTEGER NOT NULL)");
     return fn(db);
   } finally {
@@ -129,8 +130,8 @@ async function handleApi(req, res, url, ctx) {
   const r = url.pathname.match(/^\/api\/ratings(?:\/(.+))?$/);
   if (r) return handleRatings(req, res, r[1] === undefined ? null : decodeURIComponent(r[1]), ctx);
 
-  // packs (the fridge), shop (the shopping list) and meals (history) work the same way
-  const m = url.pathname.match(/^\/api\/(packs|shop|meals)(?:\/(\d+))?$/);
+  // packs (the fridge), shop (the shopping list), meals (history) and sheets (printed sheets) work the same way
+  const m = url.pathname.match(/^\/api\/(packs|shop|meals|sheets)(?:\/(\d+))?$/);
   if (!m) return sendJson(res, 404, { error: "Not found" });
   const table = m[1];
   const id = m[2] !== undefined ? Number(m[2]) : null;

@@ -891,6 +891,35 @@
     return { left, right, meals, range, total, shown };
   }
 
+  // Photo of the printed sheet: which mark wins for one row.
+  // U beats P, B beats P, U + B together asks the user to pick.
+  function resolveMark(m) {
+    if (!m) return null;
+    if (m.u && m.b) return "ask";
+    if (m.u) return "u";
+    if (m.b) return "b";
+    if (m.p) return "p";
+    return null;
+  }
+
+  // Changes found on a sheet photo: marked rows whose pack is still in the fridge
+  function sheetChanges(rows, marks, packs) {
+    const byId = new Map((packs || []).map(p => [p.id, p]));
+    const out = [];
+    for (const row of rows || []) {
+      const pack = byId.get(row.id);
+      if (!pack || pack.status !== "in_fridge") continue;
+      const m = (marks || {})[row.no];
+      const mark = resolveMark(m);
+      if (!mark) continue;
+      let note = "";
+      if (mark === "ask") note = "U and B both marked · pick one";
+      else if (m.u && m.p && !m.b) note = "U and P both marked → Used";
+      out.push({ no: row.no, id: row.id, name: row.name, mark, note });
+    }
+    return out;
+  }
+
   // Export
   const FT = {
     addDays,
@@ -948,7 +977,9 @@
     mealRecord,
     takeawaySummary,
     sheetCode,
-    printSheet
+    printSheet,
+    resolveMark,
+    sheetChanges
   };
 
   if (typeof module !== "undefined") {
