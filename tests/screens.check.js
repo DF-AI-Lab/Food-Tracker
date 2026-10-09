@@ -689,6 +689,7 @@ process.on("exit", () => server && server.kill());
   });
 
   await step("print button fills the A4 sheet and opens print", async () => {
+    await page.goto(URL);
     await page.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
     await page.click("#printF");
     assert.equal(await page.evaluate(() => window.__printed), 1);

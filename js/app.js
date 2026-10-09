@@ -58,7 +58,7 @@
     const added = blankRows(4, '<td class="id">+</td><td>&nbsp;</td><td class="d">__/__</td>');
     const need = blankRows(3, '<td class="bx"><span></span></td><td>&nbsp;</td>');
     const meals = sheet.meals.map(m =>
-      `<tr><td class="day">${esc(m.day)}</td><td>${m.text ? esc(m.text) : '&nbsp;'}</td></tr>`).join('');
+      `<tr><td class="dn">${esc(m.day)}</td><td>${m.text ? esc(m.text) : '&nbsp;'}</td></tr>`).join('');
 
     const hidden = sheet.total - sheet.shown;
     const footer = `${sheet.total} items${hidden > 0 ? ` (${hidden} more in app)` : ''} · U = Used · ½ = Part used · B = Binned`;
@@ -71,11 +71,11 @@
   </header>
   <div class="ps-key">Mark with an <b>✕</b> when gone: U = Used · ½ = Part used · B = Binned</div>
   <div class="ps-top"><div>${column(sheet.left)}</div><div>${column(sheet.right)}</div></div>
-  <div class="ps-botl">
+  <div class="ps-bottom"><div>
     <div class="ps-added"><h2>✍️ ADDED (write in)</h2><table class="blank">${added}</table></div>
     <div class="ps-need"><h2>🛒 NEED</h2><table class="blank">${need}</table></div>
   </div>
-  <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div>
+  <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div></div>
   <div class="ps-foot">${esc(footer)}</div>
 </div>`;
   }
