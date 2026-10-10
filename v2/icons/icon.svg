@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Food Tracker icon: a fridge in the app colours. Full-bleed background, so it also works as a maskable icon -->
+  <rect width="512" height="512" fill="#051F20"/>
+  <rect x="156" y="96" width="200" height="320" rx="34" fill="#8EB69B"/>
+  <rect x="156" y="206" width="200" height="12" fill="#051F20"/>
+  <rect x="180" y="132" width="14" height="50" rx="7" fill="#051F20"/>
+  <rect x="180" y="244" width="14" height="80" rx="7" fill="#051F20"/>
+  <circle cx="300" cy="320" r="34" fill="#DAF1DE"/>
+  <path d="M286 320l10 10 20-22" fill="none" stroke="#051F20" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

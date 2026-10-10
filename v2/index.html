@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Food Tracker V2</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#051F20">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Fonts load without blocking the page (the app shows up at once; fonts swap in when ready) -->
@@ -19,6 +22,8 @@
     <span class="pal"><button id="refresh" title="Get the latest version" aria-label="Get the latest version">🔄</button><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="theme" title="Switch theme" aria-label="Switch theme">☀️</button><button id="settingsBtn" title="Settings" aria-label="Settings">⚙️</button></span>
   </div>
   <div class="note" id="updNote" hidden></div>
+  <button id="newVersion" class="act" hidden>🆕 New version, tap to refresh</button>
+  <button id="installBtn" class="act ghost" hidden>📲 Install app</button>
 
   <div id="tabs" class="tabs">
     <button data-tab="fridge" class="tab on">🥶 Fridge</button>
@@ -268,6 +273,7 @@
   </div>
 
   <script src="js/version.js"></script>
+  <script src="js/pwa.js"></script>
   <script src="js/logic.js"></script>
   <script src="js/omr.js"></script>
   <script src="js/db.js"></script>
