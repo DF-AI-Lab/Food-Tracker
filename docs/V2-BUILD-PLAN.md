@@ -114,8 +114,8 @@ Each step: tests first → build → try it → tick it off.
 
 ### 5. Sync rules and sync sign
 
-- [ ] ✅ / ⏳ / 📴 on the Today line.
-- [ ] Undo check against `updatedBy` / `updatedAt`.
+- [x] ✅ / ⏳ / 📴 on the Today line (under the date).
+- [x] Undo check against `updatedBy` / `updatedAt`. Tests: `tests/v2-sync-rules.test.js`, step-5 parts of `check:rules` and `check:sync`.
 - [ ] Try it: both phones offline, both change things, back online → matches the rules above.
 
 ### 6. Install and updates

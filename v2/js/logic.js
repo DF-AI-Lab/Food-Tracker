@@ -927,6 +927,25 @@
     return out;
   }
 
+  // V2 step 5: sync sign on the Today line
+  function syncLabel({ online, waiting }) {
+    const sign = online ? "✅ synced" : "📴 offline";
+    if (waiting > 0) return online ? `⏳ ${waiting} waiting` : `${sign} · ${waiting} waiting`;
+    return sign;
+  }
+
+  // V2 step 5: undo is refused when another phone changed (or removed) an item since
+  const UNDO_BLOCKED_MSG = "Changed on another phone, can't undo";
+
+  function undoBlocked(ids, current, uid) {
+    if (!uid) return false;
+    return ids.some(id => {
+      const pack = current[id];
+      if (!pack) return true;
+      return !!pack.updatedBy && pack.updatedBy !== uid;
+    });
+  }
+
   // Export
   const FT = {
     addDays,
@@ -986,7 +1005,10 @@
     sheetCode,
     printSheet,
     resolveMark,
-    sheetChanges
+    sheetChanges,
+    syncLabel,
+    UNDO_BLOCKED_MSG,
+    undoBlocked
   };
 
   if (typeof module !== "undefined") {

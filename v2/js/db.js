@@ -39,9 +39,20 @@
   const packs = store();
 
   const DB = {
+    // No sign-in in memory mode, so no who-stamps (undo is never blocked)
+    uid: null,
+
     async open() {
       // Nothing to open: data lives in memory for this page visit
     },
+
+    // Memory is always here: always online, nothing waiting
+    status() {
+      return { online: true, waiting: 0 };
+    },
+
+    // Nothing changes in memory mode, so the callback is never called
+    onStatus() {},
 
     // Packs (the fridge): DB.all, DB.get, DB.add, DB.put, DB.remove
     all: packs.all,

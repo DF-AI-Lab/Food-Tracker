@@ -36,14 +36,43 @@ function failed(p) {
   });
 }
 
+// Is the phone online? (Node has no navigator.onLine: count that as online)
+function isOnline() {
+  return typeof navigator === "undefined" ? true : navigator.onLine !== false;
+}
+
 export function makeCloudDB(F, db, householdId, uid) {
   const mirrors = new Map(LISTS.map(name => [name, new Map()]));
   const unsubs = [];
   const callbacks = [];
+  const statusCallbacks = [];
   const ownRemoved = new Set(); // ids this DB removed itself (so their removal is not news)
+  const pendingBy = new Map(LISTS.map(name => [name, 0])); // docs with unsent writes, per list
+  let inflight = 0;     // list writes started but not yet confirmed by the cloud
+  let lastStatus = "";
   let timer = null;
 
   const col = name => F.collection(db, "households", householdId, name);
+
+  // Waiting = list changes the cloud has not confirmed (reloads see pending docs too)
+  function waitingCount() {
+    let pendingDocs = 0;
+    for (const n of pendingBy.values()) pendingDocs += n;
+    return Math.max(inflight, pendingDocs);
+  }
+
+  function status() {
+    return { online: isOnline(), waiting: waitingCount() };
+  }
+
+  // Tell the status callbacks, but only when online or waiting really changed
+  function emitStatus() {
+    const s = status();
+    const key = `${s.online}/${s.waiting}`;
+    if (key === lastStatus) return;
+    lastStatus = key;
+    for (const cb of statusCallbacks) cb(s);
+  }
 
   // Call every onChange callback once per burst of other-phone changes
   function notify() {
@@ -59,9 +88,11 @@ export function makeCloudDB(F, db, householdId, uid) {
     const mirror = mirrors.get(name);
     return new Promise((resolve, reject) => {
       let first = true;
-      const unsub = F.onSnapshot(col(name), snap => {
+      // includeMetadataChanges: also hear about writes still waiting to reach the cloud
+      const unsub = F.onSnapshot(col(name), { includeMetadataChanges: true }, snap => {
         let news = false;
         if (!first) {
+          // docChanges() lists real changes only, so metadata-only snapshots never count as news
           for (const change of snap.docChanges()) {
             if (change.type === "removed") {
               if (ownRemoved.has(change.doc.id)) ownRemoved.delete(change.doc.id);
@@ -72,13 +103,19 @@ export function makeCloudDB(F, db, householdId, uid) {
           }
         }
         mirror.clear();
-        for (const doc of snap.docs) mirror.set(doc.id, toItem(doc));
+        let pending = 0;
+        for (const doc of snap.docs) {
+          mirror.set(doc.id, toItem(doc));
+          if (doc.metadata.hasPendingWrites) pending++;
+        }
+        pendingBy.set(name, pending);
         if (first) {
           first = false;
           resolve();
         } else if (news) {
           notify();
         }
+        emitStatus();
       }, e => {
         if (first) reject(e);
         else console.error(e);
@@ -87,18 +124,27 @@ export function makeCloudDB(F, db, householdId, uid) {
     });
   }
 
+  // Count a list write as waiting until the cloud confirms it (or refuses it)
+  function counted(p) {
+    inflight++;
+    emitStatus();
+    const done = () => { inflight--; emitStatus(); };
+    failed(p);
+    p.then(done, done);
+  }
+
   // Write one document now, without waiting for the server (works offline)
   function save(name, id, item) {
     const data = fields(item);
     mirrors.get(name).set(id, { id, ...data, updatedBy: uid, updatedAt: Date.now() });
-    failed(F.setDoc(F.doc(col(name), id), { ...data, updatedBy: uid, updatedAt: F.serverTimestamp() }));
+    counted(F.setDoc(F.doc(col(name), id), { ...data, updatedBy: uid, updatedAt: F.serverTimestamp() }));
     return id;
   }
 
   function remove(name, id) {
     mirrors.get(name).delete(id);
     ownRemoved.add(id);
-    failed(F.deleteDoc(F.doc(col(name), id)));
+    counted(F.deleteDoc(F.doc(col(name), id)));
   }
 
   // all / get / add / put / remove for one list
@@ -127,10 +173,28 @@ export function makeCloudDB(F, db, householdId, uid) {
 
   const packs = store("packs");
 
+  // Browser: follow the phone going online / offline
+  const onNet = () => emitStatus();
+  if (typeof window !== "undefined" && window.addEventListener) {
+    window.addEventListener("online", onNet);
+    window.addEventListener("offline", onNet);
+  }
+
   const DB = {
+    // Whose phone this is (the Firebase user id)
+    uid,
+
     // Start the live listeners; resolves once every list has its first snapshot
     async open() {
       await Promise.all(LISTS.map(listen));
+    },
+
+    // { online, waiting }: for the sync sign on the Today line
+    status,
+
+    // Call cb whenever online or waiting changes
+    onStatus(cb) {
+      statusCallbacks.push(cb);
     },
 
     // Packs (the fridge): DB.all, DB.get, DB.add, DB.put, DB.remove
@@ -186,6 +250,10 @@ export function makeCloudDB(F, db, householdId, uid) {
       for (const unsub of unsubs.splice(0)) unsub();
       clearTimeout(timer);
       timer = null;
+      if (typeof window !== "undefined" && window.removeEventListener) {
+        window.removeEventListener("online", onNet);
+        window.removeEventListener("offline", onNet);
+      }
     }
   };
 
