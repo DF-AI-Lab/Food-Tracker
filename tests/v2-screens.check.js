@@ -1,5 +1,6 @@
-// Click-through check of the V2 skeleton in Chrome (phone size), served the way
+// Click-through check of the V2 app screens in Chrome (phone size), served the way
 // GitHub Pages will serve it: plain static files under /Food-Tracker/v2/, no server API.
+// ?local=1 skips sign-in and keeps data in memory (for this check only).
 // Run with: npm run check:v2   (needs Playwright installed)
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
@@ -9,7 +10,7 @@ const path = require("node:path");
 
 const PORT = 5198;
 const ROOT = path.join(__dirname, "..");
-const PAGE_URL = `http://localhost:${PORT}/Food-Tracker/v2/?today=2026-10-07`;
+const PAGE_URL = `http://localhost:${PORT}/Food-Tracker/v2/?local=1&today=2026-10-07`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json" };
 
 // Static files only, like GitHub Pages: /Food-Tracker/<path> -> repo/<path>, anything else 404
