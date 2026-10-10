@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6. Then: **quick job: tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right stays: 📷 · 🖨️ · ⚙️** (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6. Then: **quick job: tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -148,6 +148,13 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 
 - [ ] Today's planned meal shows the same **Had it? Yes / No** card as past days (from the evening, e.g. 5pm), so it can be confirmed tonight instead of waiting until tomorrow.
 - [ ] Yes → used / how much (takeaway → cost), as now. No → "What did you have?", as now. Once confirmed, tomorrow has nothing to ask.
+
+### 7c. 🔔 Notifications: what the other person did (added 2026-10-10)
+
+- [ ] **🔔 bell** top right with an unread count. Top right becomes **📷 · 🖨️ · 🔔 · ⚙️**.
+- [ ] Tap → list of **other members'** changes, newest first: *"Sarah added Chicken · 5 min ago"*, *"Sarah used Milk"*, meals confirmed, shop items added. Never your own.
+- [ ] **Names** from each member's Google name (already in `households/{id}.names`). Let each person change their display name in ⚙️ Settings.
+- [ ] Keep reads low: a small `activity` list (last ~50, older trimmed) instead of scanning every pack. "Seen up to" kept per phone.
 
 ### 7. 📷 Photos → Claude (packets), in the app (changed 2026-10-10)
 
