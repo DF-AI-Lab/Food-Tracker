@@ -17,6 +17,7 @@ This file turns them into build steps. Read the map's ticket comments for the de
 - Tests first, then Haiku builds, Sonnet if Haiku fails. Short progress updates.
 - **Get it working first**, plain screens, then pretty.
 - **Test early:** each step ends with a small try-out on a real phone where it can.
+- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first.
 
 ## Where V2 lives
 
@@ -107,9 +108,9 @@ Each step: tests first → build → try it → tick it off.
 - [x] `v2/js/db.js` on Firestore with **offline persistence on**. (`v2/js/db-firestore.js`; `db.js` stays for `?local=1`.)
 - [x] Same `DB` shape as V1, so screens keep working.
 - [x] Add `updatedBy` / `updatedAt` on every save. Keep `foods` up to date on each Add.
-- [ ] Load only what each screen needs (keep reads low).
+- [x] Load only what each screen needs (keep reads low).
   - Decision 2026-10-10: load **all** packs for now (usual buttons + meal ideas use the whole history). ~10k reads/day after a year vs 50k free. `foods` is kept up to date so this can be slimmed later.
-  - Tests: `npm run check:rules` (incl. `db-firestore.check.js`), `npm run check:sync` (2 browsers, live + offline). ⏳ Try on both phones.
+  - Tests: `npm run check:rules` (incl. `db-firestore.check.js`), `npm run check:sync` (2 browsers, live + offline). ✅ Tried on both phones 2026-10-10: live sync, one offline, and both offline then back: all matched.
 
 ### 5. Sync rules and sync sign
 
