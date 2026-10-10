@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Tracker V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Fonts load without blocking the page (the app shows up at once; fonts swap in when ready) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap"></noscript>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="phone">
+  <div id="testBanner" class="testbanner" hidden>🧪 TEST COPY · not your real food</div>
+  <div id="top" class="today">
+    <span id="today">📅 Today · <b>Loading...</b></span>
+    <span class="pal"><button id="refresh" title="Get the latest version" aria-label="Get the latest version">🔄</button><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="theme" title="Switch theme" aria-label="Switch theme">☀️</button></span>
+  </div>
+  <div class="note" id="updNote" hidden></div>
+
+  <div id="tabs" class="tabs">
+    <button data-tab="fridge" class="tab on">🥶 Fridge</button>
+    <button data-tab="meals" class="tab">🍽️ Meals</button>
+    <button data-tab="add" class="tab">➕ Add</button>
+  </div>
+
+  <!-- Fridge Tab -->
+  <div data-tab-pane="fridge">
+    <div id="fridgeTabs" class="sub">
+      <button data-view="fridge" class="sb on">🥶 Fridge</button>
+      <button data-view="freezer" class="sb">🧊 Freezer</button>
+      <button data-view="used" class="sb">♻️ Used</button>
+      <button data-view="shop" class="sb">🛒 Shop</button>
+    </div>
+
+    <!-- Fridge View -->
+    <div data-view-pane="fridge">
+      <div id="useSoon" class="soon" hidden>
+        <h3>⚠️ Use soon · 2 days or less</h3>
+        <div class="chips" id="useSoonList"></div>
+      </div>
+      <div id="fridgeView">
+        <details class="fbox" open>
+          <summary><span>🍖 Mains · <span id="mainCount">0</span></span><span class="arr">›</span></summary>
+          <div class="fbox-body">
+            <div id="mains" class="rows"></div>
+          </div>
+        </details>
+        <details class="fbox" open>
+          <summary><span>🥔 Sides · <span id="sideCount">0</span></span><span class="arr">›</span></summary>
+          <div id="sides" class="rows"></div>
+        </details>
+        <details class="fbox" open>
+          <summary><span>🥕 Veg · <span id="vegCount">0</span></span><span class="arr">›</span></summary>
+          <div id="veg" class="rows"></div>
+        </details>
+        <details class="fbox" open>
+          <summary><span>🧂 Misc · <span id="miscCount">0</span></span><span class="arr">›</span></summary>
+          <div id="misc" class="rows"></div>
+        </details>
+      </div>
+      <div id="deletedList"></div>
+    </div>
+
+    <!-- Freezer View -->
+    <div data-view-pane="freezer" style="display:none;">
+      <div class="pane frzpane">
+        <div class="wkhead"><h2>🧊 Freezer · <span id="freezerCount">0</span></h2></div>
+        <div class="note">Oldest first. Defrost moves it back to the fridge with a new use-by.</div>
+        <div class="scroll" id="freezerList"></div>
+      </div>
+    </div>
+
+    <!-- Used View -->
+    <div data-view-pane="used" style="display:none;">
+      <div class="cols">
+        <div class="stat"><b id="usedCount">0</b><span>used this month</span></div>
+        <div class="stat w"><b id="wastedCount">0</b><span>wasted this month</span></div>
+      </div>
+      <div class="row" id="takeawaySum"></div>
+      <div id="usedList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+  </div>
+
+  <!-- Meals Tab -->
+  <div data-tab-pane="meals" style="display:none;">
+    <div id="dayList"></div>
+    <div id="mealIdeas" class="ideas"><h3>💡 Meal ideas</h3><div class="sub">Most had first · tap + to add to the open day</div><div class="il"></div></div>
+    <!-- One picker, moved into the open day card by app.js; hidden when no day is open -->
+    <div id="picker" class="picker" hidden>
+      <div class="mtabs" id="mtabs">
+        <button class="sb on" data-s="main">🍖 Mains</button>
+        <button class="sb" data-s="side">🥔 Sides</button>
+        <button class="sb" data-s="veg">🥕 Veg</button>
+      </div>
+      <div class="tag" id="pickFor"></div>
+      <div class="warnbar" id="warnBar" hidden></div>
+      <div id="pickList"></div>
+      <button class="act" id="nextSlot">Sides ▸</button>
+      <button class="act" id="nextDay">Next day ▸</button>
+    </div>
+  </div>
+
+  <!-- Add Tab -->
+  <div data-tab-pane="add" style="display:none;">
+    <div id="subTabs" class="sub three">
+      <button data-sub="fridge" class="sb on">🥶 Add to fridge</button>
+      <button data-sub="quick" class="sb">📋 Quick fill</button>
+      <button data-sub="shop" class="sb">🛒 Shopping list</button>
+    </div>
+
+    <!-- Add to fridge -->
+    <div data-sub-pane="fridge">
+      <div class="pane af">
+        <div class="mtabs">
+          <button data-kind="main" class="sb on">🍖 Main</button>
+          <button data-kind="side" class="sb">🥔 Side</button>
+          <button data-kind="veg" class="sb">🥕 Veg</button>
+          <button data-kind="misc" class="sb">🧂 Misc</button>
+        </div>
+        <div class="tag">⭐ Usual · tap one</div>
+        <div id="usuals" class="qchips"></div>
+        <div class="sform">
+          <input type="text" id="name" placeholder="Or type a food…" autocomplete="off">
+          <button type="button" class="act ghost" id="mic" aria-label="Speak">🎤</button>
+        </div>
+        <div class="note" id="micNote"></div>
+        <div class="tag">📅 Date · type DDMM (1211) or days to use</div>
+        <div class="sform date-line">
+          <input type="text" id="ddmm" inputmode="numeric" maxlength="6" placeholder="DDMM" autocomplete="off">
+          <span class="or">or</span>
+          <input type="text" id="days" class="days" inputmode="numeric" maxlength="2" placeholder="days" autocomplete="off" aria-label="Days to use">
+          <button type="button" data-dt="use_by" class="sb on">Use by</button>
+          <button type="button" data-dt="best_before" class="sb">Best before</button>
+        </div>
+        <div class="qchips" id="quick">
+          <label class="noDate"><input type="checkbox" id="noDate"><span>No date</span></label>
+        </div>
+        <div id="datePreview" class="datebox">No date picked yet</div>
+        <div class="packs2"><span>Packs</span><button type="button" class="undo" id="minus" aria-label="One less">−</button><b id="count">1</b><button type="button" class="undo" id="plus" aria-label="One more">+</button></div>
+        <label class="frzck"><input type="checkbox" id="toFreezer"> 🧊 Straight to freezer</label>
+        <button type="button" class="act big" id="addBtn">Add to fridge</button>
+        <div id="addMsg"></div>
+      </div>
+    </div>
+
+    <!-- Quick fill (JSON pasted back from Claude) -->
+    <div data-sub-pane="quick" style="display:none;">
+      <div class="pane af">
+        <b>📋 Quick fill</b>
+        <div class="qf-how note">Photos → Claude → paste the JSON here</div>
+        <div class="note">Or drag a .json file onto the app</div>
+        <details>
+          <summary>Message for Claude</summary>
+          <pre id="qfPrompt"></pre>
+          <button type="button" class="act ghost" id="qfCopy">📋 Copy</button>
+        </details>
+        <textarea id="qfText" rows="6" placeholder="Paste the JSON from Claude here"></textarea>
+        <button type="button" class="act" id="qfCheck">Check</button>
+        <div id="qfMsg"></div>
+        <div id="qfList"></div>
+        <button type="button" class="act big" id="qfAdd" style="display:none;">Add ticked</button>
+      </div>
+    </div>
+
+    <!-- Shopping list -->
+    <div data-sub-pane="shop" style="display:none;">
+      <div id="addShop" class="pane shop">
+        <div class="wkhead"><h2>🛒 Shopping list</h2><span class="tag" id="shopCount"></span></div>
+        <div class="clr"><button class="undo" id="clearAll">🗑️ Clear all</button><span id="clrAsk" hidden>Sure? <button class="undo" id="clrYes">Yes, clear</button> <button class="undo" id="clrNo">No</button></span></div>
+        <form id="shopForm" class="sform"><input id="shopIn" placeholder="Add an item…" autocomplete="off"><button class="act" type="submit">Add</button></form>
+        <div class="quick">
+          <div class="tag">⭐ Bought before · tap to add</div>
+          <div class="qtabs" id="qtabs"><button class="sb on" data-q="main">🍖 Mains</button><button class="sb" data-q="side">🥔 Sides</button><button class="sb" data-q="veg">🥕 Veg</button><button class="sb" data-q="other">🧂 Other</button></div>
+          <div class="qchips" id="qchips"></div>
+        </div>
+        <div class="scroll" id="shopList"></div>
+        <div class="btns sbot"><button class="act" id="gotAll">✅ Got all</button><button class="act ghost" id="clearGot">Clear crossed out</button><button class="act ghost idea" id="ideaBtn">💡 Ideas</button></div>
+        <div id="ideaBox" class="ideas" hidden></div>
+      </div>
+    </div>
+  </div>
+  <div id="ver" class="ver"></div>
+</div>
+
+  <!-- Printable fridge sheet: filled by app.js, shown only when printing -->
+  <div id="printSheet"></div>
+
+  <!-- Sheet (modal for pack actions) -->
+  <div id="sheet">
+    <div class="sheet sheet-content">
+      <div><b class="title"></b> · <span class="subtitle"></span></div>
+      <div class="btns">
+        <button class="act" id="actUsed">✅ Used</button>
+        <button class="act part" id="actPart">🌗 Part used</button>
+        <button class="act alt" id="actThrown">🗑️ Thrown away</button>
+        <button class="act ghost" id="actFreeze">🧊 Freeze</button>
+        <button class="act ghost" id="actDelete">🗑️ Delete</button>
+        <button class="act ghost" id="actCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Read a sheet photo (opened by 📷) -->
+  <div id="scanPanel" hidden>
+    <div class="sheet scan-card">
+      <div id="scanPick">
+        <h3>📷 Read a sheet</h3>
+        <div class="note">Take the photo flat, with all 4 black corners in.</div>
+        <div class="tag">Sheet</div>
+        <select id="scanSheet" aria-label="Which printed sheet"></select>
+        <label class="act big scan-photo" for="scanFile">Choose photo</label>
+        <input type="file" id="scanFile" accept="image/*" capture="environment" class="sr-only">
+        <div class="note" id="scanMsg"></div>
+        <button type="button" class="act ghost" id="scanFood">🥫 Add food from photos</button>
+      </div>
+      <div id="scanChanges" hidden>
+        <h3 id="scanHead">📷 Changes found · 0</h3>
+        <div class="note">Tap a letter to fix it. – = no change.</div>
+        <div id="scanRows"></div>
+        <button type="button" class="act big" id="scanApply" disabled>✅ Apply all (0)</button>
+      </div>
+      <button type="button" class="act ghost" id="scanCancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Undo bar -->
+  <div id="undoBar">
+    <button class="undo" id="undoBtn">↩ Undo</button>
+  </div>
+
+  <script src="js/logic.js"></script>
+  <script src="js/omr.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

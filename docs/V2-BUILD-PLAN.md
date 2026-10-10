@@ -90,6 +90,7 @@ Each step: tests first → build → try it → tick it off.
 ### 2. V2 skeleton on GitHub Pages
 
 - [ ] `v2/` copy of the app, opens from the Pages link on a phone (no data yet).
+  - ✅ Built: `v2/` copies + in-memory `v2/js/db.js` (lost on refresh). Tests: `tests/v2-skeleton.test.js`, `npm run check:v2`. ⏳ Phone try-out.
 - [ ] Turn on GitHub Pages for the repo.
 
 ### 3. Sign-in and household
