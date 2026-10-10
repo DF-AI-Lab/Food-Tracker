@@ -2241,5 +2241,5 @@
 
   // Start
   renderTopDate();
-  window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('DOMContentLoaded', () => (window.FT_READY || Promise.resolve()).then(init));
 })();

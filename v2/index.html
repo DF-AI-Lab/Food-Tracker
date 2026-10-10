@@ -16,7 +16,7 @@
   <div id="testBanner" class="testbanner" hidden>🧪 TEST COPY · not your real food</div>
   <div id="top" class="today">
     <span id="today">📅 Today · <b>Loading...</b></span>
-    <span class="pal"><button id="refresh" title="Get the latest version" aria-label="Get the latest version">🔄</button><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="theme" title="Switch theme" aria-label="Switch theme">☀️</button></span>
+    <span class="pal"><button id="refresh" title="Get the latest version" aria-label="Get the latest version">🔄</button><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="theme" title="Switch theme" aria-label="Switch theme">☀️</button><button id="settingsBtn" title="Settings" aria-label="Settings">⚙️</button></span>
   </div>
   <div class="note" id="updNote" hidden></div>
 
@@ -232,9 +232,44 @@
     <button class="undo" id="undoBtn">↩ Undo</button>
   </div>
 
+  <!-- Sign-in gate (account.js shows it until the user is in a household) -->
+  <div id="gate" class="overlay">
+    <div class="sheet ocard">
+      <h2>🥕 Food Tracker</h2>
+      <button class="act big" id="signIn">🔐 Sign in with Google</button>
+      <div id="joinPart" hidden>
+        <div class="tag">🏠 Make a household</div>
+        <div class="sform"><input id="hhName" value="Home" aria-label="Household name"></div>
+        <button class="act" id="makeHH">🏠 Make a household</button>
+        <div class="tag">🎟️ Or join one</div>
+        <div class="sform"><input id="joinCode" placeholder="Invite code" autocomplete="off" aria-label="Invite code"><button class="act" id="joinBtn">🎟️ Join</button></div>
+      </div>
+      <div class="note" id="gateMsg"></div>
+    </div>
+  </div>
+
+  <!-- Settings (⚙️): household, members, invite, sign out -->
+  <div id="settings" class="overlay" hidden>
+    <div class="sheet ocard">
+      <div class="wkhead"><h2 id="hhTitle"></h2><button class="undo" id="settingsClose">Close</button></div>
+      <div class="tag">👥 Members</div>
+      <ul id="members"></ul>
+      <button class="act" id="inviteBtn">🎟️ Invite someone</button>
+      <div id="inviteBox" hidden>
+        <div class="tag">Invite code</div>
+        <b id="inviteCode" class="invite-code"></b>
+        <a id="inviteLink" class="invite-link"></a>
+        <div id="inviteQr"></div>
+        <div class="note">Works for 24 hours</div>
+      </div>
+      <button class="act ghost" id="signOut">Sign out</button>
+    </div>
+  </div>
+
   <script src="js/logic.js"></script>
   <script src="js/omr.js"></script>
   <script src="js/db.js"></script>
   <script src="js/app.js"></script>
+  <script type="module" src="js/account.js"></script>
 </body>
 </html>
