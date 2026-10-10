@@ -135,6 +135,8 @@ async function start() {
     if (!h) return enter(user);
 
     $("hhTitle").textContent = h.name;
+    const v = window.FT_VERSION;
+    $("settingsVer").textContent = v ? `App version v${v.n} · ${v.date}` : "";
     const list = $("members");
     list.innerHTML = "";
     for (const m of h.members) {

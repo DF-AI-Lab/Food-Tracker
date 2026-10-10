@@ -73,6 +73,10 @@ function startStatic() {
     await until(async () => assert.equal(await page.locator("#mains .pack").count(), 1));
   });
 
+  await step("version number shows at the bottom", async () => {
+    await until(async () => assert.match(await text("#ver"), /^v\d+ · \d+ \w+$/));
+  });
+
   await step("test banner stays hidden", async () => {
     assert.equal(await page.locator("#testBanner").isVisible(), false);
   });
