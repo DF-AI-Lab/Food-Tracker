@@ -1,0 +1,15 @@
+# User photos and images
+images/
+
+# Private app data
+FoodTrackerData/
+
+# SQLite databases (any location)
+*.db
+
+# Firebase admin key and service-account downloads
+firebase-key.json
+*-firebase-adminsdk-*.json
+
+# Dependencies
+node_modules/
