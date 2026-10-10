@@ -79,8 +79,8 @@ Each step: tests first → build → try it → tick it off.
 
 ### 1. Photo try-out (new territory, so first)
 
-- [ ] Phone: take a photo → Share → Google Drive → `Food Tracker/New`.
-- [ ] PC: Google Drive for desktop syncs it; the skill sees it.
+- [x] Phone: take a photo → Share → Google Drive → `Food Tracker/New`.
+- [x] PC: Google Drive for desktop syncs it; the skill sees it.
 - [ ] Skill writes **one item** to `inbox` using the PC key file. See it in the Firebase console.
   - Script: `node tools/inbox-push.js <key-file> tryout tools/tryout-item.json` → `households/tryout/inbox`. Delete `tryout` after.
 - Photos go to Drive account **`df.ai.lab.hq@gmail.com`** (owner on the Firebase project), folder `Food Tracker/New`.
