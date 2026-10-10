@@ -140,6 +140,7 @@ export function makeCloudDB(F, db, householdId, uid) {
       const id = await packs.add(item);
       // Remember the food name, so the usual buttons can offer it (one entry per name)
       const name = String(item.name || "").trim();
+      if (!name) return id;
       failed(F.setDoc(F.doc(col("foods"), encodeURIComponent(name.toLowerCase())), {
         name,
         kind: item.kind ?? null,

@@ -1185,7 +1185,11 @@
           btn.classList.add('plan');
           tag.textContent = '🍽️ ' + shortDay(pack.plannedFor);
         }
-        btn.append(when, tag);
+        // The name is on the card; it is also in the button for screen readers (and the checks)
+        const hidden = document.createElement('span');
+        hidden.className = 'sr-only';
+        hidden.textContent = card.name;
+        btn.append(hidden, when, tag);
         btn.addEventListener('click', () => packTap(pack));
         packsEl.appendChild(btn);
       });

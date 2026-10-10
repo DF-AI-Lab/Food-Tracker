@@ -9,6 +9,12 @@
   const KINDS = ["main", "side", "veg", "misc"];
 
   // Date utilities
+  // Ids are strings in V2 (cloud ids), numbers in V1: compare both the same way
+  function byId(a, b) {
+    const x = String(a.id), y = String(b.id);
+    return x < y ? -1 : x > y ? 1 : 0;
+  }
+
   function addDays(iso, n) {
     const d = new Date(iso + "T00:00:00Z");
     d.setUTCDate(d.getUTCDate() + n);
@@ -246,7 +252,7 @@
     // Sort by date
     const sorted = filtered.sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return a.id - b.id; // stable sort by id
+      return byId(a, b); // stable sort by id
     });
 
     // Group by name
@@ -566,7 +572,7 @@
     );
 
     const sortKey = p => (slot === "veg" ? p.added : p.date);
-    const byKey = (a, b) => sortKey(a).localeCompare(sortKey(b)) || a.id - b.id;
+    const byKey = (a, b) => sortKey(a).localeCompare(sortKey(b)) || byId(a, b);
 
     const groups = new Map();
     for (const p of free.sort(byKey)) {
@@ -647,7 +653,7 @@
   // Shopping list
   // Order: to get (newest first), then crossed out, then deleted today or yesterday
   function byNewest(a, b) {
-    return b.added.localeCompare(a.added) || b.id - a.id;
+    return b.added.localeCompare(a.added) || byId(b, a);
   }
 
   function shopOrder(items, today) {
@@ -808,10 +814,10 @@
 
   // Dated packs soonest first (then id), then undated packs oldest added first (then id)
   function sheetOrder(a, b) {
-    if (a.date && b.date) return a.date.localeCompare(b.date) || a.id - b.id;
+    if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
     if (a.date) return -1;
     if (b.date) return 1;
-    return a.added.localeCompare(b.added) || a.id - b.id;
+    return a.added.localeCompare(b.added) || byId(a, b);
   }
 
   function printSheet(packs, today, { rows = 17 } = {}) {

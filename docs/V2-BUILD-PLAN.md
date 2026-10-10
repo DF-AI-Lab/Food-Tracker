@@ -104,10 +104,12 @@ Each step: tests first → build → try it → tick it off.
 
 ### 4. Data layer: Firestore instead of the server
 
-- [ ] `v2/js/db.js` on Firestore with **offline persistence on**.
-- [ ] Same `DB` shape as V1, so screens keep working.
-- [ ] Add `updatedBy` / `updatedAt` on every save. Keep `foods` up to date on each Add.
+- [x] `v2/js/db.js` on Firestore with **offline persistence on**. (`v2/js/db-firestore.js`; `db.js` stays for `?local=1`.)
+- [x] Same `DB` shape as V1, so screens keep working.
+- [x] Add `updatedBy` / `updatedAt` on every save. Keep `foods` up to date on each Add.
 - [ ] Load only what each screen needs (keep reads low).
+  - Decision 2026-10-10: load **all** packs for now (usual buttons + meal ideas use the whole history). ~10k reads/day after a year vs 50k free. `foods` is kept up to date so this can be slimmed later.
+  - Tests: `npm run check:rules` (incl. `db-firestore.check.js`), `npm run check:sync` (2 browsers, live + offline). ⏳ Try on both phones.
 
 ### 5. Sync rules and sync sign
 
@@ -123,7 +125,8 @@ Each step: tests first → build → try it → tick it off.
 
 ### 🎨 Look (after the gears work)
 
-The user finds the current look too childish ("looks like a 5 year old did it"). Fix it here, once steps 0–6 work.
+The user found the V1 look too childish ("looks like a 5 year old did it"). Fix it here, once steps 0–6 work.
+**Update 2026-10-10:** on the phone, Darren said V2 "looks stunning". Ask before restyling; this step may shrink to small tweaks.
 
 - [ ] Ask the user for screenshots of apps whose look they like.
 - [ ] Make **2–3 clickable style mock-ups** (open on the phone). User picks one. No tests, no Haiku for mock-ups.
