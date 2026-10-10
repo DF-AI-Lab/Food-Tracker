@@ -6,8 +6,9 @@
     "start": "node server/server.js",
     "check:screens": "node tests/screens.check.js",
     "check:v2": "node tests/v2-screens.check.js",
-    "check:rules": "firebase emulators:exec --only firestore --project demo-food-tracker \"node --test --test-concurrency=1 tests/rules.check.js tests/household.check.js\"",
-    "check:account": "firebase emulators:exec --only firestore,auth --project demo-food-tracker \"node tests/v2-account.check.js\""
+    "check:rules": "firebase emulators:exec --only firestore --project demo-food-tracker \"node --test --test-concurrency=1 tests/rules.check.js tests/household.check.js tests/db-firestore.check.js\"",
+    "check:account": "firebase emulators:exec --only firestore,auth --project demo-food-tracker \"node tests/v2-account.check.js\"",
+    "check:sync": "firebase emulators:exec --only firestore,auth --project demo-food-tracker \"node tests/v2-sync.check.js\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",

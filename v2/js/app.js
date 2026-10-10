@@ -102,7 +102,7 @@
     };
     const rows = Array.from(page.querySelectorAll('.ps-top tr[data-id]')).map(tr => ({
       no: tr.querySelector('td.id').textContent.trim(),
-      id: Number(tr.dataset.id),
+      id: tr.dataset.id,
       name: tr.children[1].textContent.trim(),
       boxes: Array.from(tr.querySelectorAll('td.bx span')).map(rectOf)
     }));
@@ -181,6 +181,17 @@
     // here, so the first silent check waits a minute
     setTimeout(() => checkUpdate(false), justUpdated ? 60 * 1000 : 0);
     setInterval(() => checkUpdate(false), 60 * 60 * 1000);
+
+    // Another phone changed something: reload the lists the same way init does, then redraw
+    if (DB.onChange) {
+      DB.onChange(async () => {
+        packs = await DB.all();
+        shop = await DB.shop.all();
+        meals = await DB.meals.all();
+        for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
+        renderAll();
+      });
+    }
   }
 
   // Short note under the top bar; hides itself after ms
@@ -1174,7 +1185,11 @@
           btn.classList.add('plan');
           tag.textContent = '🍽️ ' + shortDay(pack.plannedFor);
         }
-        btn.append(when, tag);
+        // The name is on the card; it is also in the button for screen readers (and the checks)
+        const hidden = document.createElement('span');
+        hidden.className = 'sr-only';
+        hidden.textContent = card.name;
+        btn.append(hidden, when, tag);
         btn.addEventListener('click', () => packTap(pack));
         packsEl.appendChild(btn);
       });
@@ -1509,7 +1524,7 @@
   // Soonest free fridge pack for a food name; undated packs last
   function soonestFree(name) {
     const key = name.toLowerCase();
-    const byDate = (a, b) => (!a.date) - (!b.date) || (a.date || '').localeCompare(b.date || '') || a.id - b.id;
+    const byDate = (a, b) => (!a.date) - (!b.date) || (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id));
     return packs
       .filter(p => p.status === 'in_fridge' && !p.plannedFor && p.name.toLowerCase() === key)
       .sort(byDate)[0] || null;

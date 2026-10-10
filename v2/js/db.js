@@ -1,6 +1,7 @@
 // V2 step 2: data kept in memory only (lost on refresh). Step 4 swaps this for Firestore with the same shape.
 (function() {
-  // One counter for every list, so ids are unique across packs, shop, meals and sheets
+  // One counter for every list, so ids are unique across packs, shop, meals and sheets.
+  // Ids are strings ("m1", "m2"...), like the Firestore doc ids in step 4.
   let nextId = 1;
 
   // Copy in and out, so a caller changing an item does not change the stored one
@@ -19,7 +20,7 @@
         return copy(items.get(id));
       },
       async add(item) {
-        const id = nextId++;
+        const id = "m" + nextId++;
         const stored = copy(item);
         stored.id = id;
         items.set(id, stored);
