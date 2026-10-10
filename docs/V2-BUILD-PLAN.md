@@ -17,7 +17,7 @@ This file turns them into build steps. Read the map's ticket comments for the de
 - Tests first, then Haiku builds, Sonnet if Haiku fails. Short progress updates.
 - **Get it working first**, plain screens, then pretty.
 - **Test early:** each step ends with a small try-out on a real phone where it can.
-- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first.
+- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first. **Bump `n` in `v2/js/version.js` on every merge** (shown at the bottom of the app and in ⚙️ Settings).
 
 ## Where V2 lives
 

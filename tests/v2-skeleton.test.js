@@ -91,3 +91,11 @@ test("v2 DB ratings are keyed by name", async () => {
   await DB.ratings.put({ name: "Curry", rating: -1 });
   assert.deepEqual(plain(await DB.ratings.all()), [{ name: "Curry", rating: -1 }]);
 });
+
+test("v2 has a version number the app shows (bumped on every merge)", () => {
+  const window = {};
+  vm.runInNewContext(read("js/version.js"), { window });
+  assert.ok(Number.isInteger(window.FT_VERSION.n) && window.FT_VERSION.n > 0);
+  assert.match(window.FT_VERSION.date, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(read("index.html").includes('src="js/version.js"'));
+});

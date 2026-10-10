@@ -136,13 +136,8 @@
   }
 
   async function init() {
-    // The TEST copy shows a red banner (the real copy stays hidden)
-    try {
-      const banner = document.getElementById('testBanner');
-      fetch('/api/info').then(r => r.json()).then(i => { if (i.test) banner.hidden = false; renderVersion(i); }).catch(() => renderVersion(null));
-    } catch (e) {
-      // no banner
-    }
+    // V2 has no PC server: the version comes from js/version.js
+    renderVersion({ version: window.FT_VERSION });
     await DB.open();
     // Sync sign on the Today line: redraw whenever online or waiting changes
     renderSync();
@@ -180,10 +175,6 @@
     } catch (e) { /* ignore */ }
     if (justUpdated) showUpdateNote();
 
-    // Look for updates soon, then every hour. After an update reload the new code is already
-    // here, so the first silent check waits a minute
-    setTimeout(() => checkUpdate(false), justUpdated ? 60 * 1000 : 0);
-    setInterval(() => checkUpdate(false), 60 * 60 * 1000);
 
     // Another phone changed something: reload the lists the same way init does, then redraw
     if (DB.onChange) {
@@ -342,7 +333,8 @@
     });
 
     // 🔄: get the latest version now
-    document.getElementById('refresh').addEventListener('click', () => checkUpdate(true));
+    // V2: 🔄 just reloads the page (GitHub Pages serves the newest files)
+    document.getElementById('refresh').addEventListener('click', () => location.reload());
 
     // Print: fill the A4 fridge sheet, then open the print dialog
     document.getElementById('printF').addEventListener('click', printFridgeSheet);
