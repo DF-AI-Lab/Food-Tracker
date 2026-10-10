@@ -70,8 +70,11 @@ Each step: tests first → build → try it → tick it off.
 ### 0. Prep (no app code)
 
 - [x] Add a **`.gitignore`**: `images/`, `FoodTrackerData/`, `*.db`, the PC key file. The repo is public.
-- [ ] **You:** create a Firebase project (free Spark plan, no card), turn on **Firestore** and **Google sign-in**. Checklist given at the time.
+- [x] **You:** create a Firebase project (free Spark plan, no card), turn on **Firestore** and **Google sign-in**. Checklist given at the time.
 - [ ] Re-check on Firebase's own pages: free limits, and that photo **Storage** needs a card (why we use Drive).
+  - ✅ Storage: console says *"To use Storage, upgrade your project's pricing plan"* (checked 2026-10-10).
+  - ⏳ Free limits: still to check (Firestore → Usage tab).
+- Project ID: **`food-tracker-92b1c`** · Spark plan · Firestore Standard, `europe-west2`, production mode · Google sign-in on.
 
 ### 1. Photo try-out (new territory, so first)
 
