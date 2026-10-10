@@ -13,3 +13,6 @@ firebase-key.json
 
 # Dependencies
 node_modules/
+
+# Emulator logs
+*-debug.log
