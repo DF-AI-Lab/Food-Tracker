@@ -143,6 +143,53 @@ function startStatic() {
     await until(A.page, async () => assert.equal(await fridgeCount(A.page), 1));
   });
 
+  // ---------- step 5: sync sign and safe undo ----------
+  const sign = page => page.locator("#sync").innerText();
+
+  await step("sync sign says synced", async () => {
+    await until(A.page, async () => assert.equal(await sign(A.page), "✅ synced"));
+    await until(B.page, async () => assert.equal(await sign(B.page), "✅ synced"));
+  });
+
+  await step("offline: sign says offline, then counts what is waiting", async () => {
+    await A.ctx.setOffline(true);
+    await until(A.page, async () => assert.equal(await sign(A.page), "📴 offline"));
+    await addMain(A.page, "Gammon");
+    await until(A.page, async () => assert.equal(await sign(A.page), "📴 offline · 1 waiting"));
+  });
+
+  await step("back online: sign goes back to synced", async () => {
+    await A.ctx.setOffline(false);
+    await until(A.page, async () => assert.equal(await sign(A.page), "✅ synced"));
+    await showFridge(B.page);
+    await until(B.page, async () => assert.match(await B.page.locator("#mains").innerText(), /Gammon/));
+  });
+
+  await step("undo is refused when the other phone changed it since", async () => {
+    await addMain(A.page, "Bacon");            // alice's last tap: add Bacon
+    await showFridge(B.page);
+    await until(B.page, async () => assert.match(await B.page.locator("#mains").innerText(), /Bacon/));
+    await B.page.locator("#mains .pack", { hasText: "Bacon" }).click();
+    await B.page.click("#actUsed");            // bob uses it up
+    await showFridge(A.page);
+    await until(A.page, async () => assert.doesNotMatch(await A.page.locator("#mains").innerText(), /Bacon/));
+    await A.page.click("#undoBtn");            // alice tries to undo her add
+    await until(A.page, async () => assert.match(await A.page.locator("#updNote").innerText(), /Changed on another phone, can't undo/));
+    await A.page.waitForTimeout(1500);
+    await B.page.click('[data-view="used"]');
+    assert.match(await B.page.locator("#usedList").innerText(), /Bacon/, "bob's Used stays");
+  });
+
+  await step("undo still works on your own change", async () => {
+    await showFridge(A.page);
+    const before = await fridgeCount(A.page);
+    await addMain(A.page, "Ham");
+    await showFridge(A.page);
+    await until(A.page, async () => assert.equal(await fridgeCount(A.page), before + 1));
+    await A.page.click("#undoBtn");
+    await until(A.page, async () => assert.equal(await fridgeCount(A.page), before));
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   await browser.close();

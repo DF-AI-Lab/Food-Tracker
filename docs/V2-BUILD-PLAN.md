@@ -17,6 +17,7 @@ This file turns them into build steps. Read the map's ticket comments for the de
 - Tests first, then Haiku builds, Sonnet if Haiku fails. Short progress updates.
 - **Get it working first**, plain screens, then pretty.
 - **Test early:** each step ends with a small try-out on a real phone where it can.
+- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first.
 
 ## Where V2 lives
 
@@ -107,14 +108,14 @@ Each step: tests first → build → try it → tick it off.
 - [x] `v2/js/db.js` on Firestore with **offline persistence on**. (`v2/js/db-firestore.js`; `db.js` stays for `?local=1`.)
 - [x] Same `DB` shape as V1, so screens keep working.
 - [x] Add `updatedBy` / `updatedAt` on every save. Keep `foods` up to date on each Add.
-- [ ] Load only what each screen needs (keep reads low).
+- [x] Load only what each screen needs (keep reads low).
   - Decision 2026-10-10: load **all** packs for now (usual buttons + meal ideas use the whole history). ~10k reads/day after a year vs 50k free. `foods` is kept up to date so this can be slimmed later.
-  - Tests: `npm run check:rules` (incl. `db-firestore.check.js`), `npm run check:sync` (2 browsers, live + offline). ⏳ Try on both phones.
+  - Tests: `npm run check:rules` (incl. `db-firestore.check.js`), `npm run check:sync` (2 browsers, live + offline). ✅ Tried on both phones 2026-10-10: live sync, one offline, and both offline then back: all matched.
 
 ### 5. Sync rules and sync sign
 
-- [ ] ✅ / ⏳ / 📴 on the Today line.
-- [ ] Undo check against `updatedBy` / `updatedAt`.
+- [x] ✅ / ⏳ / 📴 on the Today line (under the date).
+- [x] Undo check against `updatedBy` / `updatedAt`. Tests: `tests/v2-sync-rules.test.js`, step-5 parts of `check:rules` and `check:sync`.
 - [ ] Try it: both phones offline, both change things, back online → matches the rules above.
 
 ### 6. Install and updates
@@ -132,6 +133,11 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 - [ ] Make **2–3 clickable style mock-ups** (open on the phone). User picks one. No tests, no Haiku for mock-ups.
 - [ ] Restyle V2 to the picked style (mostly `css/`), then carry on with step 7.
 
+### 7a. ✏️ Edit a pack (added 2026-10-10)
+
+- [ ] Tap a pack → **✏️ Edit** → change name, sub (e.g. *Asda*), kind, date, date type, price. Save syncs to both phones.
+- [ ] Undo works on an edit, like other taps.
+
 ### 7. 📥 Inbox (photos → confirm)
 
 - [ ] Add tab shows *"📷 N waiting to confirm"* → Quick fill → confirm. Confirmed = gone for everyone.
@@ -139,7 +145,9 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 
 ### 8. Fridge sheet
 
-- [ ] **Print** from the PC browser (same A4 sheet as V1).
+- [ ] **Print** from the PC browser. **New layout (Darren, 2026-10-10):**
+  - Remove the **meals** and the **added** sections, so as many items + dates as possible fit.
+  - Near the bottom: a strip of the **next 7 days** after printing, e.g. *Mon 12 · Tue 13 · … · Sun 18*.
 - [ ] **📷 Scan** with the phone camera in the app, no AI. Skips packs already changed.
 
 ### 9. Backups

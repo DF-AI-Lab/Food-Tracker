@@ -390,3 +390,7 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 .invite-code{font-family:var(--display);font-size:28px;letter-spacing:.12em}
 .invite-link{font-size:13px;word-break:break-all;color:var(--accent)}
 #inviteQr svg{display:block;width:200px;height:200px;max-width:100%;background:#fff;border-radius:8px}
+
+/* Date on top, sync sign underneath it */
+#top .todaycol{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+#top .sync{font-size:12px;white-space:nowrap;opacity:.85}

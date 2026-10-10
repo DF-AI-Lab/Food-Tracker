@@ -176,3 +176,33 @@ test("a stranger cannot open the household", async () => {
   await assert.rejects(DB.open());
   DB.close();
 });
+
+// ---------- step 5: who am I, and how many changes are waiting ----------
+// waiting = list changes (not the foods memory) the cloud has not confirmed yet
+
+test("DB knows whose phone it is", async () => {
+  const DB = await openAs("alice");
+  assert.equal(DB.uid, "alice");
+  DB.close();
+});
+
+test("waiting counts changes not yet in the cloud, and drops to 0 when they arrive", async () => {
+  const fs_ = as("alice");
+  const DB = makeCloudDB(F, fs_, H, "alice");
+  await DB.open();
+  const seen = [];
+  DB.onStatus(s => seen.push(s.waiting));
+  assert.equal(DB.status().waiting, 0);
+
+  await F.disableNetwork(fs_);
+  const id = await DB.add({ name: "Milk" });
+  await DB.shop.add({ name: "Bread" });
+  await until(async () => assert.equal(DB.status().waiting, 2));
+  await DB.remove(id);
+  await until(async () => assert.equal(DB.status().waiting, 3, "every change counts until the cloud has it"));
+
+  await F.enableNetwork(fs_);
+  await until(async () => assert.equal(DB.status().waiting, 0));
+  assert.ok(seen.includes(0) && seen.some(n => n > 0), "onStatus was told about the changes");
+  DB.close();
+});

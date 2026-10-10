@@ -144,6 +144,9 @@
       // no banner
     }
     await DB.open();
+    // Sync sign on the Today line: redraw whenever online or waiting changes
+    renderSync();
+    if (DB.onStatus) DB.onStatus(renderSync);
     packs = await DB.all();
     // Remove deletes that are older than yesterday (they can no longer be undone)
     const expired = FT.expiredDeletes(packs, today);
@@ -192,6 +195,12 @@
         renderAll();
       });
     }
+  }
+
+  // Sync sign: ✅ synced · ⏳ N waiting · 📴 offline
+  function renderSync() {
+    const el = document.getElementById('sync');
+    if (el) el.textContent = FT.syncLabel(DB.status());
   }
 
   // Short note under the top bar; hides itself after ms
@@ -1115,6 +1124,22 @@
 
   async function undo() {
     if (!lastAction) return;
+
+    // Undo only your own last tap: refuse if another phone changed these since
+    const ids = lastAction.type === 'add' ? lastAction.ids
+      : lastAction.type === 'batch' ? lastAction.befores.map(b => b.id)
+      : [lastAction.packId];
+    const current = {};
+    for (const id of ids) {
+      const pack = await DB.get(id);
+      if (pack !== undefined) current[id] = pack;
+    }
+    if (FT.undoBlocked(ids, current, DB.uid)) {
+      flashNote(FT.UNDO_BLOCKED_MSG, 4000);
+      lastAction = null;
+      document.getElementById('undoBar').style.display = 'none';
+      return;
+    }
 
     try {
       if (lastAction.type === 'add') {
