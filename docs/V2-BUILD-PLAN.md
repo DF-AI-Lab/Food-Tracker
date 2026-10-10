@@ -110,6 +110,14 @@ Each step: tests first → build → try it → tick it off.
 - [ ] Our own **📲 Install** button as a fallback.
 - [ ] New version → *"New version, tap to refresh"*.
 
+### 🎨 Look (after the gears work)
+
+The user finds the current look too childish ("looks like a 5 year old did it"). Fix it here, once steps 0–6 work.
+
+- [ ] Ask the user for screenshots of apps whose look they like.
+- [ ] Make **2–3 clickable style mock-ups** (open on the phone). User picks one. No tests, no Haiku for mock-ups.
+- [ ] Restyle V2 to the picked style (mostly `css/`), then carry on with step 7.
+
 ### 7. 📥 Inbox (photos → confirm)
 
 - [ ] Add tab shows *"📷 N waiting to confirm"* → Quick fill → confirm. Confirmed = gone for everyone.
