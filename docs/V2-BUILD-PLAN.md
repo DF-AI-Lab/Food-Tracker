@@ -5,7 +5,8 @@ This file turns them into build steps. Read the map's ticket comments for the de
 
 ## In one glance
 
-- **V2 = a separate phone app.** V1 (the PC app: Node server + SQLite) stays exactly as it is. No data moved.
+- **V2 = a separate phone app.** V1 (the PC app: Node server + SQLite) stays exactly as it is, and stays in daily use until switch-over.
+- **Test first, then move:** test in a throwaway `tryout` household; at switch-over, copy **all V1 data** into the real household.
 - 2 people · 2 Samsung Android phones + the PC browser · every device equal.
 - **Works offline, then syncs.** Cloud holds the data, the PC can be off.
 - **£0:** Firestore free (Spark) plan · GitHub Pages hosting · Google Drive for photos.
@@ -94,7 +95,6 @@ Each step: tests first → build → try it → tick it off.
 - [ ] Google sign-in, stays logged in.
 - [ ] First person creates the household. **Invite code / QR** → second phone scans → signs in → joins.
 - [ ] Settings → **Members** list with ❌ to remove.
-- [ ] Load Darren's **V1 photo JSON** (already read from 29 photos) into the real household's `inbox` with `tools/inbox-push.js`. Don't re-read those photos.
 - [ ] Security rules: members only. Test that a non-member sees nothing.
 
 ### 4. Data layer: Firestore instead of the server
@@ -142,10 +142,13 @@ The user finds the current look too childish ("looks like a 5 year old did it").
 
 ### 10. Live on both phones
 
+- [ ] **Copy all V1 data** (`FoodTrackerData/food.db`) into the real household: one-off PC script, tests first. Back up `food.db` first. Wipe `tryout`.
+- [ ] The 29 photos already read in V1 are covered by this copy. Don't re-read them or load their JSON (doubles).
+
 - [ ] Install on both Samsungs, join the household, use it for a week.
 - [ ] Note anything to tune → [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39).
 
 ## Not in V2
 
-- Moving V1 data across · changing the V1 PC app · iPhones · app stores.
+- Changing the V1 PC app · iPhones · app stores.
 - Fully automatic photos (serverless + Claude API), prices/receipts, recipes: [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39).
