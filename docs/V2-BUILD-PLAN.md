@@ -123,7 +123,7 @@ Each step: tests first → build → try it → tick it off.
 
 - [x] `manifest.webmanifest` + icons + service worker (`v2/sw.js`) → Chrome shows **"Install app"**. Opens offline.
 - [x] Our own **📲 Install** button as a fallback (`v2/js/pwa.js`).
-- [x] New version → *"New version, tap to refresh"*. Tests: `tests/v2-pwa.test.js`, `npm run check:pwa`. ⏳ Try on both phones.
+- [x] New version → *"New version, tap to refresh"*. Tests: `tests/v2-pwa.test.js`, `npm run check:pwa`. ✅ 2026-10-10: installed on both phones (v7), opens offline. The "new version" note gets its first real try on the next merge.
 
 ### 🎨 Look (after the gears work)
 
