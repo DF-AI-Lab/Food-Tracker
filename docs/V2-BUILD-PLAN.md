@@ -5,7 +5,8 @@ This file turns them into build steps. Read the map's ticket comments for the de
 
 ## In one glance
 
-- **V2 = a separate phone app.** V1 (the PC app: Node server + SQLite) stays exactly as it is. No data moved.
+- **V2 = a separate phone app.** V1 (the PC app: Node server + SQLite) stays exactly as it is, and stays in daily use until switch-over.
+- **Test first, then move:** test in a throwaway `tryout` household; at switch-over, copy **all V1 data** into the real household.
 - 2 people · 2 Samsung Android phones + the PC browser · every device equal.
 - **Works offline, then syncs.** Cloud holds the data, the PC can be off.
 - **£0:** Firestore free (Spark) plan · GitHub Pages hosting · Google Drive for photos.
@@ -69,15 +70,20 @@ Each step: tests first → build → try it → tick it off.
 
 ### 0. Prep (no app code)
 
-- [ ] Add a **`.gitignore`**: `images/`, `FoodTrackerData/`, `*.db`, the PC key file. The repo is public.
-- [ ] **You:** create a Firebase project (free Spark plan, no card), turn on **Firestore** and **Google sign-in**. Checklist given at the time.
-- [ ] Re-check on Firebase's own pages: free limits, and that photo **Storage** needs a card (why we use Drive).
+- [x] Add a **`.gitignore`**: `images/`, `FoodTrackerData/`, `*.db`, the PC key file. The repo is public.
+- [x] **You:** create a Firebase project (free Spark plan, no card), turn on **Firestore** and **Google sign-in**. Checklist given at the time.
+- [x] Re-check on Firebase's own pages: free limits, and that photo **Storage** needs a card (why we use Drive).
+  - ✅ Storage: console says *"To use Storage, upgrade your project's pricing plan"* (checked 2026-10-10).
+  - ✅ Free limits (Usage and billing, 2026-10-10): 50K reads/day · 20K writes/day · 20K deletes/day · 1 GB stored · 10 GB bandwidth/month.
+- Project ID: **`food-tracker-92b1c`** · Spark plan · Firestore Standard, `europe-west2`, production mode · Google sign-in on · authorised domain `df-ai-lab.github.io` added.
 
 ### 1. Photo try-out (new territory, so first)
 
-- [ ] Phone: take a photo → Share → Google Drive → `Food Tracker/New`.
-- [ ] PC: Google Drive for desktop syncs it; the skill sees it.
+- [x] Phone: take a photo → Share → Google Drive → `Food Tracker/New`.
+- [x] PC: Google Drive for desktop syncs it; the skill sees it.
 - [ ] Skill writes **one item** to `inbox` using the PC key file. See it in the Firebase console.
+  - Script: `node tools/inbox-push.js <key-file> tryout tools/tryout-item.json` → `households/tryout/inbox`. Delete `tryout` after.
+- Photos go to Drive account **`df.ai.lab.hq@gmail.com`** (owner on the Firebase project), folder `Food Tracker/New`.
 
 ### 2. V2 skeleton on GitHub Pages
 
@@ -136,10 +142,13 @@ The user finds the current look too childish ("looks like a 5 year old did it").
 
 ### 10. Live on both phones
 
+- [ ] **Copy all V1 data** (`FoodTrackerData/food.db`) into the real household: one-off PC script, tests first. Back up `food.db` first. Wipe `tryout`.
+- [ ] The 29 photos already read in V1 are covered by this copy. Don't re-read them or load their JSON (doubles).
+
 - [ ] Install on both Samsungs, join the household, use it for a week.
 - [ ] Note anything to tune → [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39).
 
 ## Not in V2
 
-- Moving V1 data across · changing the V1 PC app · iPhones · app stores.
+- Changing the V1 PC app · iPhones · app stores.
 - Fully automatic photos (serverless + Claude API), prices/receipts, recipes: [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39).
