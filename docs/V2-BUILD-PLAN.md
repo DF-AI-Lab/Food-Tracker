@@ -151,6 +151,9 @@ Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
 - [ ] In the app: **📷 take photos of packets** → tap **📖 Read** → Claude (Sonnet-class) reads name, sub, use-by / best-before, packs → **Quick fill to confirm** → added.
 - [ ] A small free **Cloudflare Worker** holds the Claude API key (never in the app or the repo). Only signed-in household members can use it.
 - [ ] **Budget: under $1/month** (Darren, 2026-10-10). Check the real cost per photo first; cap usage in the Worker.
+- [ ] **Pick the model by testing on Darren's 29 real packet photos** (in Drive `Food Tracker/Processed`): Sonnet 5.5 vs Sonnet 5 vs Opus 5.5. Score name, date, use-by vs best-before. Cheapest that gets dates right wins.
+  - Haiku: Darren tested it, **not good enough** (missed a lot). Don't use.
+  - Rough cost (Oct 2026 prices): ~1¢ a photo on Sonnet 5.5 → 100 photos ≈ $0.70–$1/month. Sonnet 5 same price; Sonnet 4.6 1.5× dearer; Opus 5.5 ~2×. Shrink photos on the phone first (~1600px).
 - [ ] **Packets only in V2.** Receipts (names + prices, no dates) are V3: needs solving how to match them to packets first.
 
 ### 8. Fridge sheet
