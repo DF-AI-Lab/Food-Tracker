@@ -116,7 +116,8 @@ Each step: tests first → build → try it → tick it off.
 
 - [x] ✅ / ⏳ / 📴 on the Today line (under the date).
 - [x] Undo check against `updatedBy` / `updatedAt`. Tests: `tests/v2-sync-rules.test.js`, step-5 parts of `check:rules` and `check:sync`.
-- [ ] Try it: both phones offline, both change things, back online → matches the rules above.
+- [x] Try it: both phones offline, both change things, back online → matches the rules above.
+  - ✅ 2026-10-10 on both phones: sync sign, offline waiting count, both offline then back. A stale-cache bug on phone 2 (Used didn't work) was fixed by clearing its cache; the version number (v6) now shows which code each phone runs. Step 6 removes the stale-cache problem.
 
 ### 6. Install and updates
 
