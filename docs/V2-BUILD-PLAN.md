@@ -17,7 +17,7 @@ This file turns them into build steps. Read the map's ticket comments for the de
 - Tests first, then Haiku builds, Sonnet if Haiku fails. Short progress updates.
 - **Get it working first**, plain screens, then pretty.
 - **Test early:** each step ends with a small try-out on a real phone where it can.
-- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first. **Bump `n` in `v2/js/version.js` on every merge** (shown at the bottom of the app and in ⚙️ Settings).
+- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first. **Bump `n` in `v2/js/version.js` AND `VERSION` in `v2/sw.js` on every merge** (a test checks they match; a new number is what makes phones show *New version, tap to refresh*) (shown at the bottom of the app and in ⚙️ Settings).
 
 ## Where V2 lives
 
@@ -121,9 +121,9 @@ Each step: tests first → build → try it → tick it off.
 
 ### 6. Install and updates
 
-- [ ] `manifest.json` + icons + service worker → Chrome shows **"Install app"**.
-- [ ] Our own **📲 Install** button as a fallback.
-- [ ] New version → *"New version, tap to refresh"*.
+- [x] `manifest.webmanifest` + icons + service worker (`v2/sw.js`) → Chrome shows **"Install app"**. Opens offline.
+- [x] Our own **📲 Install** button as a fallback (`v2/js/pwa.js`).
+- [x] New version → *"New version, tap to refresh"*. Tests: `tests/v2-pwa.test.js`, `npm run check:pwa`. ⏳ Try on both phones.
 
 ### 🎨 Look (after the gears work)
 
