@@ -133,6 +133,11 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 - [ ] Make **2–3 clickable style mock-ups** (open on the phone). User picks one. No tests, no Haiku for mock-ups.
 - [ ] Restyle V2 to the picked style (mostly `css/`), then carry on with step 7.
 
+### 7a. ✏️ Edit a pack (added 2026-10-10)
+
+- [ ] Tap a pack → **✏️ Edit** → change name, sub (e.g. *Asda*), kind, date, date type, price. Save syncs to both phones.
+- [ ] Undo works on an edit, like other taps.
+
 ### 7. 📥 Inbox (photos → confirm)
 
 - [ ] Add tab shows *"📷 N waiting to confirm"* → Quick fill → confirm. Confirmed = gone for everyone.
@@ -140,7 +145,9 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 
 ### 8. Fridge sheet
 
-- [ ] **Print** from the PC browser (same A4 sheet as V1).
+- [ ] **Print** from the PC browser. **New layout (Darren, 2026-10-10):**
+  - Remove the **meals** and the **added** sections, so as many items + dates as possible fit.
+  - Near the bottom: a strip of the **next 7 days** after printing, e.g. *Mon 12 · Tue 13 · … · Sun 18*.
 - [ ] **📷 Scan** with the phone camera in the app, no AI. Skips packs already changed.
 
 ### 9. Backups
