@@ -9,7 +9,7 @@ This file turns them into build steps. Read the map's ticket comments for the de
 - **Test first, then move:** test in a throwaway `tryout` household; at switch-over, copy **all V1 data** into the real household.
 - 2 people · 2 Samsung Android phones + the PC browser · every device equal.
 - **Works offline, then syncs.** Cloud holds the data, the PC can be off.
-- **£0:** Firestore free (Spark) plan · GitHub Pages hosting · Google Drive for photos.
+- **£0 to run:** Firestore free (Spark) plan · GitHub Pages hosting · Cloudflare Worker free tier. Claude API for packet photos: **under $1/month**.
 - Plain HTML/CSS/JS, **no build step**. Firebase loaded from its CDN (ES modules).
 
 ## How we build (from `CLAUDE.md`)
@@ -17,7 +17,7 @@ This file turns them into build steps. Read the map's ticket comments for the de
 - Tests first, then Haiku builds, Sonnet if Haiku fails. Short progress updates.
 - **Get it working first**, plain screens, then pretty.
 - **Test early:** each step ends with a small try-out on a real phone where it can.
-- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first. **Bump `n` in `v2/js/version.js` AND `VERSION` in `v2/sw.js` on every merge** (a test checks they match; a new number is what makes phones show *New version, tap to refresh*) (shown at the bottom of the app and in ⚙️ Settings).
+- **Merging:** Darren said (2026-10-10) to merge into the default branch whenever it's needed for him to test, without asking. Tests must pass first. **Bump `n` in `v2/js/version.js` AND `VERSION` in `v2/sw.js` on every merge that changes `v2/`** (a test checks they match; a new number is what makes phones show *New version, tap to refresh*) (shown at the bottom of the app and in ⚙️ Settings).
 
 ## Where V2 lives
 
@@ -64,6 +64,11 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 - Sync sign on the Today line: **✅ synced · ⏳ N waiting · 📴 offline**.
 - ⭐ Usual buttons: **one shared order** (from `foods`).
 - Sheet scan skips packs already changed on a phone: *"already done"*.
+
+## Order from here (agreed 2026-10-10)
+
+Done: 0 → 6. Then: **quick job: tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right stays: 📷 · 🖨️ · ⚙️** (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
 
@@ -123,7 +128,7 @@ Each step: tests first → build → try it → tick it off.
 
 - [x] `manifest.webmanifest` + icons + service worker (`v2/sw.js`) → Chrome shows **"Install app"**. Opens offline.
 - [x] Our own **📲 Install** button as a fallback (`v2/js/pwa.js`).
-- [x] New version → *"New version, tap to refresh"*. Tests: `tests/v2-pwa.test.js`, `npm run check:pwa`. ⏳ Try on both phones.
+- [x] New version → *"New version, tap to refresh"*. Tests: `tests/v2-pwa.test.js`, `npm run check:pwa`. ✅ 2026-10-10: installed on both phones (v7), opens offline. The "new version" note gets its first real try on the next merge.
 
 ### 🎨 Look (after the gears work)
 
@@ -136,13 +141,17 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 
 ### 7a. ✏️ Edit a pack (added 2026-10-10)
 
-- [ ] Tap a pack → **✏️ Edit** → change name, sub (e.g. *Asda*), kind, date, date type, price. Save syncs to both phones.
+- [ ] Tap a pack → **✏️ Edit** → change **name** (fix spelling), **sub** (e.g. *Asda*), **kind / category**, **date**, date type, **price**. Save syncs to both phones.
 - [ ] Undo works on an edit, like other taps.
 
-### 7. 📥 Inbox (photos → confirm)
+### 7. 📷 Photos → Claude (packets), in the app (changed 2026-10-10)
 
-- [ ] Add tab shows *"📷 N waiting to confirm"* → Quick fill → confirm. Confirmed = gone for everyone.
-- [ ] Skill moves photos to `Processed`; deleted after 30 days.
+Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
+
+- [ ] In the app: **📷 take photos of packets** → tap **📖 Read** → Claude (Sonnet-class) reads name, sub, use-by / best-before, packs → **Quick fill to confirm** → added.
+- [ ] A small free **Cloudflare Worker** holds the Claude API key (never in the app or the repo). Only signed-in household members can use it.
+- [ ] **Budget: under $1/month** (Darren, 2026-10-10). Check the real cost per photo first; cap usage in the Worker.
+- [ ] **Packets only in V2.** Receipts (names + prices, no dates) are V3: needs solving how to match them to packets first.
 
 ### 8. Fridge sheet
 
@@ -168,4 +177,4 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 ## Not in V2
 
 - Changing the V1 PC app · iPhones · app stores.
-- Fully automatic photos (serverless + Claude API), prices/receipts, recipes: [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39).
+- Receipts, prices from receipts, recipes: [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39).
