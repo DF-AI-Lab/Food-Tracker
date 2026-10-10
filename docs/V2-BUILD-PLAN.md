@@ -95,10 +95,12 @@ Each step: tests first → build → try it → tick it off.
 
 ### 3. Sign-in and household
 
-- [ ] Google sign-in, stays logged in.
-- [ ] First person creates the household. **Invite code / QR** → second phone scans → signs in → joins.
-- [ ] Settings → **Members** list with ❌ to remove.
-- [ ] Security rules: members only. Test that a non-member sees nothing.
+- [x] Google sign-in, stays logged in.
+- [x] First person creates the household. **Invite code / QR** → second phone scans → signs in → joins.
+- [x] Settings → **Members** list with ❌ to remove.
+- [x] Security rules: members only. Test that a non-member sees nothing.
+  - `firestore.rules` published 2026-10-10. Tests: `npm run check:rules` (emulator), `npm run check:account` (screens, emulator).
+  - ✅ Tried on 2 phones 2026-10-10: main account made the household, `df.ai.lab.hq` joined by QR.
 
 ### 4. Data layer: Firestore instead of the server
 
