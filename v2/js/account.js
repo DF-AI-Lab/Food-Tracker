@@ -11,6 +11,8 @@ const $ = id => document.getElementById(id);
 // app.js waits for this before it starts
 let resolveReady;
 window.FT_READY = new Promise(r => { resolveReady = r; });
+// Who the running app belongs to (null until it starts)
+let started = null;
 
 if (params.get("local") === "1") {
   // Memory-only: no gate, no settings, nothing loaded from the network
@@ -35,7 +37,10 @@ async function start() {
     ? { apiKey: "fake-key", authDomain: "localhost", projectId: "demo-food-tracker" }
     : firebaseConfig);
   const auth = AU.getAuth(app);
-  const db = F.getFirestore(app);
+  // Offline cache on, shared across open tabs: the app works without a signal
+  const db = F.initializeFirestore(app, {
+    localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }),
+  });
   if (emu) {
     AU.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     F.connectFirestoreEmulator(db, "127.0.0.1", 8085);
@@ -51,6 +56,8 @@ async function start() {
   };
 
   function showSignedOut() {
+    // The app is running with the last person's data: start clean from the sign-in screen
+    if (started) return location.reload();
     window.FT_HOUSEHOLD = null;
     $("settings").hidden = true;
     $("signIn").hidden = false;
@@ -70,6 +77,14 @@ async function start() {
     try {
       const h = await myHousehold(F, db, user.uid);
       if (!h) return showJoin();
+      // The app is already running: a different person or household needs a clean start
+      if (started) {
+        if (started.uid !== user.uid || started.householdId !== h.id) return location.reload();
+        return;
+      }
+      const { makeCloudDB } = await import("./db-firestore.js");
+      window.DB = makeCloudDB(F, db, h.id, user.uid);
+      started = { uid: user.uid, householdId: h.id };
       window.FT_HOUSEHOLD = h;
       $("gate").hidden = true;
       // The join code has been used: drop it from the address bar, keep other params
