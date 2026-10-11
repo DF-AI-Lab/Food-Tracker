@@ -2066,11 +2066,11 @@
     rows.forEach(row => {
       const p = row.pack;
       const btn = document.createElement('button');
-      btn.className = 'item ' + (p.date ? STATUS_CLASS[FT.colour(p.date, today)] : 'nd');
+      btn.className = 'item ' + (p.date ? 'st-' + LOOK.freshState(p.date, today) : 'nd');
       const name = document.createElement('span');
       name.textContent = row.name + (row.count > 1 ? ' ×' + row.count : '');
       const when = document.createElement('span');
-      when.textContent = p.date ? FT.countdown(p.date, today) : FT.daysLeft(today, p.added) + 'd old';
+      when.textContent = p.date ? LOOK.whenText(p.date, today) : FT.ageLabel(p.added, today);
       btn.append(name, when);
       btn.addEventListener('click', () => choosePick(p));
       listEl.appendChild(btn);
@@ -2631,7 +2631,27 @@
   function renderShop() {
     const listEl = document.getElementById('shopList');
     listEl.innerHTML = '';
-    FT.shopOrder(shop, today).forEach(item => listEl.appendChild(shopRow(item)));
+    // Two sections: To buy, then Got (ticked, and deleted ones still showing Undo)
+    const order = FT.shopOrder(shop, today);
+    const section = (title, items, cls) => {
+      if (!items.length) return;
+      const head = document.createElement('h2');
+      head.className = 'sec ' + cls;
+      head.textContent = title + ' ';
+      const n = document.createElement('span');
+      n.className = 'n';
+      n.textContent = '· ' + items.length;
+      head.appendChild(n);
+      const card = document.createElement('div');
+      card.className = 'rows card';
+      items.forEach(item => card.appendChild(shopRow(item)));
+      const wrap = document.createElement('div');
+      wrap.className = 'section';
+      wrap.append(head, card);
+      listEl.appendChild(wrap);
+    };
+    section('To buy', order.filter(i => !i.got && !i.del), 'tobuy');
+    section('Got', order.filter(i => i.got || i.del), 'got');
     const left = shop.filter(i => !i.got && !i.del).length;
     document.getElementById('shopCount').textContent = left ? left + ' to get' : 'All got';
     renderPageCount();

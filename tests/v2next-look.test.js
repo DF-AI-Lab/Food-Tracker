@@ -22,10 +22,11 @@ test("freshness line = 5-day countdown, min 5%, max 100%, out of date full", () 
   assert.equal(LOOK.freshPct(-1), 100);
 });
 
-test("freshness state: 2 days or less = soon (amber), past = out", () => {
+test("freshness state: 1-2 days = soon (amber), due today or older = out (red) — Darren 2026-10-11", () => {
   assert.equal(LOOK.freshState(day(3), TODAY), "ok");
   assert.equal(LOOK.freshState(day(2), TODAY), "soon");
-  assert.equal(LOOK.freshState(day(0), TODAY), "soon");
+  assert.equal(LOOK.freshState(day(1), TODAY), "soon");
+  assert.equal(LOOK.freshState(day(0), TODAY), "out");
   assert.equal(LOOK.freshState(day(-1), TODAY), "out");
 });
 
@@ -74,7 +75,7 @@ test("eat first: the existing use-soon packs, top 3 soonest, with a time word", 
   const ef = LOOK.eatFirst(packs, TODAY);
   assert.deepEqual(ef.lines.map(l => [l.id, l.name, l.word, l.state]), [
     ["d", "Milk", "out of date", "out"],
-    ["b", "Chicken", "today", "soon"],
+    ["b", "Chicken", "today", "out"],
     ["a", "Pastry", "tomorrow", "soon"],
   ]);
   assert.equal(ef.more, 1);
@@ -115,4 +116,11 @@ test("initials for member and household tiles", () => {
   assert.equal(LOOK.initials("home ff"), "HF");
   assert.equal(LOOK.initials("Darren"), "DA");
   assert.equal(LOOK.initials("  "), "?");
+});
+
+test("one line of date words (meal picker): same words as the fridge rows", () => {
+  assert.equal(LOOK.whenText(day(0), TODAY), "Today");
+  assert.equal(LOOK.whenText(day(1), TODAY), "1 day");
+  assert.equal(LOOK.whenText(day(6), TODAY), "Fri 16 Oct · 6 days");
+  assert.equal(LOOK.whenText(day(-2), TODAY), "2 days out");
 });
