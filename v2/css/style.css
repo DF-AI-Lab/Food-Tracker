@@ -337,8 +337,8 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 #printSheet td.d{width:17mm;white-space:nowrap;font-size:8.5pt;text-align:right}
 #printSheet .more{font-size:9pt;font-style:italic;text-align:right;padding:1mm}
 /* next 7 days: one boxed day each, above the footer */
-#printSheet .ps-days{position:absolute;left:14mm;right:14mm;bottom:19mm;display:grid;grid-template-columns:repeat(7,1fr);gap:2mm}
-#printSheet .ps-days .day{border:1.5px solid #000;height:11mm;padding:1mm 1.5mm;box-sizing:border-box;font:bold 9pt Arial,sans-serif;color:#000}
+#printSheet .ps-days{position:absolute;left:14mm;right:14mm;bottom:19mm;display:flex;justify-content:space-between;border-top:1px solid #999;padding-top:0.8mm}
+#printSheet .ps-days .day{font:8pt Arial,sans-serif;color:#000;background:none;border:0;border-radius:0;box-shadow:none;padding:0;margin:0;min-height:0}
 /* one line per food: long names are cut with "…" so the lists keep their height */
 #printSheet .ps-top table{table-layout:fixed}
 #printSheet .ps-top td:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
