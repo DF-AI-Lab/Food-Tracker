@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6. Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -142,9 +142,17 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 ### 7a. ✏️ Edit a pack (added 2026-10-10)
 
 - [x] Tap a pack → **✏️ Edit** → change **name** (fix spelling), **sub** (e.g. *Asda*), **kind / category**, **date**, date type, **price**. Save syncs to both phones.
-- [x] Undo works on an edit, like other taps. (v9. Tests: `tests/v2-edit.test.js`, 7a steps in `check:v2` and `check:sync`.) ⏳ Try on the phone.
+- [x] Undo works on an edit, like other taps. (v9. Tests: `tests/v2-edit.test.js`, 7a steps in `check:v2` and `check:sync`.)
 
-### 7b. 🍽️ Confirm tonight's meal, tonight (added 2026-10-10)
+### Household fixes (v10–v11, 2026-10-11) ✅ tried on both phones
+
+- Bug: a phone already in a household ignored invite links, so phones never paired (Darren's 2nd account had made its own household by accident). Now: opening an invite asks *"Leave 'X' and join…?"*.
+- Invite links show **Join only**; **Make a household** asks are-you-sure.
+- ⚙️ Settings: rename the household ✏️, change your own name ✏️, **(you)** on your row, *Signed in as …@gmail.com*.
+- Name/code boxes were squashed (22px) by the Save button; now full width (tests check widths).
+- Tip: both of Darren's Google accounts are called "Darren Fawcett" — check *Signed in as* when a phone looks wrong.
+
+### 7b. 🍽️ Confirm tonight's meal, tonight (added 2026-10-10) ← NEXT
 
 - [ ] Today's planned meal shows the same **Had it? Yes / No** card as past days (from the evening, e.g. 5pm), so it can be confirmed tonight instead of waiting until tomorrow.
 - [ ] Yes → used / how much (takeaway → cost), as now. No → "What did you have?", as now. Once confirmed, tomorrow has nothing to ask.
