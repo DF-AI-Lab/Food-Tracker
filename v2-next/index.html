@@ -106,6 +106,46 @@
   <!-- Meals Tab -->
   <div data-tab-pane="meals" style="display:none;">
     <div id="dayList" class="timeline"></div>
+    <div id="recipes" class="ideas">
+      <div class="sechead"><h3 class="sec">Recipes</h3><button class="act ghost" id="newRecipe" type="button">New recipe</button></div>
+      <div class="rl card"></div>
+    </div>
+    <form id="recipeForm" class="card rform" hidden autocomplete="off">
+      <label class="rf-lab" for="recipeName">Recipe name</label>
+      <input type="text" id="recipeName" placeholder="e.g. Chicken pie" aria-label="Recipe name">
+      <div class="rf-sec">
+        <span class="rf-lab">Fresh foods (checked against the fridge)</span>
+        <div class="rf-row">
+          <input type="text" id="freshIn" list="foodList" placeholder="Add a food…" enterkeyhint="done" aria-label="Add a fresh food">
+          <button class="act ghost" id="freshAdd" type="button">Add</button>
+        </div>
+        <datalist id="foodList"></datalist>
+        <div class="fresh-list chips-list"></div>
+      </div>
+      <div class="rf-sec">
+        <span class="rf-lab">Other things — not in the fridge</span>
+        <div class="rf-row">
+          <input type="text" id="otherName" placeholder="e.g. White sauce packet" aria-label="Other thing">
+          <input type="text" id="otherQty" placeholder="e.g. x2" aria-label="Amount">
+          <button class="act ghost" id="otherAdd" type="button">Add</button>
+        </div>
+        <div class="other-list"></div>
+      </div>
+      <p class="recipe-msg" id="recipeMsg" hidden></p>
+      <div class="btns">
+        <button class="act" id="recipeSave" type="button">Save recipe</button>
+        <button class="act ghost" id="recipeCancel" type="button">Cancel</button>
+      </div>
+    </form>
+    <div id="recipeShop" class="card rform" hidden>
+      <h3 class="sec">Not in the fridge — add to shopping list?</h3>
+      <p class="rs-warn" id="recipeWarn" hidden></p>
+      <div class="rs-list"></div>
+      <div class="btns">
+        <button class="act" id="recipeShopAdd" type="button">Add to shopping list</button>
+        <button class="act ghost" id="recipeShopSkip" type="button">Not now</button>
+      </div>
+    </div>
     <div id="mealIdeas" class="ideas">
       <div class="sechead"><h3 class="sec">Meal ideas</h3><span class="sub">Most had first · tap + to add to the open day</span></div>
       <div class="il card"></div>
@@ -234,7 +274,7 @@
     <button data-nav="fridge" data-tab="fridge" class="nb on cur"><i data-icon="fridge" data-size="22"></i><span>Fridge</span></button>
     <button data-nav="meals" data-tab="meals" class="nb"><i data-icon="meals" data-size="22"></i><span>Meals</span></button>
     <span class="plusslot"><button data-nav="add" data-tab="add" class="nb plus" aria-label="Add food"><i data-icon="add" data-size="24" data-width="2.2"></i></button></span>
-    <button data-nav="shop" class="nb"><i data-icon="shop" data-size="22"></i><span>Shop</span></button>
+    <button data-nav="shop" data-tab="shop" class="nb"><i data-icon="shop" data-size="22"></i><span>Shop</span></button>
     <button data-nav="used" class="nb"><i data-icon="used" data-size="22"></i><span>Used</span></button>
   </nav>
 

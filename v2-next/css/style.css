@@ -573,3 +573,43 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .slot{font-size:9px}
 .chip2 .x{width:24px;height:24px}
 .dh{gap:5px 6px}
+
+/* Recipes (V3) */
+#recipes{display:flex;flex-direction:column;gap:8px}
+#recipes .rl{display:flex;flex-direction:column;overflow:hidden}
+#recipes .rl-empty{margin:0;padding:14px 16px;font-size:13px;color:var(--dim)}
+.recipe{border-bottom:1px solid var(--divider)}
+.recipe:last-child{border-bottom:0}
+.recipe-head{display:flex;flex-direction:column;gap:4px;padding:12px 16px}
+.recipe-name{font:inherit;font-size:15px;font-weight:500;color:var(--text);background:none;border:0;padding:0;text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.recipe-sub{font-size:12px;color:var(--muted)}
+.recipe-sub.miss{color:var(--warn)}
+.recipe-body{display:flex;flex-direction:column;gap:6px;padding:0 16px 14px}
+.recipe-body[hidden]{display:none}
+.recipe-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.recipe-acts .act{flex:1 1 30%}
+.ing{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:14px}
+.ing b{font-weight:500}
+.ing span{font-size:12px;color:var(--muted)}
+.ing.missing b{color:var(--warn)}
+.ing.missing span,.ing.out span{color:var(--warn)}
+.ing.other span{color:var(--muted)}
+#recipeForm,#recipeShop{display:flex;flex-direction:column;gap:12px;padding:14px 16px;margin:0}
+#recipeForm[hidden],#recipeShop[hidden],.recipe-msg[hidden],.rs-warn[hidden]{display:none}
+#recipeForm .rf-lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+#recipeForm .rf-sec{display:flex;flex-direction:column;gap:8px}
+#recipeForm .rf-row{display:flex;gap:8px}
+#recipeForm .rf-row input{flex:1}
+#recipeForm .rf-row .act{flex:none}
+#recipeForm .chips-list{display:flex;flex-wrap:wrap;gap:6px}
+#recipeForm .other-list{display:flex;flex-direction:column}
+#recipeForm .other-item{display:flex;align-items:center;gap:8px;min-height:40px;font-size:14px;border-bottom:1px solid var(--divider)}
+#recipeForm .other-item .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+#recipeForm .other-item .qty{color:var(--muted)}
+#recipeForm .rm{all:unset;cursor:pointer;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--dim);border-radius:6px;flex:none}
+#recipeForm .rm:focus-visible{outline:2px solid var(--accent)}
+.recipe-msg{margin:0;font-size:13px;color:var(--danger)}
+#recipeShop .rs-warn{margin:0;font-size:13px;color:var(--warn)}
+#recipeShop .rs-list{display:flex;flex-direction:column}
+#recipeShop .rs-row{display:flex;align-items:center;gap:10px;min-height:40px;font-size:15px}
+#recipeShop .rs-row input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}

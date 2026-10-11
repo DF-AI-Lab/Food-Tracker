@@ -64,7 +64,7 @@ function startStatic() {
   await step("Meals shows a Recipes section with a New recipe button", async () => {
     await page.click('[data-tab="meals"]');
     assert.ok(await page.locator("#recipes").isVisible());
-    assert.match(await text("#recipes"), /Recipes/);
+    assert.match(await text("#recipes"), /Recipes/i);
     assert.ok(await page.locator("#newRecipe").isVisible());
   });
 

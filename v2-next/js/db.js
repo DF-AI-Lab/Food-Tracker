@@ -81,6 +81,9 @@
     // Meals history: one record per day that was eaten (or a takeaway with a cost)
     meals: store("meals"),
 
+    // Recipes: { id, name, fresh: [names], other: [{ name, qty }] }
+    recipes: store("recipes"),
+
     // Printed fridge sheets: { code, printed, rows }
     sheets: store("sheets"),
 
