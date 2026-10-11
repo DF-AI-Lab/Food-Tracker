@@ -1007,7 +1007,9 @@
   // 🔔 What the other people did (step 7c). Only real news: no deletes, edits or plans.
   const SHOP_VERB = "added to the shopping list";
   const MERGE_MS = 10 * 60 * 1000;
-  const NO_MERGE = ["had", "had a takeaway"];
+  // A backup is kept in the 🔔 list too, so both phones know when the last one was
+  const BACKUP_VERB = "backed up";
+  const NO_MERGE = ["had", "had a takeaway", BACKUP_VERB];
 
   // "A", "A and B", "A, B and C"
   function joinNames(names) {
@@ -1090,6 +1092,86 @@
     return activityFeed(entries, me).filter(g => g.at > seenAt).length;
   }
 
+  // V2 step 9: backups. The file is plain JSON with every list in it.
+  const BACKUP_APP = "food-tracker-v2";
+  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings"];
+  const NOT_BACKUP = "This isn't a Food Tracker backup file.";
+  const BACKUP_EVERY = 5;
+
+  // The backup file: { name, text }
+  function backupFile(data, today, madeIso) {
+    const body = { app: BACKUP_APP, made: madeIso };
+    for (const k of BACKUP_LISTS) body[k] = data[k] || [];
+    return { name: `food-backup-${today}.json`, text: JSON.stringify(body, null, 2) };
+  }
+
+  // { ok, data } for a good file, or { ok: false, reason } for anything else
+  function readBackup(text) {
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      return { ok: false, reason: NOT_BACKUP };
+    }
+    if (!data || typeof data !== "object" || data.app !== BACKUP_APP) return { ok: false, reason: NOT_BACKUP };
+    const out = { made: data.made };
+    for (const k of BACKUP_LISTS) {
+      if (data[k] == null) out[k] = [];
+      else if (Array.isArray(data[k])) out[k] = data[k];
+      else return { ok: false, reason: NOT_BACKUP };
+    }
+    return { ok: true, data: out };
+  }
+
+  // What a restore does to each list: put every saved item back, remove the ones not in the backup
+  function restorePlan(current, backup) {
+    const plan = {};
+    for (const k of BACKUP_LISTS) {
+      const put = backup[k] || [];
+      // Ratings have no id (they are kept by name), so nothing is removed for them
+      if (k === "ratings") {
+        plan[k] = { put, remove: [] };
+        continue;
+      }
+      const keep = new Set(put.map(item => item.id));
+      const remove = (current[k] || []).filter(item => !keep.has(item.id)).map(item => item.id);
+      plan[k] = { put, remove };
+    }
+    return plan;
+  }
+
+  // How many changes (from both phones) happened after the last backup
+  function changesSinceBackup(entries, lastBackup) {
+    return (entries || []).filter(e => e.verb !== BACKUP_VERB && e.at > (lastBackup || 0)).length;
+  }
+
+  // When the last backup was made: the newest "backed up" entry (ms, or null)
+  function lastBackupFrom(entries) {
+    let last = null;
+    for (const e of entries || []) {
+      if (e.verb === BACKUP_VERB && (last === null || e.at > last)) last = e.at;
+    }
+    return last;
+  }
+
+  // Ask at 5 changes. After a "No", ask again 5 changes later (until the next backup).
+  function backupDue(count, snooze, lastBackup) {
+    if (snooze && snooze.lastBackup === lastBackup) return count >= snooze.count + BACKUP_EVERY;
+    return count >= BACKUP_EVERY;
+  }
+
+  // "Sun 11 Oct" for the local day of a time in ms
+  function dayLabel(ms) {
+    const d = new Date(ms);
+    const pad = n => String(n).padStart(2, "0");
+    return formatDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+  }
+
+  // The Settings line
+  function lastBackupLabel(ms) {
+    return ms ? `Last backup: ${dayLabel(ms)}` : "Never backed up";
+  }
+
   // Export
   const FT = {
     addDays,
@@ -1159,7 +1241,17 @@
     activityFeed,
     activityText,
     timeAgo,
-    unreadCount
+    unreadCount,
+    BACKUP_EVERY,
+    backupFile,
+    readBackup,
+    restorePlan,
+    changesSinceBackup,
+    lastBackupFrom,
+    BACKUP_VERB,
+    backupDue,
+    dayLabel,
+    lastBackupLabel
   };
 
   if (typeof module !== "undefined") {

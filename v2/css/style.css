@@ -87,6 +87,10 @@ button.tab.on{background:var(--accent);color:var(--bg)}
 .item span:last-child{font-weight:600;opacity:.8}
 .warnbar{display:flex;flex-direction:column;gap:6px;background:var(--offbg);border:2px solid var(--redline);border-radius:6px;padding:8px;font-size:13px;font-weight:700}
 .warnbar[hidden]{display:none}
+.backup-ask{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;font-weight:700}
+.backup-ask[hidden]{display:none}
+.backup-ask-btns{display:flex;gap:8px}
+.backup-ask-btns button{flex:1}
 #pickFor{text-transform:none;letter-spacing:0;font-size:13px}
 .warnbar .btns button{padding:7px 10px;font-size:13px}
 .item.ta{background:var(--bg);border-color:var(--accent);white-space:nowrap;padding:5px 8px}

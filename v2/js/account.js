@@ -176,6 +176,8 @@ async function start() {
     $("settingsVer").textContent = v ? `App version v${v.n} · ${v.date}` : "";
     // Which Google account this phone uses (both of Darren's accounts share a name)
     $("signedInAs").textContent = user.email ? `Signed in as ${user.email}` : "";
+    // When the household last backed up (shared, so it is read again each time)
+    $("backupNote").textContent = window.FT.lastBackupLabel(window.DB.lastBackup());
     const list = $("members");
     list.innerHTML = "";
     for (const m of h.members) {

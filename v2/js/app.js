@@ -173,14 +173,19 @@
     // Another phone changed something: reload the lists the same way init does, then redraw
     if (DB.onChange) {
       DB.onChange(async () => {
-        packs = await DB.all();
-        shop = await DB.shop.all();
-        meals = await DB.meals.all();
-        for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
-        bellEntries = await DB.activity.all();
+        await reloadData();
         renderAll();
       });
     }
+  }
+
+  // Read every list from the database again (after another phone or a restore changed them)
+  async function reloadData() {
+    packs = await DB.all();
+    shop = await DB.shop.all();
+    meals = await DB.meals.all();
+    for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
+    bellEntries = await DB.activity.all();
   }
 
   // Sync sign: ✅ synced · ⏳ N waiting · 📴 offline
@@ -255,6 +260,20 @@
     // 🔔 What others did
     document.getElementById('bellBtn').addEventListener('click', openBell);
     document.getElementById('bellClose').addEventListener('click', closeBell);
+
+    // 💾 Backups: the reminder, and Settings
+    document.getElementById('backupYes').addEventListener('click', doBackup);
+    document.getElementById('backupBtn').addEventListener('click', doBackup);
+    document.getElementById('backupNo').addEventListener('click', () => {
+      writeSnooze({ lastBackup: DB.lastBackup(), count: backupChanges });
+      document.getElementById('backupAsk').hidden = true;
+    });
+    document.getElementById('restoreBtn').addEventListener('click', () => document.getElementById('restoreFile').click());
+    document.getElementById('restoreFile').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (file) await restoreFrom(file);
+      e.target.value = ''; // so the same file can be picked again
+    });
 
     // Print: fill the A4 fridge sheet, then open the print dialog
     document.getElementById('printF').addEventListener('click', printFridgeSheet);
@@ -1988,6 +2007,7 @@
     else if (activeView === 'freezer') renderFreezerView();
     else if (activeView === 'used') renderUsedView();
     renderBell();
+    refreshBackup();
   }
 
   // ---- 🔔 What others did ----
@@ -2048,6 +2068,124 @@
   function closeBell() {
     document.getElementById('bell').hidden = true;
     renderBell();
+  }
+
+  // ---- 💾 Backups ----
+
+  // Changes since the last backup, as last counted (the reminder shows this number)
+  let backupChanges = 0;
+
+  // The "No" to the reminder, kept per phone: { lastBackup, count } (try/catch: storage can be blocked)
+  function readSnooze() {
+    try { return JSON.parse(localStorage.getItem('backupSnooze')) || null; } catch (e) { return null; }
+  }
+
+  function writeSnooze(snooze) {
+    try { localStorage.setItem('backupSnooze', JSON.stringify(snooze)); } catch (e) { /* ignore */ }
+  }
+
+  function clearSnooze() {
+    try { localStorage.removeItem('backupSnooze'); } catch (e) { /* ignore */ }
+  }
+
+  // Settings: "Last backup: Sun 11 Oct" or "Never backed up"
+  function renderBackupNote() {
+    const note = document.getElementById('backupNote');
+    if (note) note.textContent = FT.lastBackupLabel(DB.lastBackup());
+  }
+
+  // Show "Back up now?" once enough changes have built up since the last backup
+  async function renderBackupAsk() {
+    const last = DB.lastBackup();
+    backupChanges = FT.changesSinceBackup(await DB.activity.all(), last);
+    const due = FT.backupDue(backupChanges, readSnooze(), last);
+    document.getElementById('backupAskText').textContent = `💾 ${backupChanges} changes since your last backup. Back up now?`;
+    document.getElementById('backupAsk').hidden = !due;
+  }
+
+  // Redraw the reminder and the Settings line (called from renderAll, so after every change)
+  async function refreshBackup() {
+    renderBackupNote();
+    try {
+      await renderBackupAsk();
+    } catch (e) {
+      // try again after the next change
+    }
+  }
+
+  // Make the backup file: share it when the phone can, else download it
+  async function doBackup() {
+    try {
+      const data = {
+        packs: await DB.all(),
+        shop: await DB.shop.all(),
+        meals: await DB.meals.all(),
+        sheets: await DB.sheets.all(),
+        ratings: await DB.ratings.all(),
+      };
+      const backup = FT.backupFile(data, today, new Date().toISOString());
+      const file = new File([backup.text], backup.name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'Food Tracker backup' });
+        } catch (e) {
+          // Cancelled: not backed up
+          if (e.name !== 'AbortError') alert("Couldn't share the backup.");
+          return;
+        }
+      } else {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = backup.name;
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      DB.setLastBackup(Date.now());
+      clearSnooze();
+      await refreshBackup();
+    } catch (e) {
+      alert("Couldn't make the backup.");
+    }
+  }
+
+  // Restore from a backup file: ask first, then replace everything and redraw
+  async function restoreFrom(file) {
+    try {
+      const r = FT.readBackup(await file.text());
+      if (!r.ok) {
+        alert(r.reason);
+        return;
+      }
+      const made = Date.parse(r.data.made);
+      const when = Number.isNaN(made) ? 'an unknown day' : FT.dayLabel(made);
+      if (!confirm(`Replace everything with the backup from ${when}?\n\nAnything added or changed since then will be lost.`)) return;
+
+      const current = {
+        packs: await DB.all(),
+        shop: await DB.shop.all(),
+        meals: await DB.meals.all(),
+        sheets: await DB.sheets.all(),
+        ratings: await DB.ratings.all(),
+      };
+      const plan = FT.restorePlan(current, r.data);
+      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings };
+      for (const list of Object.keys(plan)) {
+        for (const item of plan[list].put) await stores[list].put(item);
+        for (const id of plan[list].remove) await stores[list].remove(id);
+      }
+
+      await reloadData();
+      DB.setLastBackup(Date.now());
+      clearSnooze();
+      renderMeals();
+      renderShop();
+      renderAll();
+    } catch (e) {
+      alert("Couldn't restore the backup.");
+    }
   }
 
   // ---- Shopping list ----

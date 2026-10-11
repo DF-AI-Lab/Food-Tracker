@@ -9,9 +9,20 @@
     return x === undefined ? undefined : JSON.parse(JSON.stringify(x));
   }
 
+  // The 🔔 list in memory: this phone's own changes (so the backup reminder can count them)
+  const activity = [];
+  // When the last backup was made (ms, or null). Memory only: lost on refresh.
+  let lastBackupAt = null;
+
   // all / get / add / put / remove for one collection (packs, shop, meals, sheets)
-  function store() {
+  function store(list) {
     const items = new Map();
+    // Note a change in the 🔔 list, if it is news
+    function news(before, after) {
+      // logic.js loads first in the page; without it (tests), nothing is noted
+      const change = window.FT ? window.FT.activityChange(list, before, after) : null;
+      if (change) activity.push({ by: null, verb: change.verb, name: change.name, at: Date.now() });
+    }
     return {
       async all() {
         return [...items.values()].map(copy);
@@ -24,10 +35,13 @@
         const stored = copy(item);
         stored.id = id;
         items.set(id, stored);
+        news(undefined, stored);
         return id;
       },
       async put(item) {
+        const before = copy(items.get(item.id));
         items.set(item.id, copy(item));
+        news(before, item);
         return item.id;
       },
       async remove(id) {
@@ -36,7 +50,7 @@
     };
   }
 
-  const packs = store();
+  const packs = store("packs");
 
   const DB = {
     // No sign-in in memory mode, so no who-stamps (undo is never blocked)
@@ -62,19 +76,28 @@
     remove: packs.remove,
 
     // Shopping list items
-    shop: store(),
+    shop: store("shop"),
 
     // Meals history: one record per day that was eaten (or a takeaway with a cost)
-    meals: store(),
+    meals: store("meals"),
 
     // Printed fridge sheets: { code, printed, rows }
-    sheets: store(),
+    sheets: store("sheets"),
 
-    // The 🔔 list: nobody else in memory mode, so always empty
+    // The 🔔 list: only this phone's changes in memory mode (no one else), so the bell stays empty
     activity: {
       async all() {
-        return [];
+        return copy(activity);
       }
+    },
+
+    // When the last backup was made (ms, or null)
+    lastBackup() {
+      return lastBackupAt;
+    },
+
+    setLastBackup(ms) {
+      lastBackupAt = ms;
     },
 
     // Idea ratings, one per food name: { name, rating }
