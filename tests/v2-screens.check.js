@@ -73,6 +73,57 @@ function startStatic() {
     await until(async () => assert.equal(await page.locator("#mains .pack").count(), 1));
   });
 
+  // ---------- step 7a: edit a pack ----------
+  const openEdit = async name => {
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    await page.locator("#mains .pack", { hasText: name }).click();
+    await page.click("#actEdit");
+    await page.locator("#editForm").waitFor({ state: "visible" });
+  };
+
+  await step("✏️ Edit opens with the pack's details filled in", async () => {
+    await openEdit("Chicken");
+    assert.equal(await page.inputValue("#editName"), "Chicken");
+    assert.equal(await page.inputValue("#editKind"), "main");
+    assert.match(await page.inputValue("#editDate"), /^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  await step("a blank name is refused with a message, the form stays open", async () => {
+    await page.fill("#editName", "  ");
+    await page.click("#editSave");
+    await until(async () => assert.match(await text("#editMsg"), /Needs a name/));
+    assert.ok(await page.locator("#editForm").isVisible());
+  });
+
+  await step("save: new name, sub, date and price show on the card", async () => {
+    await page.fill("#editName", "chicken thighs");
+    await page.fill("#editSub", "Asda");
+    await page.fill("#editDate", "2026-10-12");
+    await page.selectOption("#editDateType", "best_before");
+    await page.fill("#editPrice", "3.50");
+    await page.click("#editSave");
+    await page.locator("#editForm").waitFor({ state: "hidden" });
+    await until(async () => assert.match(await text("#mains"), /Chicken thighs/));
+    await openEdit("Chicken thighs");
+    assert.equal(await page.inputValue("#editSub"), "Asda");
+    assert.equal(await page.inputValue("#editDate"), "2026-10-12");
+    assert.equal(await page.inputValue("#editDateType"), "best_before");
+    assert.equal(await page.inputValue("#editPrice"), "3.5");
+    await page.click("#editCancel");
+    await page.locator("#editForm").waitFor({ state: "hidden" });
+  });
+
+  await step("undo puts the old details back", async () => {
+    await openEdit("Chicken thighs");
+    await page.fill("#editName", "Turkey");
+    await page.click("#editSave");
+    await until(async () => assert.match(await text("#mains"), /Turkey/));
+    await page.click("#undoBtn");
+    await until(async () => assert.match(await text("#mains"), /Chicken thighs/));
+    assert.doesNotMatch(await text("#mains"), /Turkey/);
+  });
+
   await step("version number shows at the bottom", async () => {
     await until(async () => assert.match(await text("#ver"), /^v\d+ · \d+ \w+$/));
   });
