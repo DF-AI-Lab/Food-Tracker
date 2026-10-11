@@ -111,9 +111,10 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .eat{padding:16px;display:flex;flex-direction:column;gap:6px}
 .eyebrow{font-size:12px;font-weight:600;color:var(--warn);letter-spacing:.06em;text-transform:uppercase}
 .eatlist{display:flex;flex-direction:column}
-.eatline{all:unset;cursor:pointer;font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.25;color:var(--text);padding:2px 0;overflow-wrap:anywhere}
+/* Name left, when right: the dates line up in one column (Darren 2026-10-11) */
+.eatline{all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.25;color:var(--text);padding:2px 0;overflow-wrap:anywhere}
 .eatline:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.eatline em{font-style:normal;color:var(--warn)}
+.eatline em{font-style:normal;color:var(--warn);font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:0;white-space:nowrap;flex:none}
 .eatline.out em{color:var(--danger)}
 .eatsub{font-size:13px;color:var(--muted)}
 
