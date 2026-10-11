@@ -186,7 +186,7 @@ Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
   - Remove the **meals** and the **added** sections, so as many items + dates as possible fit.
   - Near the bottom: a strip of the **next 7 days** after printing, e.g. *Mon 12 · Tue 13 · … · Sun 18*.
 - [x] **📷 Scan** with the phone camera in the app, no AI. Skips packs already changed.
-  - Built: 26 rows a column (was 17), 7-day strip from the day after printing, scan shows *already done* (greyed, not applied). Fit is tight (~2mm spare): check a real print.
+  - Built: 26 rows a column (was 17), 7-day strip (one thin line, v15) from the day after printing, scan shows *already done* (greyed, not applied). Fit is tight (~2mm spare): check a real print.
   - Tests: `tests/v2-sheet.test.js` (npm test), `tests/v2-sheet.check.js` (npm run check:v2).
 
 ### 9. Backups ← NEXT
