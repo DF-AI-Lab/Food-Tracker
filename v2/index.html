@@ -244,10 +244,13 @@
       <h2>🥕 Food Tracker</h2>
       <button class="act big" id="signIn">🔐 Sign in with Google</button>
       <div id="joinPart" hidden>
-        <div class="tag">🏠 Make a household</div>
-        <div class="sform"><input id="hhName" value="Home" aria-label="Household name"></div>
-        <button class="act" id="makeHH">🏠 Make a household</button>
-        <div class="tag">🎟️ Or join one</div>
+        <div id="makePart">
+          <div class="tag">🏠 Make a household</div>
+          <div class="sform"><input id="hhName" value="Home" aria-label="Household name"></div>
+          <button class="act" id="makeHH">🏠 Make a household</button>
+          <div class="tag" id="orJoin">🎟️ Or join one</div>
+        </div>
+        <div class="note" id="inviteNote" hidden>You've been invited to join a household.</div>
         <div class="sform"><input id="joinCode" placeholder="Invite code" autocomplete="off" aria-label="Invite code"><button class="act" id="joinBtn">🎟️ Join</button></div>
       </div>
       <div class="note" id="gateMsg"></div>
@@ -287,12 +290,14 @@
   <!-- Settings (⚙️): household, members, invite, sign out -->
   <div id="settings" class="overlay" hidden>
     <div class="sheet ocard">
-      <div class="wkhead"><h2 id="hhTitle"></h2><button class="undo" id="settingsClose">Close</button></div>
+      <div class="wkhead"><h2 id="hhTitle"></h2><span><button class="undo" id="renameHH" aria-label="Rename household" title="Rename household">✏️</button> <button class="undo" id="settingsClose">Close</button></span></div>
+      <div class="sform" id="hhNameRow" hidden><input id="hhNameEdit" aria-label="Household name" autocomplete="off"><button class="act" id="hhNameSave">Save</button></div>
       <div class="note" id="settingsVer"></div>
       <div class="row"><button class="undo" id="checkUpdate">🔄 Check for updates</button><span id="updateMsg" class="note"></span></div>
       <div class="row"><span>Light / dark</span><button class="undo" id="theme" title="Switch theme" aria-label="Switch theme">☀️</button></div>
       <div class="tag">👥 Members</div>
       <ul id="members"></ul>
+      <div class="sform" id="meNameRow" hidden><input id="meNameEdit" aria-label="My name in the household" autocomplete="off"><button class="act" id="meNameSave">Save</button></div>
       <button class="act" id="inviteBtn">🎟️ Invite someone</button>
       <div id="inviteBox" hidden>
         <div class="tag">Invite code</div>

@@ -2,7 +2,7 @@
 //   ?local=1          no sign-in, no Firebase: the in-memory app (checks)
 //   ?emu=1&as=NAME    Firebase emulators, fake Google sign-in as NAME
 import { firebaseConfig } from "./firebase-config.js";
-import { myHousehold, createHousehold, joinHousehold, removeMember, createInvite, inviteLink, codeFromUrl } from "./household.js";
+import { myHousehold, createHousehold, joinHousehold, removeMember, createInvite, inviteLink, codeFromUrl, renameHousehold, renameMe } from "./household.js";
 
 const CDN = "https://www.gstatic.com/firebasejs/12.19.0/";
 const params = new URLSearchParams(location.search);
@@ -79,9 +79,15 @@ async function start() {
     $("gate").hidden = false;
   }
 
+  // With a join link, only the Join part shows (no making a new household)
+  const invited = !!codeFromUrl(location.href);
+
   function showJoin() {
     $("signIn").hidden = true;
     $("joinPart").hidden = false;
+    $("makePart").hidden = invited;
+    $("orJoin").hidden = invited;
+    $("inviteNote").hidden = !invited;
     $("gate").hidden = false;
   }
 
@@ -130,6 +136,7 @@ async function start() {
   });
 
   $("makeHH").onclick = onGate(async () => {
+    if (!confirm("Make a NEW household?\n\nTo share with someone already using the app, ask them for an invite and tap Join instead.")) return;
     const user = auth.currentUser;
     await createHousehold(F, db, user, $("hhName").value.trim() || "Home");
     await enter(user);
@@ -147,17 +154,33 @@ async function start() {
     const h = await myHousehold(F, db, user.uid);
     if (!h) return enter(user);
 
+    window.FT_HOUSEHOLD = h;
     $("hhTitle").textContent = h.name;
+    $("hhNameRow").hidden = true;
+    $("meNameRow").hidden = true;
     const v = window.FT_VERSION;
     $("settingsVer").textContent = v ? `App version v${v.n} · ${v.date}` : "";
     const list = $("members");
     list.innerHTML = "";
     for (const m of h.members) {
       const li = document.createElement("li");
-      li.append(m.name);
-      if (m.uid !== user.uid) { // no ❌ on yourself
+      const mine = m.uid === user.uid;
+      li.append(mine ? `${m.name} (you)` : m.name);
+      if (mine) {
+        const edit = document.createElement("button");
+        edit.id = "renameMe";
+        edit.className = "undo";
+        edit.textContent = "✏️";
+        edit.setAttribute("aria-label", "Change my name");
+        edit.onclick = () => {
+          $("meNameEdit").value = m.name;
+          $("meNameRow").hidden = false;
+          $("meNameEdit").focus();
+        };
+        li.append(edit);
+      } else { // no ❌ on yourself
         const x = document.createElement("button");
-        x.className = "undo";
+        x.className = "undo remove";
         x.textContent = "❌";
         x.setAttribute("aria-label", "Remove " + m.name);
         x.onclick = onSettings(async () => {
@@ -175,6 +198,20 @@ async function start() {
 
   $("settingsBtn").onclick = onSettings(openSettings);
   $("settingsClose").onclick = () => { $("settings").hidden = true; };
+
+  $("renameHH").onclick = () => {
+    $("hhNameEdit").value = window.FT_HOUSEHOLD.name;
+    $("hhNameRow").hidden = false;
+    $("hhNameEdit").focus();
+  };
+  $("hhNameSave").onclick = onSettings(async () => {
+    await renameHousehold(F, db, window.FT_HOUSEHOLD.id, $("hhNameEdit").value);
+    await openSettings();
+  });
+  $("meNameSave").onclick = onSettings(async () => {
+    await renameMe(F, db, window.FT_HOUSEHOLD.id, auth.currentUser.uid, $("meNameEdit").value);
+    await openSettings();
+  });
 
   $("inviteBtn").onclick = onSettings(async () => {
     const { code } = await createInvite(F, db, window.FT_HOUSEHOLD.id);

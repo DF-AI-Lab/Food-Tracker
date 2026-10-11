@@ -123,3 +123,22 @@ export async function removeMember(F, db, householdId, uid) {
     [`names.${uid}`]: F.deleteField(),
   });
 }
+
+// A name typed by someone: trimmed, not blank, at most 40 characters
+function cleanName(name) {
+  const clean = String(name ?? "").trim().slice(0, 40);
+  if (!clean) throw new Error("Needs a name");
+  return clean;
+}
+
+// Rename the household (any member can do this)
+export async function renameHousehold(F, db, householdId, name) {
+  const clean = cleanName(name);
+  await F.updateDoc(F.doc(db, "households", householdId), { name: clean });
+}
+
+// Change the name the household sees for this user
+export async function renameMe(F, db, householdId, uid, name) {
+  const clean = cleanName(name);
+  await F.updateDoc(F.doc(db, "households", householdId), { [`names.${uid}`]: clean });
+}
