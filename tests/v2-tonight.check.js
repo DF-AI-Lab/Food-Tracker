@@ -100,9 +100,13 @@ function startStatic() {
       await page.locator("#pickList .item", { hasText: "Chicken" }).click();
       await until(async () => assert.equal(await pastDay().count(), 1));
       assert.equal(await pastDay().locator(".chip2").count(), 1);
-      await pastDay().locator(".had-add").click();
+      // stays in the picker after the first pick (no kick-out), until Done
+      assert.ok(await pastDay().locator("#picker").isVisible(), "picker still open");
       await pastDay().locator("#pickList .item", { hasText: "Bacon" }).click();
       await until(async () => assert.equal(await pastDay().locator(".chip2").count(), 2));
+      assert.ok(await pastDay().locator("#picker").isVisible(), "still open after the second pick");
+      await pastDay().locator(".had-add").click(); // Done
+      assert.equal(await page.locator("#picker").isVisible(), false);
       assert.match(await pastDay().innerText(), /Used\?/);
     });
   }

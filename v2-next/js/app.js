@@ -1762,7 +1762,7 @@
     asked.forEach(day => dayListEl.appendChild(pastCard(day, picker)));
     FT.mealDays(today).filter(day => !asked.includes(day)).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
-    document.getElementById('nextDay').hidden = inHad() || addingTonight;
+    document.getElementById('nextDay').hidden = inHad() || (addingTonight && asked.includes(today));
     const nextSlot = document.getElementById('nextSlot');
     nextSlot.hidden = selSlot === 'veg';
     nextSlot.textContent = selSlot === 'main' ? 'Next: Sides' : 'Next: Veg';
@@ -2204,6 +2204,8 @@
 
   async function planMeal(pack, day, slot) {
     pendingPlan = null;
+    // Planning tonight after 5pm turns today's card into "Used?": keep its picker open until Done
+    if (day === today) addingTonight = true;
     try {
       await savePack(FT.planPack(pack, day, slot));
     } catch (e) {

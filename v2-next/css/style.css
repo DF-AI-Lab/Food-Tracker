@@ -566,3 +566,10 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .askrow .act.had-yes{background:transparent;color:var(--accent);border:1px solid var(--accent-border)}
 .askrow .act.had-no{background:transparent;color:var(--muted);border:1px solid var(--border)}
 .askrow .act.had-add{background:transparent;color:var(--text-2);border:1px dashed var(--accent-border);gap:4px;min-width:0;padding:0 10px}
+
+/* Meal chips: smaller so more fit on a day card without it growing (Darren 2026-10-11) */
+.chip2{height:26px;padding-left:8px;font-size:13px;border-radius:7px}
+.chip2>span{gap:5px}
+.slot{font-size:9px}
+.chip2 .x{width:24px;height:24px}
+.dh{gap:5px 6px}
