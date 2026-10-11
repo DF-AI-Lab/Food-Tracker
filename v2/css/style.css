@@ -398,3 +398,6 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 /* Date on top, sync sign underneath it */
 #top .todaycol{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 #top .sync{font-size:12px;white-space:nowrap;opacity:.85}
+/* Join: the code box gets the room, the button sits under it */
+#joinPart .sform{flex-direction:column;align-items:stretch}
+#joinCode{width:100%;min-width:0;font-size:18px;letter-spacing:2px;text-transform:uppercase}

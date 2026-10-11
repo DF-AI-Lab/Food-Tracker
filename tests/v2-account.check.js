@@ -136,6 +136,8 @@ function startStatic() {
     await visible(bob, "#joinBtn");
     assert.equal(await bob.inputValue("#joinCode"), code, "code filled in from the link");
     assert.equal(await bob.locator("#makeHH").isVisible(), false, "an invite link only offers Join");
+    const box = await bob.locator("#joinCode").boundingBox();
+    assert.ok(box.width >= 200, `code box is wide enough to read (${box.width}px)`);
     await bob.click("#joinBtn");
     await hidden(bob, "#gate");
     assert.ok(!bob.url().includes("join="), "code removed from the address bar");
