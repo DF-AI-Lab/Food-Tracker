@@ -10,6 +10,7 @@
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
   let openDay = today;    // day whose card is open (null = all closed); today is open on load
   let meals = [];         // meals history, saved in DB.meals
+  let recipes = [];       // recipes, saved in DB.recipes
   let askDay = null;      // past day in "What did you have?" (or cost) mode
   let addingTonight = false; // after 5pm: tonight's card has its picker open again (+ Add)
   const pastState = {};   // past day -> 'ask' | 'use' | 'cost' | 'had'
@@ -157,6 +158,7 @@
     // Shopping list and idea ratings
     shop = await DB.shop.all();
     meals = await DB.meals.all();
+    recipes = await DB.recipes.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     // Shop items deleted before yesterday are removed for good
     const expiredShop = FT.expiredShopDeletes(shop, today);
@@ -185,6 +187,7 @@
     packs = await DB.all();
     shop = await DB.shop.all();
     meals = await DB.meals.all();
+    recipes = await DB.recipes.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     bellEntries = await DB.activity.all();
   }
@@ -290,8 +293,7 @@
     document.querySelectorAll('[data-tab]').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
-    // Bottom bar: Shop opens the shopping list, Used opens the used page
-    document.querySelector('[data-nav="shop"]').addEventListener('click', openShopList);
+    // Bottom bar: Used opens the used page (Shop is a [data-tab] above)
     document.querySelector('[data-nav="used"]').addEventListener('click', () => {
       switchTab('fridge');
       switchView('used');
@@ -387,6 +389,7 @@
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
+    setupRecipes();
     document.getElementById('clearAll').addEventListener('click', () => setClearAsk(true));
     document.getElementById('clrNo').addEventListener('click', () => setClearAsk(false));
     document.getElementById('clrYes').addEventListener('click', clearAllShop);
@@ -800,6 +803,8 @@
   }
 
   function switchTab(tab) {
+    // Shop is a sub-view of Add: the bottom bar's Shop opens it
+    if (tab === 'shop') return openShopList();
     document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('on'));
     document.querySelector(`[data-tab="${tab}"]`).classList.add('on');
 
@@ -1770,6 +1775,7 @@
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();
     renderPickList();
+    renderRecipes();
     renderMealIdeas();
   }
 
@@ -1845,6 +1851,331 @@
       row.append(t, plus);
       list.appendChild(row);
     }
+  }
+
+  // ---- Recipes (V3): a name, fresh foods checked against the fridge, other things ----
+
+  let openRecipeId = null;   // the recipe whose ingredients are showing (one at a time)
+  let editingRecipeId = null; // the recipe the form is editing (null = a new one)
+  let recipeDraft = { fresh: [], other: [] };
+
+  function setupRecipes() {
+    document.getElementById('newRecipe').addEventListener('click', () => openRecipeForm(null));
+    document.getElementById('recipeCancel').addEventListener('click', closeRecipeForm);
+    document.getElementById('recipeSave').addEventListener('click', saveRecipe);
+    document.getElementById('freshAdd').addEventListener('click', addDraftFresh);
+    document.getElementById('freshIn').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addDraftFresh(); }
+    });
+    document.getElementById('otherAdd').addEventListener('click', addDraftOther);
+    document.getElementById('recipeShopAdd').addEventListener('click', addRecipeShop);
+    document.getElementById('recipeShopSkip').addEventListener('click', () => {
+      document.getElementById('recipeShop').hidden = true;
+    });
+  }
+
+  function recipeFormMsg(text) {
+    const el = document.getElementById('recipeMsg');
+    el.textContent = text;
+    el.hidden = !text;
+  }
+
+  // Open the form for a new recipe (r = null) or to edit one
+  function openRecipeForm(r) {
+    editingRecipeId = r ? r.id : null;
+    recipeDraft = r
+      ? { fresh: [...r.fresh], other: r.other.map(o => ({ ...o })) }
+      : { fresh: [], other: [] };
+    document.getElementById('recipeName').value = r ? r.name : '';
+    document.getElementById('freshIn').value = '';
+    document.getElementById('otherName').value = '';
+    document.getElementById('otherQty').value = '';
+    recipeFormMsg('');
+    // Known foods for the fresh box: unique pack names, first spelling kept
+    const seen = new Set();
+    const list = document.getElementById('foodList');
+    list.replaceChildren();
+    for (const p of packs) {
+      const key = String(p.name).toLowerCase();
+      if (p.status === 'deleted' || seen.has(key)) continue;
+      seen.add(key);
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      list.appendChild(opt);
+    }
+    document.getElementById('recipeForm').hidden = false;
+    renderDraft();
+    document.getElementById('recipeName').focus();
+  }
+
+  function closeRecipeForm() {
+    editingRecipeId = null;
+    recipeDraft = { fresh: [], other: [] };
+    document.getElementById('recipeForm').hidden = true;
+  }
+
+  function addDraftFresh() {
+    const input = document.getElementById('freshIn');
+    const name = input.value.trim();
+    input.value = '';
+    if (name && !recipeDraft.fresh.some(f => f.toLowerCase() === name.toLowerCase())) recipeDraft.fresh.push(name);
+    renderDraft();
+    input.focus();
+  }
+
+  function addDraftOther() {
+    const nameIn = document.getElementById('otherName');
+    const qtyIn = document.getElementById('otherQty');
+    const name = nameIn.value.trim();
+    if (name) recipeDraft.other.push({ name, qty: qtyIn.value.trim() || null });
+    nameIn.value = '';
+    qtyIn.value = '';
+    renderDraft();
+    nameIn.focus();
+  }
+
+  // Draw the fresh chips and other rows from recipeDraft (names as typed; text set with textContent)
+  function renderDraft() {
+    const form = document.getElementById('recipeForm');
+    const freshBox = form.querySelector('.fresh-list');
+    const otherBox = form.querySelector('.other-list');
+    freshBox.replaceChildren();
+    recipeDraft.fresh.forEach((name, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip2 fresh-item';
+      const inner = document.createElement('span');
+      const nm = document.createElement('span');
+      nm.className = 'nm';
+      nm.textContent = name;
+      inner.appendChild(nm);
+      const rm = document.createElement('button');
+      rm.className = 'x rm';
+      rm.type = 'button';
+      rm.textContent = '×';
+      rm.setAttribute('aria-label', 'Remove ' + name);
+      rm.addEventListener('click', () => { recipeDraft.fresh.splice(i, 1); renderDraft(); });
+      chip.append(inner, rm);
+      freshBox.appendChild(chip);
+    });
+    otherBox.replaceChildren();
+    recipeDraft.other.forEach((o, i) => {
+      const row = document.createElement('div');
+      row.className = 'other-item';
+      const nm = document.createElement('span');
+      nm.className = 'nm';
+      nm.textContent = o.name;
+      const qty = document.createElement('span');
+      qty.className = 'qty';
+      qty.textContent = o.qty || '';
+      const rm = document.createElement('button');
+      rm.className = 'rm';
+      rm.type = 'button';
+      rm.textContent = '×';
+      rm.setAttribute('aria-label', 'Remove ' + o.name);
+      rm.addEventListener('click', () => { recipeDraft.other.splice(i, 1); renderDraft(); });
+      row.append(nm, qty, rm);
+      otherBox.appendChild(row);
+    });
+  }
+
+  async function saveRecipe() {
+    const r = FT.makeRecipe({
+      id: editingRecipeId,
+      name: document.getElementById('recipeName').value,
+      fresh: recipeDraft.fresh,
+      other: recipeDraft.other
+    });
+    if (!r) {
+      recipeFormMsg('Give the recipe a name, and at least one food or thing.');
+      return;
+    }
+    try {
+      if (r.id !== undefined) {
+        await DB.recipes.put(r);
+        recipes = recipes.map(x => (x.id === r.id ? r : x));
+      } else {
+        r.id = await DB.recipes.add(r);
+        recipes.push(r);
+      }
+    } catch (e) {
+      recipeFormMsg("Couldn't save the recipe. Try again.");
+      return;
+    }
+    closeRecipeForm();
+    openRecipeId = null;
+    renderRecipes();
+  }
+
+  // "a, b and c" for a list of names
+  function listNames(names) {
+    if (names.length <= 1) return names.join('');
+    return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  }
+
+  // What a recipe needs for the day: fridge foods found, missing names, out-of-date names
+  function recipeCheckNow(r) {
+    return FT.recipeCheck(r, packs, ideaDay());
+  }
+
+  function renderRecipes() {
+    const card = document.querySelector('#recipes .rl');
+    card.replaceChildren();
+    const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+    if (!sorted.length) {
+      const empty = document.createElement('p');
+      empty.className = 'rl-empty';
+      empty.textContent = 'No recipes yet. Tap New recipe to add one.';
+      card.appendChild(empty);
+      return;
+    }
+    const day = ideaDay();
+    for (const r of sorted) {
+      const check = recipeCheckNow(r);
+      const open = openRecipeId === r.id;
+      const row = document.createElement('div');
+      row.className = 'recipe';
+
+      const head = document.createElement('div');
+      head.className = 'recipe-head';
+      const name = document.createElement('button');
+      name.className = 'recipe-name';
+      name.type = 'button';
+      name.textContent = r.name;
+      name.setAttribute('aria-expanded', String(open));
+      name.addEventListener('click', () => {
+        openRecipeId = openRecipeId === r.id ? null : r.id;
+        renderRecipes();
+      });
+      const sub = document.createElement('span');
+      sub.className = 'recipe-sub';
+      if (check.missing.length) {
+        sub.classList.add('miss');
+        sub.textContent = 'Need ' + listNames(check.missing);
+      } else {
+        sub.textContent = 'All in fridge';
+      }
+      head.append(name, sub);
+      row.appendChild(head);
+
+      if (open) {
+        const body = document.createElement('div');
+        body.className = 'recipe-body';
+        for (const h of check.have) {
+          const line = document.createElement('div');
+          line.className = 'ing have' + (h.out > 0 ? ' out' : '');
+          const b = document.createElement('b');
+          b.textContent = h.name;
+          const span = document.createElement('span');
+          span.textContent = h.out > 0
+            ? `${h.out} day${h.out === 1 ? '' : 's'} out of date by then`
+            : 'in fridge';
+          line.append(b, span);
+          body.appendChild(line);
+        }
+        for (const food of check.missing) {
+          const line = document.createElement('div');
+          line.className = 'ing missing';
+          const b = document.createElement('b');
+          b.textContent = food;
+          const span = document.createElement('span');
+          span.textContent = 'need';
+          line.append(b, span);
+          body.appendChild(line);
+        }
+        for (const o of check.other) {
+          const line = document.createElement('div');
+          line.className = 'ing other';
+          const b = document.createElement('b');
+          b.textContent = o.name;
+          const span = document.createElement('span');
+          span.textContent = o.qty || '';
+          line.append(b, span);
+          body.appendChild(line);
+        }
+
+        const acts = document.createElement('div');
+        acts.className = 'recipe-acts';
+        const plan = document.createElement('button');
+        plan.className = 'act recipe-plan';
+        plan.type = 'button';
+        plan.textContent = 'Plan for ' + FT.formatDate(day);
+        plan.addEventListener('click', () => planRecipeNow(r));
+        const edit = document.createElement('button');
+        edit.className = 'act ghost recipe-edit';
+        edit.type = 'button';
+        edit.textContent = 'Edit';
+        edit.addEventListener('click', () => openRecipeForm(r));
+        const del = document.createElement('button');
+        del.className = 'act ghost recipe-del';
+        del.type = 'button';
+        del.textContent = 'Delete';
+        del.addEventListener('click', () => deleteRecipe(r));
+        acts.append(plan, edit, del);
+        body.appendChild(acts);
+        row.appendChild(body);
+      }
+      card.appendChild(row);
+    }
+  }
+
+  // Plan what is in the fridge for the day; then offer the missing foods for the shopping list
+  async function planRecipeNow(r) {
+    const check = recipeCheckNow(r);
+    const planned = FT.planRecipe(r, packs, ideaDay());
+    try {
+      for (const p of planned) await savePack(p);
+    } catch (e) {
+      // a save failed: the screen below shows what was saved
+    }
+    openRecipeId = null;
+    renderMeals();
+    renderAll();
+    if (check.missing.length || check.outNames.length) showRecipeShop(check);
+  }
+
+  function showRecipeShop(check) {
+    const panel = document.getElementById('recipeShop');
+    const list = panel.querySelector('.rs-list');
+    const warn = document.getElementById('recipeWarn');
+    list.replaceChildren();
+    for (const food of check.missing) {
+      const label = document.createElement('label');
+      label.className = 'rs-row';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = true;
+      box.value = food;
+      const text = document.createElement('span');
+      text.textContent = food;
+      label.append(box, text);
+      list.appendChild(label);
+    }
+    list.hidden = check.missing.length === 0;
+    warn.textContent = check.outNames.length
+      ? 'Out of date by then: ' + listNames(check.outNames)
+      : '';
+    warn.hidden = !check.outNames.length;
+    panel.hidden = false;
+  }
+
+  // Ticked names go on the shopping list (not those already to get)
+  async function addRecipeShop() {
+    const ticked = [...document.querySelectorAll('#recipeShop .rs-row input:checked')].map(b => b.value);
+    for (const name of FT.recipeShopList(ticked, shop)) await autoAdd(name, 'for a meal');
+    document.getElementById('recipeShop').hidden = true;
+  }
+
+  async function deleteRecipe(r) {
+    if (!confirm('Delete ' + r.name + '?')) return;
+    try {
+      await DB.recipes.remove(r.id);
+    } catch (e) {
+      alert("Couldn't delete the recipe.");
+      return;
+    }
+    recipes = recipes.filter(x => x.id !== r.id);
+    if (openRecipeId === r.id) openRecipeId = null;
+    renderRecipes();
   }
 
   // A day in the next 7 days: header, and the picker when it is the open day
@@ -2389,6 +2720,7 @@
         meals: await DB.meals.all(),
         sheets: await DB.sheets.all(),
         ratings: await DB.ratings.all(),
+        recipes: await DB.recipes.all(),
       };
       const backup = FT.backupFile(data, today, new Date().toISOString());
       // Android's Share menu won't take .json files, so a phone shares the same text as .txt
@@ -2440,9 +2772,10 @@
         meals: await DB.meals.all(),
         sheets: await DB.sheets.all(),
         ratings: await DB.ratings.all(),
+        recipes: await DB.recipes.all(),
       };
       const plan = FT.restorePlan(current, r.data);
-      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings };
+      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings, recipes: DB.recipes };
       for (const list of Object.keys(plan)) {
         for (const item of plan[list].put) await stores[list].put(item);
         for (const id of plan[list].remove) await stores[list].remove(id);

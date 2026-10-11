@@ -1094,7 +1094,7 @@
 
   // V2 step 9: backups. The file is plain JSON with every list in it.
   const BACKUP_APP = "food-tracker-v2";
-  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings"];
+  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes"];
   const NOT_BACKUP = "This isn't a Food Tracker backup file.";
   const BACKUP_EVERY = 5;
 
@@ -1175,6 +1175,97 @@
     return `Last backup: ${dayLabel(ms)}, ${hhmm}`;
   }
 
+  // Recipes (V3): a name, fresh foods (checked against the fridge) and other things (never in the fridge)
+  // Tidy what was typed. null when there is no name or nothing in it.
+  function makeRecipe(input) {
+    const src = input || {};
+    const name = String(src.name ?? "").trim();
+    if (!name) return null;
+
+    const fresh = [];
+    const seen = new Set();
+    for (const f of src.fresh || []) {
+      const t = String(f ?? "").trim();
+      const key = t.toLowerCase();
+      if (!t || seen.has(key)) continue;
+      seen.add(key);
+      fresh.push(t);
+    }
+
+    const other = [];
+    for (const o of src.other || []) {
+      const n = String(o?.name ?? "").trim();
+      if (!n) continue;
+      const q = String(o.qty ?? "").trim();
+      other.push({ name: n, qty: q || null });
+    }
+
+    if (!fresh.length && !other.length) return null;
+    const r = {};
+    if (src.id !== undefined && src.id !== null && src.id !== "") r.id = src.id;
+    r.name = name;
+    r.fresh = fresh;
+    r.other = other;
+    return r;
+  }
+
+  // The free fridge pack for each fresh food (soonest date first, undated last, then id)
+  function recipeCheck(recipe, packs, dayIso) {
+    const have = [];
+    const missing = [];
+    for (const food of recipe.fresh || []) {
+      const key = String(food).trim().toLowerCase();
+      const free = (packs || []).filter(p =>
+        p.status === "in_fridge" && !p.plannedFor && p.kind !== "takeaway" &&
+        String(p.name ?? "").trim().toLowerCase() === key);
+      if (!free.length) {
+        missing.push(food);
+        continue;
+      }
+      free.sort((a, b) => {
+        if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
+        if (a.date) return -1;
+        if (b.date) return 1;
+        return byId(a, b);
+      });
+      const pack = free[0];
+      have.push({ name: pack.name, pack, out: outByDay(pack, dayIso) });
+    }
+    return {
+      have,
+      missing,
+      other: [...(recipe.other || [])],
+      outNames: have.filter(h => h.out > 0).map(h => h.name),
+      ready: missing.length === 0
+    };
+  }
+
+  // New planned pack objects for the day: one per fresh food found in the fridge (input not changed)
+  function planRecipe(recipe, packs, dayIso) {
+    const { have } = recipeCheck(recipe, packs, dayIso);
+    return have.map(h => {
+      const slot = ["main", "side", "veg"].includes(h.pack.kind) ? h.pack.kind : "side";
+      return planPack(h.pack, dayIso, slot);
+    });
+  }
+
+  // Names (first spelling, no repeats) not already to get on the shopping list
+  function recipeShopList(names, shopItems) {
+    const onList = new Set((shopItems || [])
+      .filter(i => !i.got && !i.del)
+      .map(i => String(i.name ?? "").trim().toLowerCase()));
+    const seen = new Set();
+    const out = [];
+    for (const n of names || []) {
+      const t = String(n ?? "").trim();
+      const key = t.toLowerCase();
+      if (!t || seen.has(key) || onList.has(key)) continue;
+      seen.add(key);
+      out.push(t);
+    }
+    return out;
+  }
+
   // Export
   const FT = {
     addDays,
@@ -1219,6 +1310,10 @@
     makeTakeaway,
     dayMeals,
     mealIdeas,
+    makeRecipe,
+    recipeCheck,
+    planRecipe,
+    recipeShopList,
     shopOrder,
     expiredShopDeletes,
     timesBought,
