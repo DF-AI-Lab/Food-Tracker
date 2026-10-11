@@ -602,6 +602,10 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 #recipeForm .rf-row input{flex:1}
 #recipeForm .rf-row .act{flex:none}
 #recipeForm .chips-list{display:flex;flex-wrap:wrap;gap:6px}
+.sugs{display:flex;flex-wrap:wrap;gap:6px}
+.askrow .act.day-meal{background:transparent;color:var(--text-2);border:1px dashed var(--accent-border);min-width:0;padding:0 10px;min-height:36px;font-size:14px;border-radius:10px}
+.sugs:empty{display:none}
+.dh .day-meal{margin-left:auto;min-height:34px;padding:0 10px;border-radius:10px;border:1px dashed var(--accent-border);background:transparent;color:var(--text-2);font:inherit;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center}
 #recipeForm .other-list{display:flex;flex-direction:column}
 #recipeForm .other-item{display:flex;align-items:center;gap:8px;min-height:40px;font-size:14px;border-bottom:1px solid var(--divider)}
 #recipeForm .other-item .nm{flex:1;min-width:0;overflow-wrap:anywhere}

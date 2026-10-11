@@ -1864,6 +1864,7 @@
     document.getElementById('recipeCancel').addEventListener('click', closeRecipeForm);
     document.getElementById('recipeSave').addEventListener('click', saveRecipe);
     document.getElementById('freshAdd').addEventListener('click', addDraftFresh);
+    document.getElementById('freshIn').addEventListener('input', showFreshSuggest);
     document.getElementById('freshIn').addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); addDraftFresh(); }
     });
@@ -1881,28 +1882,24 @@
   }
 
   // Open the form for a new recipe (r = null) or to edit one
-  function openRecipeForm(r) {
+  function openRecipeForm(r, freshNames = []) {
     editingRecipeId = r ? r.id : null;
     recipeDraft = r
       ? { fresh: [...r.fresh], other: r.other.map(o => ({ ...o })) }
       : { fresh: [], other: [] };
+    if (!r) {
+      // A new recipe may start with foods (from a planned day): unique names, first spelling kept
+      for (const n of freshNames) {
+        const t = String(n ?? '').trim();
+        if (t && !recipeDraft.fresh.some(f => f.toLowerCase() === t.toLowerCase())) recipeDraft.fresh.push(t);
+      }
+    }
     document.getElementById('recipeName').value = r ? r.name : '';
     document.getElementById('freshIn').value = '';
     document.getElementById('otherName').value = '';
     document.getElementById('otherQty').value = '';
+    clearFreshSuggest();
     recipeFormMsg('');
-    // Known foods for the fresh box: unique pack names, first spelling kept
-    const seen = new Set();
-    const list = document.getElementById('foodList');
-    list.replaceChildren();
-    for (const p of packs) {
-      const key = String(p.name).toLowerCase();
-      if (p.status === 'deleted' || seen.has(key)) continue;
-      seen.add(key);
-      const opt = document.createElement('option');
-      opt.value = p.name;
-      list.appendChild(opt);
-    }
     document.getElementById('recipeForm').hidden = false;
     renderDraft();
     document.getElementById('recipeName').focus();
@@ -1911,16 +1908,48 @@
   function closeRecipeForm() {
     editingRecipeId = null;
     recipeDraft = { fresh: [], other: [] };
+    clearFreshSuggest();
     document.getElementById('recipeForm').hidden = true;
   }
 
-  function addDraftFresh() {
+  // "Meal?" on a planned day: a new recipe starting with that day's planned foods (not takeaways)
+  function openMealRecipe(day) {
+    const names = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway').map(p => p.name);
+    openRecipeForm(null, names);
+    document.getElementById('recipeForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function addFreshName(name) {
     const input = document.getElementById('freshIn');
-    const name = input.value.trim();
     input.value = '';
+    clearFreshSuggest();
     if (name && !recipeDraft.fresh.some(f => f.toLowerCase() === name.toLowerCase())) recipeDraft.fresh.push(name);
     renderDraft();
     input.focus();
+  }
+
+  function addDraftFresh() {
+    addFreshName(document.getElementById('freshIn').value.trim());
+  }
+
+  // Tap chips under the fresh food box while typing (foods already in the recipe are left out)
+  function showFreshSuggest() {
+    const box = document.getElementById('freshSuggest');
+    const value = document.getElementById('freshIn').value;
+    box.replaceChildren();
+    if (!value.trim()) return;
+    FT.suggestFoods(packs, value, recipeDraft.fresh).forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sug qc';
+      b.textContent = '+ ' + s.name;
+      b.addEventListener('click', () => addFreshName(s.name));
+      box.appendChild(b);
+    });
+  }
+
+  function clearFreshSuggest() {
+    document.getElementById('freshSuggest').replaceChildren();
   }
 
   function addDraftOther() {
@@ -2206,6 +2235,14 @@
       hint.innerHTML = ICON('add', 14, 2.2) + 'Plan';
       head.appendChild(hint);
     }
+    if (meals.some(p => p.kind !== 'takeaway')) {
+      const meal = document.createElement('button');
+      meal.type = 'button';
+      meal.className = 'day-meal';
+      meal.textContent = 'Meal?';
+      meal.addEventListener('click', e => { e.stopPropagation(); openMealRecipe(day); });
+      head.appendChild(meal);
+    }
     head.addEventListener('click', () => toggleDay(day));
     head.addEventListener('keydown', e => {
       if (e.target !== head) return; // chip ✕ buttons keep their own keys
@@ -2271,6 +2308,9 @@
       const yes = button('had-yes mini', 'Yes', () => { addingTonight = false; answerYes(day); });
       const no = button('had-no mini', 'No', () => { addingTonight = false; answerNo(day); });
       row.append(text);
+      if (FT.dayMeals(packs, day).some(p => p.kind !== 'takeaway')) {
+        row.append(button('mini day-meal', 'Meal?', () => openMealRecipe(day)));
+      }
       // Tonight (after 5pm) can still take more food: + Add opens the picker for today
       if (day === today) {
         const add = button('had-add mini', '', () => {

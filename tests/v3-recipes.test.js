@@ -184,3 +184,46 @@ test("old backups with no recipes still read fine", () => {
 test("recipe changes are not 🔔 news", () => {
   assert.equal(FT.activityChange("recipes", null, pie), null);
 });
+
+// ---- suggestFoods: chips while typing a fresh food, forgiving of spelling slips ----
+
+const saved = [
+  pack("s1", "Chicken", "main", day(2)),
+  pack("s2", "Chicken tenders", "main", day(2)),
+  pack("s3", "Bacon", "main", day(2)),
+  pack("s4", "Pork", "main", day(2))
+];
+const names = list => list.map(x => x.name);
+
+test("suggestFoods: 'chic' brings up the chicken foods, name-starts first", () => {
+  const r = names(FT.suggestFoods(saved, "chic"));
+  assert.deepEqual(r.slice(0, 2), ["Chicken", "Chicken tenders"]);
+});
+
+test("suggestFoods: spelling slips still find it", () => {
+  assert.equal(names(FT.suggestFoods(saved, "chiken"))[0], "Chicken");
+  assert.ok(names(FT.suggestFoods(saved, "bacn")).includes("Bacon"));
+  assert.ok(names(FT.suggestFoods([], "musrooms")).includes("Mushrooms")); // starter food
+});
+
+test("suggestFoods: exact matches come before slips", () => {
+  const r = names(FT.suggestFoods([pack("a", "Park ham", "main", null), ...saved], "pork"));
+  assert.equal(r[0], "Pork");
+});
+
+test("suggestFoods: no wild guesses, blank = nothing, short text = no slips", () => {
+  assert.equal(names(FT.suggestFoods(saved, "cat")).includes("Chicken"), false);
+  assert.deepEqual(FT.suggestFoods(saved, "  "), []);
+  assert.deepEqual(names(FT.suggestFoods(saved, "zq")), []);
+});
+
+test("suggestFoods: leaves out foods already in the recipe (any case), max 10", () => {
+  const r = names(FT.suggestFoods(saved, "chic", ["chicken"]));
+  assert.equal(r.includes("Chicken"), false);
+  assert.ok(r.includes("Chicken tenders"));
+  assert.ok(FT.suggestFoods([], "o").length <= 10);
+});
+
+test("suggestFoods: each row has name and kind", () => {
+  assert.deepEqual(FT.suggestFoods(saved, "bacon")[0], { name: "Bacon", kind: "main" });
+});
