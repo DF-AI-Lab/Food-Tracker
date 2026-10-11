@@ -124,6 +124,17 @@ function startStatic() {
     assert.doesNotMatch(await text("#mains"), /Turkey/);
   });
 
+  await step("top right: 📷 · 🖨️ · 🔔 · ⚙️, bell opens and closes", async () => {
+    const ids = await page.locator(".pal button").evaluateAll(bs => bs.map(b => b.id));
+    assert.deepEqual(ids, ["scanBtn", "printF", "bellBtn", "settingsBtn"]);
+    assert.equal(await page.locator("#bellCount").isVisible(), false, "nothing new");
+    await page.click("#bellBtn");
+    assert.ok(await page.locator("#bell").isVisible());
+    assert.match(await text("#bellList"), /Nothing yet/);
+    await page.click("#bellClose");
+    assert.equal(await page.locator("#bell").isVisible(), false);
+  });
+
   await step("version number shows at the bottom", async () => {
     await until(async () => assert.match(await text("#ver"), /^v\d+ · \d+ \w+$/));
   });

@@ -26,6 +26,13 @@ function toItem(doc) {
   return { id: doc.id, ...data };
 }
 
+// Activity doc as an entry: { by, verb, name, at } with at as ms
+function toEntry(doc) {
+  const data = doc.data({ serverTimestamps: "estimate" });
+  const at = data.at && typeof data.at.toMillis === "function" ? data.at.toMillis() : Date.now();
+  return { by: data.by, verb: data.verb, name: data.name, at };
+}
+
 // Report a failed write (writes are not awaited, so this is the only place it shows)
 function failed(p) {
   p.catch(e => {
@@ -41,8 +48,10 @@ function isOnline() {
   return typeof navigator === "undefined" ? true : navigator.onLine !== false;
 }
 
-export function makeCloudDB(F, db, householdId, uid) {
+export function makeCloudDB(F, db, householdId, uid, opts = {}) {
   const mirrors = new Map(LISTS.map(name => [name, new Map()]));
+  const describe = opts.describe || null; // (list, before, after) -> {verb, name} | null
+  let activityEntries = [];               // the newest 50 changes, for the 🔔 list
   const unsubs = [];
   const callbacks = [];
   const statusCallbacks = [];
@@ -124,6 +133,43 @@ export function makeCloudDB(F, db, householdId, uid) {
     });
   }
 
+  // Live listener for the 🔔 list: the newest 50 changes (older ones are trimmed)
+  function listenActivity() {
+    return new Promise((resolve, reject) => {
+      let first = true;
+      const q = F.query(col("activity"), F.orderBy("at", "desc"), F.limit(50));
+      const unsub = F.onSnapshot(q, snap => {
+        let news = false;
+        if (!first) {
+          for (const change of snap.docChanges()) {
+            if (change.type === "added" && change.doc.data().by !== uid) news = true;
+          }
+        }
+        activityEntries = snap.docs.map(toEntry);
+        if (first) {
+          first = false;
+          // Keep the collection short: delete what is older than the newest 50
+          if (snap.docs.length === 50) {
+            failed(trimActivity(snap.docs[snap.docs.length - 1]));
+          }
+          resolve();
+        } else if (news) {
+          notify();
+        }
+      }, e => {
+        if (first) reject(e);
+        else console.error(e);
+      });
+      unsubs.push(unsub);
+    });
+  }
+
+  // Delete the activity docs after the newest 50 (the last one kept is lastDoc)
+  async function trimActivity(lastDoc) {
+    const old = await F.getDocs(F.query(col("activity"), F.orderBy("at", "desc"), F.startAfter(lastDoc), F.limit(100)));
+    for (const d of old.docs) failed(F.deleteDoc(d.ref));
+  }
+
   // Count a list write as waiting until the cloud confirms it (or refuses it)
   function counted(p) {
     inflight++;
@@ -136,7 +182,13 @@ export function makeCloudDB(F, db, householdId, uid) {
   // Write one document now, without waiting for the server (works offline)
   function save(name, id, item) {
     const data = fields(item);
+    const before = mirrors.get(name).get(id);
     mirrors.get(name).set(id, { id, ...data, updatedBy: uid, updatedAt: Date.now() });
+    // Say what changed, if it is news for the 🔔 list (not counted as waiting)
+    const news = describe ? describe(name, before, { id, ...data }) : null;
+    if (news) {
+      failed(F.addDoc(col("activity"), { by: uid, verb: news.verb, name: news.name, at: F.serverTimestamp() }));
+    }
     counted(F.setDoc(F.doc(col(name), id), { ...data, updatedBy: uid, updatedAt: F.serverTimestamp() }));
     return id;
   }
@@ -186,7 +238,7 @@ export function makeCloudDB(F, db, householdId, uid) {
 
     // Start the live listeners; resolves once every list has its first snapshot
     async open() {
-      await Promise.all(LISTS.map(listen));
+      await Promise.all([...LISTS.map(listen), listenActivity()]);
     },
 
     // { online, waiting }: for the sync sign on the Today line
@@ -233,6 +285,13 @@ export function makeCloudDB(F, db, householdId, uid) {
       },
       async put(r) {
         return save("ratings", encodeURIComponent(r.name), r);
+      }
+    },
+
+    // The 🔔 list: other people's changes, newest first (see FT.activityFeed)
+    activity: {
+      async all() {
+        return copy(activityEntries);
       }
     },
 

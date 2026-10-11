@@ -19,7 +19,7 @@
   <div id="testBanner" class="testbanner" hidden>🧪 TEST COPY · not your real food</div>
   <div id="top" class="today">
     <span class="todaycol"><span id="today">📅 Today · <b>Loading...</b></span><span id="sync" class="sync"></span></span>
-    <span class="pal"><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="settingsBtn" title="Settings" aria-label="Settings">⚙️</button></span>
+    <span class="pal"><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="bellBtn" title="What others did" aria-label="What others did">🔔<span id="bellCount" class="bell-count" hidden></span></button><button id="settingsBtn" title="Settings" aria-label="Settings">⚙️</button></span>
   </div>
   <div class="note" id="updNote" hidden></div>
   <button id="newVersion" class="act" hidden>🆕 New version, tap to refresh</button>
@@ -308,6 +308,13 @@
         <div class="note">Works for 24 hours</div>
       </div>
       <button class="act ghost" id="signOut">Sign out</button>
+    </div>
+  </div>
+
+  <div id="bell" class="overlay" hidden>
+    <div class="sheet ocard">
+      <div class="wkhead"><h2>🔔 What others did</h2><button class="undo" id="bellClose">Close</button></div>
+      <ul id="bellList"></ul>
     </div>
   </div>
 

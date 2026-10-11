@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -158,12 +158,15 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 - [x] Yes → used / how much (takeaway → cost), as now. No → "What did you have?", as now. Once confirmed, tomorrow has nothing to ask.
   - From **5pm** today's card is swapped for the Had-it card. Tests: `tests/v2-tonight.test.js` (npm test), `tests/v2-tonight.check.js` (npm run check:v2).
 
-### 7c. 🔔 Notifications: what the other person did (added 2026-10-10) ← NEXT
+### 7c. 🔔 Notifications: what the other person did (added 2026-10-10) ✅ v13, built 2026-10-11 (try on both phones)
 
-- [ ] **🔔 bell** top right with an unread count. Top right becomes **📷 · 🖨️ · 🔔 · ⚙️**.
-- [ ] Tap → list of **other members'** changes, newest first: *"Sarah added Chicken · 5 min ago"*, *"Sarah used Milk"*, meals confirmed, shop items added. Never your own.
-- [ ] **Names** from each member's Google name (already in `households/{id}.names`). Let each person change their display name in ⚙️ Settings.
-- [ ] Keep reads low: a small `activity` list (last ~50, older trimmed) instead of scanning every pack. "Seen up to" kept per phone.
+- [x] **🔔 bell** top right with an unread count. Top right becomes **📷 · 🖨️ · 🔔 · ⚙️**.
+- [x] Tap → list of **other members'** changes, newest first: *"Sarah added Chicken · 5 min ago"*, *"Sarah used Milk"*, meals confirmed, shop items added. Never your own.
+- [x] **Names** from each member's Google name (already in `households/{id}.names`). Let each person change their display name in ⚙️ Settings.
+- [x] Keep reads low: a small `activity` list (last ~50, older trimmed) instead of scanning every pack. "Seen up to" kept per phone.
+  - Logged: added, used, used some of, threw away, froze, defrosted, put back, meal had / takeaway, shop items added by hand. Same person + same action within 10 min = one line.
+  - Bell hidden while you're the only member. **You:** publish the new `firestore.rules` in the Firebase console (tightens `activity`: add only as yourself, never edited).
+  - Tests: `tests/v2-activity.test.js`, `check:rules`, `check:sync` (two phones), `check:v2`.
 
 ### 7. 📷 Photos → Claude (packets), in the app (changed 2026-10-10)
 
@@ -177,7 +180,7 @@ Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
   - Rough cost (Oct 2026 prices): ~1¢ a photo on Sonnet 5.5 → 100 photos ≈ $0.70–$1/month. Sonnet 5 same price; Sonnet 4.6 1.5× dearer; Opus 5.5 ~2×. Shrink photos on the phone first (~1600px).
 - [ ] **Packets only in V2.** Receipts (names + prices, no dates) are V3: needs solving how to match them to packets first.
 
-### 8. Fridge sheet
+### 8. Fridge sheet ← NEXT
 
 - [ ] **Print** from the PC browser. **New layout (Darren, 2026-10-10):**
   - Remove the **meals** and the **added** sections, so as many items + dates as possible fit.
