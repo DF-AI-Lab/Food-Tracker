@@ -482,6 +482,62 @@
     return parseFloat(s);
   }
 
+  // Step 7a: edit a pack. Returns a NEW pack with only the keys given in `changes` changed.
+  function editPack(pack, changes) {
+    const has = key => Object.prototype.hasOwnProperty.call(changes, key);
+    const out = { ...pack };
+
+    if (has("name")) {
+      const trimmed = String(changes.name ?? "").trim();
+      if (!trimmed) throw new Error("Needs a name");
+      out.name = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    }
+    if (has("sub")) {
+      const trimmed = String(changes.sub ?? "").trim();
+      out.sub = trimmed || null;
+    }
+    if (has("kind")) {
+      if (!KINDS.includes(changes.kind)) throw new Error("Kind must be main, side, veg or misc");
+      out.kind = changes.kind;
+    }
+    if (has("date")) {
+      const d = changes.date;
+      if (d === "" || d === null || d === undefined) {
+        out.date = null;
+      } else {
+        if (!isRealDate(d)) throw new Error("Date must look like 2026-10-10");
+        out.date = d;
+      }
+    }
+    if (has("dateType")) {
+      if (changes.dateType !== "use_by" && changes.dateType !== "best_before") {
+        throw new Error("Date type must be use_by or best_before");
+      }
+      out.dateType = changes.dateType;
+    }
+    if (has("price")) {
+      const v = changes.price;
+      if (v === "" || v === null || v === undefined) {
+        out.price = null;
+      } else {
+        const s = typeof v === "string" ? v.trim().replace(/^£\s*/, "") : v;
+        const n = typeof s === "number" ? s : (/^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN);
+        if (!Number.isFinite(n) || n < 0) throw new Error("Price must be a number");
+        out.price = n;
+      }
+    }
+
+    if (out.date === null) {
+      out.dateType = null;
+    } else if (!out.dateType) {
+      out.dateType = "use_by";
+    }
+    if ((out.kind === "main" || out.kind === "misc") && !out.date && !out.noDate) {
+      throw new Error("Needs a date");
+    }
+    return out;
+  }
+
   function quickFillRow(row, allPacks = []) {
     const r = row || {};
     const rawName = String(r.name ?? "").trim();
@@ -958,6 +1014,7 @@
     ageLabel,
     isOld,
     makePacks,
+    editPack,
     markUsed,
     markThrown,
     freeze,

@@ -203,6 +203,7 @@
         <button class="act part" id="actPart">🌗 Part used</button>
         <button class="act alt" id="actThrown">🗑️ Thrown away</button>
         <button class="act ghost" id="actFreeze">🧊 Freeze</button>
+        <button class="act ghost" id="actEdit">✏️ Edit</button>
         <button class="act ghost" id="actDelete">🗑️ Delete</button>
         <button class="act ghost" id="actCancel">Cancel</button>
       </div>
@@ -250,6 +251,36 @@
         <div class="sform"><input id="joinCode" placeholder="Invite code" autocomplete="off" aria-label="Invite code"><button class="act" id="joinBtn">🎟️ Join</button></div>
       </div>
       <div class="note" id="gateMsg"></div>
+    </div>
+  </div>
+
+  <!-- Edit a pack (✏️ Edit in the pack sheet): name, sub, kind, date, date type, price -->
+  <div id="editForm" class="overlay" hidden>
+    <div class="sheet ocard">
+      <h2>✏️ Edit pack</h2>
+      <label class="edit-field">Name<input id="editName" type="text" autocomplete="off"></label>
+      <label class="edit-field">Sub (where from)<input id="editSub" type="text" placeholder="e.g. Asda" autocomplete="off"></label>
+      <label class="edit-field">Kind
+        <select id="editKind">
+          <option value="main">🍖 Main</option>
+          <option value="side">🥔 Side</option>
+          <option value="veg">🥕 Veg</option>
+          <option value="misc">🧂 Misc</option>
+        </select>
+      </label>
+      <label class="edit-field">Date<input id="editDate" type="date"></label>
+      <label class="edit-field">Date type
+        <select id="editDateType">
+          <option value="use_by">Use by</option>
+          <option value="best_before">Best before</option>
+        </select>
+      </label>
+      <label class="edit-field">Price<input id="editPrice" type="text" inputmode="decimal" placeholder="£"></label>
+      <div class="note" id="editMsg" role="alert"></div>
+      <div class="btns">
+        <button class="act" id="editSave">Save</button>
+        <button class="act ghost" id="editCancel">Cancel</button>
+      </div>
     </div>
   </div>
 

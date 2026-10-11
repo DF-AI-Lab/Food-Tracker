@@ -308,8 +308,11 @@
     document.getElementById('actPart').addEventListener('click', actPart);
     document.getElementById('actThrown').addEventListener('click', actThrown);
     document.getElementById('actFreeze').addEventListener('click', actFreeze);
+    document.getElementById('actEdit').addEventListener('click', openEditForm);
     document.getElementById('actDelete').addEventListener('click', actDelete);
     document.getElementById('actCancel').addEventListener('click', hideSheet);
+    document.getElementById('editSave').addEventListener('click', saveEdit);
+    document.getElementById('editCancel').addEventListener('click', closeEditForm);
 
     // Undo
     document.getElementById('undoBtn').addEventListener('click', async () => {
@@ -1001,6 +1004,62 @@
     Object.assign(pack, updated);
     lastAction = { type: 'update', packId: selectedPackId, before: beforeState };
     hideSheet();
+    showUndoBar();
+    renderAll();
+  }
+
+  // ✏️ Edit (step 7a): fill the form from the pack, then Save or Cancel
+  let editingPackId = null;
+
+  function editMsg(text) {
+    document.getElementById('editMsg').textContent = text;
+  }
+
+  function openEditForm() {
+    if (!selectedPackId) return;
+    const pack = packs.find(p => p.id === selectedPackId);
+    if (!pack) return;
+    const id = selectedPackId;
+    hideSheet();
+    editingPackId = id;
+    document.getElementById('editName').value = pack.name || '';
+    document.getElementById('editSub').value = pack.sub || '';
+    document.getElementById('editKind').value = pack.kind;
+    document.getElementById('editDate').value = pack.date || '';
+    document.getElementById('editDateType').value = pack.dateType || 'use_by';
+    document.getElementById('editPrice').value = pack.price == null ? '' : String(pack.price);
+    editMsg('');
+    document.getElementById('editForm').hidden = false;
+  }
+
+  function closeEditForm() {
+    document.getElementById('editForm').hidden = true;
+    editingPackId = null;
+    editMsg('');
+  }
+
+  async function saveEdit() {
+    const pack = packs.find(p => p.id === editingPackId);
+    if (!pack) { closeEditForm(); return; }
+    let updated;
+    try {
+      updated = FT.editPack(pack, {
+        name: document.getElementById('editName').value,
+        sub: document.getElementById('editSub').value,
+        kind: document.getElementById('editKind').value,
+        date: document.getElementById('editDate').value,
+        dateType: document.getElementById('editDateType').value,
+        price: document.getElementById('editPrice').value,
+      });
+    } catch (err) {
+      editMsg(err.message);
+      return;
+    }
+    const beforeState = JSON.parse(JSON.stringify(pack));
+    await DB.put(updated);
+    Object.assign(pack, updated);
+    lastAction = { type: 'update', packId: pack.id, before: beforeState };
+    closeEditForm();
     showUndoBar();
     renderAll();
   }
