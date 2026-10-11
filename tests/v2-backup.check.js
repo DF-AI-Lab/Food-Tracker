@@ -150,7 +150,8 @@ function startStatic() {
 
   await step("phone: if Share fails, the file downloads instead (no error box)", async () => {
     let dialog = null;
-    page.once("dialog", d => { dialog = d.message(); d.accept(); });
+    const onDialog = d => { dialog = d.message(); d.accept(); };
+    page.on("dialog", onDialog);
     await page.evaluate(() => {
       Navigator.prototype.canShare = () => true;
       Navigator.prototype.share = async () => { throw new DOMException("Permission denied", "NotAllowedError"); };
@@ -158,11 +159,31 @@ function startStatic() {
     const [dl] = await Promise.all([page.waitForEvent("download"), page.evaluate(() => document.getElementById("backupBtn").click())]);
     assert.equal(dl.suggestedFilename(), "food-backup-2026-10-07.json");
     await page.waitForTimeout(300);
+    page.off("dialog", onDialog);
     assert.equal(dialog, null);
   });
 
   await step("restore takes the .txt backup too", async () => {
     assert.match(await page.locator("#restoreFile").getAttribute("accept"), /\.txt/);
+  });
+
+  await step("go live: a V1 food.db, turned into a backup, restores into V2", async () => {
+    const os = require("node:os");
+    const { seedData } = require("../server/seed.js");
+    const { convertDb } = require("../tools/v1-to-backup.js");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ft-v1-"));
+    seedData(dir, "2026-10-07");
+    const backup = convertDb(path.join(dir, "food.db"), "2026-10-07T19:00:00.000Z");
+    const v1File = path.join(dir, "food-backup-from-v1.json");
+    fs.writeFileSync(v1File, JSON.stringify(backup));
+    page.once("dialog", d => d.accept());
+    await page.setInputFiles("#restoreFile", v1File);
+    await until(async () => assert.equal((await packsNow()).length, backup.packs.length));
+    const main = backup.packs.find(p => p.status === "in_fridge" && p.kind === "main");
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="fridge"]');
+    await until(async () => assert.match(await page.locator("#mains").innerText(), new RegExp(main.name)));
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   await step("no page errors", async () => assert.deepEqual(errors, []));

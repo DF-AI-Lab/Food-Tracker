@@ -205,6 +205,7 @@ Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
 ### 10. Live on both phones ← NEXT
 
 - [ ] **Copy all V1 data** (`FoodTrackerData/food.db`) into the real household: one-off PC script, tests first. Back up `food.db` first. Wipe `tryout`.
+  - Built 2026-10-11: `tools/v1-to-backup.js` turns food.db into a V2 backup file (read-only, no key file); load it with ⚙️ ⬆️ Restore. Tests: `tests/v1-to-backup.test.js`, go-live step in `tests/v2-backup.check.js`.
 - [ ] The 29 photos already read in V1 are covered by this copy. Don't re-read them or load their JSON (doubles).
 
 - [ ] Install on both Samsungs, join the household, use it for a week.
