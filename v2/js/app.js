@@ -2124,16 +2124,20 @@
         ratings: await DB.ratings.all(),
       };
       const backup = FT.backupFile(data, today, new Date().toISOString());
-      const file = new File([backup.text], backup.name, { type: 'application/json' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Android's Share menu won't take .json files, so a phone shares the same text as .txt
+      const shareFile = new File([backup.text], backup.name.replace(/\.json$/, '.txt'), { type: 'text/plain' });
+      let shared = false;
+      if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
         try {
-          await navigator.share({ files: [file], title: 'Food Tracker backup' });
+          await navigator.share({ files: [shareFile], title: 'Food Tracker backup' });
+          shared = true;
         } catch (e) {
-          // Cancelled: not backed up
-          if (e.name !== 'AbortError') alert("Couldn't share the backup.");
-          return;
+          // Cancelled: not backed up. Any other problem: download it instead (below)
+          if (e.name === 'AbortError') return;
         }
-      } else {
+      }
+      if (!shared) {
+        const file = new File([backup.text], backup.name, { type: 'application/json' });
         const url = URL.createObjectURL(file);
         const a = document.createElement('a');
         a.href = url;
