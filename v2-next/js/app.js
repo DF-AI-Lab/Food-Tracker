@@ -1770,7 +1770,7 @@
 
     document.getElementById('nextDay').hidden = inHad() || (addingTonight && asked.includes(today));
     const nextSlot = document.getElementById('nextSlot');
-    nextSlot.hidden = selSlot === 'misc';
+    nextSlot.hidden = selSlot === 'misc' || selSlot === 'meal';
     nextSlot.textContent = NEXT_LABEL[selSlot] || 'Next: Sides';
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
@@ -2042,6 +2042,13 @@
     return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
   }
 
+  // "today", a weekday within the week ("Sun"), or the full date
+  function plannedWhen(day) {
+    if (day === today) return 'today';
+    const days = Math.round((Date.parse(day) - Date.parse(today)) / 864e5);
+    return days <= 6 ? shortDay(day) : FT.formatDate(day);
+  }
+
   // What a recipe needs for the day: fridge foods found, missing names, out-of-date names
   function recipeCheckNow(r) {
     return FT.recipeCheck(r, packs, ideaDay());
@@ -2078,7 +2085,10 @@
       });
       const sub = document.createElement('span');
       sub.className = 'recipe-sub';
-      if (check.missing.length) {
+      const plannedDay = FT.recipePlannedDay(r, packs, today);
+      if (plannedDay) {
+        sub.textContent = 'Planned ' + plannedWhen(plannedDay);
+      } else if (check.missing.length) {
         sub.classList.add('miss');
         sub.textContent = 'Need ' + listNames(check.missing);
       } else {
@@ -2149,9 +2159,9 @@
   }
 
   // Plan what is in the fridge for the day; then offer the missing foods for the shopping list
-  async function planRecipeNow(r) {
-    const check = recipeCheckNow(r);
-    const planned = FT.planRecipe(r, packs, ideaDay());
+  async function planRecipeNow(r, day = ideaDay()) {
+    const check = FT.recipeCheck(r, packs, day);
+    const planned = FT.planRecipe(r, packs, day);
     try {
       for (const p of planned) await savePack(p);
     } catch (e) {
@@ -2160,32 +2170,39 @@
     openRecipeId = null;
     renderMeals();
     renderAll();
-    if (check.missing.length || check.outNames.length) showRecipeShop(check);
+    showRecipeShop(r, check);
   }
 
-  function showRecipeShop(check) {
+  // Missing fresh foods first, then cupboard things (with their amount), each ticked
+  function showRecipeShop(r, check) {
     const panel = document.getElementById('recipeShop');
     const list = panel.querySelector('.rs-list');
     const warn = document.getElementById('recipeWarn');
+    const names = FT.recipeShopNames(r, check);
     list.replaceChildren();
-    for (const food of check.missing) {
+    names.forEach((name, i) => {
+      if (i === check.missing.length && i > 0) {
+        const lab = document.createElement('div');
+        lab.className = 'rs-lab';
+        lab.textContent = 'Check the cupboard';
+        list.appendChild(lab);
+      }
       const label = document.createElement('label');
       label.className = 'rs-row';
       const box = document.createElement('input');
       box.type = 'checkbox';
       box.checked = true;
-      box.value = food;
+      box.value = name;
       const text = document.createElement('span');
-      text.textContent = food;
+      text.textContent = name;
       label.append(box, text);
       list.appendChild(label);
-    }
-    list.hidden = check.missing.length === 0;
+    });
     warn.textContent = check.outNames.length
       ? 'Out of date by then: ' + listNames(check.outNames)
       : '';
     warn.hidden = !check.outNames.length;
-    panel.hidden = false;
+    panel.hidden = names.length === 0;
   }
 
   // Ticked names go on the shopping list (not those already to get)
@@ -2229,7 +2246,7 @@
     }
 
     const meals = FT.dayMeals(packs, day);
-    meals.forEach(item => head.appendChild(mealChip(item, day)));
+    const mealBlocks = appendDayChips(head, day);
     if (meals.length === 0) {
       const hint = document.createElement('span');
       hint.className = 'hint';
@@ -2253,6 +2270,7 @@
       }
     });
     card.appendChild(head);
+    mealBlocks.forEach(b => card.appendChild(b));
 
     if (isOpen) {
       const body = document.createElement('div');
@@ -2273,8 +2291,9 @@
     const head = document.createElement('div');
     head.className = 'dh';
     head.appendChild(dayName(day));
-    FT.dayMeals(packs, day).forEach(item => head.appendChild(mealChip(item, day)));
+    const mealBlocks = appendDayChips(head, day);
     card.appendChild(head);
+    mealBlocks.forEach(b => card.appendChild(b));
 
     const body = document.createElement('div');
     body.className = 'dbody past-body';
@@ -2392,6 +2411,108 @@
     return card;
   }
 
+  // Planned foods on a day as chips: one meal chip per recipe, single foods as before.
+  // Returns the meal foods blocks, to go under the card head.
+  function appendDayChips(head, day) {
+    const blocks = [];
+    for (const g of FT.dayGroups(packs, day)) {
+      if (g.type === 'meal') {
+        const m = mealGroup(g, day);
+        head.appendChild(m.chip);
+        blocks.push(m.ings);
+      } else {
+        head.appendChild(mealChip(g.pack, day));
+      }
+    }
+    return blocks;
+  }
+
+  // Meal cards open here, by day + recipe; kept across re-renders
+  const openMeals = new Set();
+
+  // A recipe's planned foods as one chip (tap: its foods drop down; ✕: the whole meal comes off)
+  function mealGroup(g, day) {
+    const key = day + '|' + g.mealId;
+    const late = g.packs.some(p => FT.outByDay(p, day) > 0);
+
+    const chip = document.createElement('div');
+    chip.className = 'chip2 meal-chip' + (late ? ' warn' : '');
+    chip.setAttribute('role', 'button');
+    chip.tabIndex = 0;
+    const label = document.createElement('span');
+    const tag = document.createElement('span');
+    tag.className = 'meal-tag';
+    tag.textContent = 'MEAL';
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = g.name;
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    caret.textContent = '▾';
+    label.append(tag, nm, caret);
+    if (late) label.title = 'Out of date by then';
+
+    const x = document.createElement('button');
+    x.className = 'x meal-x';
+    x.type = 'button';
+    x.innerHTML = ICON('close', 12, 2.4);
+    x.setAttribute('aria-label', 'Remove ' + g.name);
+    x.addEventListener('click', e => {
+      e.stopPropagation();
+      removeMealGroup(g, day);
+    });
+    chip.append(label, x);
+
+    const ings = document.createElement('div');
+    ings.className = 'meal-ings';
+    for (const p of g.packs) {
+      const row = document.createElement('div');
+      row.className = 'meal-ing' + (FT.outByDay(p, day) > 0 ? ' warn' : '');
+      const b = document.createElement('b');
+      b.textContent = p.name;
+      const when = document.createElement('span');
+      when.textContent = p.date ? LOOK.whenText(p.date, today) : FT.ageLabel(p.added, today);
+      row.append(b, when);
+      ings.appendChild(row);
+    }
+
+    const isOpen = openMeals.has(key);
+    ings.hidden = !isOpen;
+    chip.setAttribute('aria-expanded', String(isOpen));
+    const toggle = () => {
+      const open = !openMeals.has(key);
+      if (open) openMeals.add(key); else openMeals.delete(key);
+      ings.hidden = !open;
+      chip.setAttribute('aria-expanded', String(open));
+    };
+    chip.addEventListener('click', e => {
+      e.stopPropagation();
+      toggle();
+    });
+    chip.addEventListener('keydown', e => {
+      if (e.target !== chip) return; // the ✕ keeps its own keys
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggle();
+      }
+    });
+    return { chip, ings };
+  }
+
+  // Take every food of a planned recipe off its day
+  async function removeMealGroup(g, day) {
+    try {
+      for (const p of g.packs) await savePack(FT.unplanPack(p));
+    } catch (e) {
+      // some foods not removed: the day shows what is left
+    }
+    // An emptied day closes its picker (tap Plan to open it again)
+    if (openDay === day && FT.dayMeals(packs, day).length === 0) openDay = null;
+    renderMeals();
+    renderAll();
+  }
+
   function mealChip(item, day) {
     const isTakeaway = item.kind === 'takeaway';
     const late = !isTakeaway && FT.outByDay(item, day) > 0;
@@ -2454,6 +2575,11 @@
     const listEl = document.getElementById('pickList');
     listEl.innerHTML = '';
 
+    if (selSlot === 'meal') {
+      renderRecipePick(listEl);
+      return;
+    }
+
     if (selSlot === 'main') {
       const ta = document.createElement('button');
       ta.className = 'item ta';
@@ -2482,6 +2608,30 @@
       const note = document.createElement('div');
       note.className = 'note';
       note.textContent = 'Nothing left here.';
+      listEl.appendChild(note);
+    }
+  }
+
+  // Meals tab: one row per recipe; tap to plan it for the open day
+  function renderRecipePick(listEl) {
+    const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+    for (const r of sorted) {
+      const check = FT.recipeCheck(r, packs, selDay);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'item' + (check.missing.length ? ' st-soon' : '');
+      const name = document.createElement('span');
+      name.textContent = r.name;
+      const right = document.createElement('span');
+      right.textContent = check.missing.length ? 'Need ' + listNames(check.missing) : 'All in fridge';
+      btn.append(name, right);
+      btn.addEventListener('click', () => planRecipeNow(r, selDay));
+      listEl.appendChild(btn);
+    }
+    if (!sorted.length) {
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'No recipes yet. Tap New recipe on this page to add one.';
       listEl.appendChild(note);
     }
   }

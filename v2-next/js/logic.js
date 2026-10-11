@@ -706,7 +706,7 @@
   }
 
   function unplanPack(pack) {
-    return { ...pack, plannedFor: null, slot: null };
+    return { ...pack, plannedFor: null, slot: null, mealId: null, mealName: null };
   }
 
   // Days a pack is out of date on a planned day (0 if fine or undated)
@@ -726,6 +726,26 @@
       .filter(p => p.plannedFor === dayIso &&
         (p.status === "in_fridge" || (p.kind === "takeaway" && p.status === "plan")))
       .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
+  }
+
+  // A day's plan as groups: planned recipes (one meal each, first), then single foods in dayMeals order
+  function dayGroups(packs, dayIso) {
+    const meals = [];
+    const byMeal = new Map();
+    const singles = [];
+    for (const p of dayMeals(packs, dayIso)) {
+      if (p.mealId) {
+        if (!byMeal.has(p.mealId)) {
+          const g = { type: "meal", mealId: p.mealId, name: p.mealName, packs: [] };
+          byMeal.set(p.mealId, g);
+          meals.push(g);
+        }
+        byMeal.get(p.mealId).packs.push(p);
+      } else {
+        singles.push({ type: "pack", pack: p });
+      }
+    }
+    return [...meals, ...singles];
   }
 
   // Meal ideas: food combos eaten at home (2+ foods), most had first, then latest.
@@ -1299,13 +1319,29 @@
     };
   }
 
+  // Soonest day (today or later) a waiting plan for this recipe is set, else null
+  function recipePlannedDay(recipe, packs, today) {
+    let best = null;
+    for (const p of packs || []) {
+      if (p.status !== "in_fridge" || !p.plannedFor || p.mealId !== recipe.id) continue;
+      if (p.plannedFor < today) continue;
+      if (best === null || p.plannedFor < best) best = p.plannedFor;
+    }
+    return best;
+  }
+
   // New planned pack objects for the day: one per fresh food found in the fridge (input not changed)
   function planRecipe(recipe, packs, dayIso) {
     const { have } = recipeCheck(recipe, packs, dayIso);
     return have.map(h => {
       const slot = ["main", "side", "veg", "misc"].includes(h.pack.kind) ? h.pack.kind : "side";
-      return planPack(h.pack, dayIso, slot);
+      return { ...planPack(h.pack, dayIso, slot), mealId: recipe.id, mealName: recipe.name };
     });
+  }
+
+  // Names to buy for a recipe: missing fresh foods, then cupboard things with their amount
+  function recipeShopNames(recipe, check) {
+    return [...check.missing, ...(recipe.other || []).map(o => o.qty ? o.name + " " + o.qty : o.name)];
   }
 
   // Names (first spelling, no repeats) not already to get on the shopping list
@@ -1369,10 +1405,13 @@
     outByDay,
     makeTakeaway,
     dayMeals,
+    dayGroups,
     mealIdeas,
     makeRecipe,
     recipeCheck,
     planRecipe,
+    recipePlannedDay,
+    recipeShopNames,
     recipeShopList,
     shopOrder,
     expiredShopDeletes,

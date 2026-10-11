@@ -160,8 +160,7 @@ function startStatic() {
     await until(async () => assert.equal(await page.locator("#dayList .day.today .meal-chip").count(), 1));
     assert.ok(await page.locator("#recipeShop").isVisible());
     await page.click("#recipeShopSkip");
-    await page.locator("#dayList .day.today .meal-chip .meal-x").click();
-    await until(async () => assert.equal(await page.locator("#dayList .day.today .meal-chip").count(), 0));
+    // left planned: the Meal? step below uses today's foods
   });
 
   await step("Edit opens the form filled in; saving a new name updates the row", async () => {
