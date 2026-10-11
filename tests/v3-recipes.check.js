@@ -174,6 +174,25 @@ function startStatic() {
     assert.match(await recipe().locator(".recipe-name").innerText(), /Chicken bake/);
   });
 
+  await step("meal picker has a Misc tab: misc food can be planned", async () => {
+    await page.goto(PAGE_URL); // fresh memory: today's card opens with the picker
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click('[data-kind="misc"]');
+    await page.fill("#name", "Milk");
+    if (await page.locator("#days").isVisible()) await page.fill("#days", "4");
+    await page.click("#addBtn");
+    await until(async () => assert.match(await text("#addMsg"), /added/i));
+    await page.click('[data-tab="meals"]');
+    const tab = page.locator('#mtabs [data-s="misc"]');
+    assert.match(await tab.innerText(), /Misc/);
+    await tab.click();
+    const milk = page.locator("#pickList .item", { hasText: "Milk" });
+    await until(async () => assert.equal(await milk.count(), 1));
+    await milk.click();
+    await until(async () => assert.match(await text("#dayList .day.today"), /Milk/));
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   await browser.close();
