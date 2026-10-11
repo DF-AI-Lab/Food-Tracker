@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -152,12 +152,13 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 - Name/code boxes were squashed (22px) by the Save button; now full width (tests check widths).
 - Tip: both of Darren's Google accounts are called "Darren Fawcett" — check *Signed in as* when a phone looks wrong.
 
-### 7b. 🍽️ Confirm tonight's meal, tonight (added 2026-10-10) ← NEXT
+### 7b. 🍽️ Confirm tonight's meal, tonight (added 2026-10-10) ✅ v12, built 2026-10-11 (try on phone)
 
-- [ ] Today's planned meal shows the same **Had it? Yes / No** card as past days (from the evening, e.g. 5pm), so it can be confirmed tonight instead of waiting until tomorrow.
-- [ ] Yes → used / how much (takeaway → cost), as now. No → "What did you have?", as now. Once confirmed, tomorrow has nothing to ask.
+- [x] Today's planned meal shows the same **Had it? Yes / No** card as past days (from the evening, e.g. 5pm), so it can be confirmed tonight instead of waiting until tomorrow.
+- [x] Yes → used / how much (takeaway → cost), as now. No → "What did you have?", as now. Once confirmed, tomorrow has nothing to ask.
+  - From **5pm** today's card is swapped for the Had-it card. Tests: `tests/v2-tonight.test.js` (npm test), `tests/v2-tonight.check.js` (npm run check:v2).
 
-### 7c. 🔔 Notifications: what the other person did (added 2026-10-10)
+### 7c. 🔔 Notifications: what the other person did (added 2026-10-10) ← NEXT
 
 - [ ] **🔔 bell** top right with an unread count. Top right becomes **📷 · 🖨️ · 🔔 · ⚙️**.
 - [ ] Tap → list of **other members'** changes, newest first: *"Sarah added Chicken · 5 min ago"*, *"Sarah used Milk"*, meals confirmed, shop items added. Never your own.

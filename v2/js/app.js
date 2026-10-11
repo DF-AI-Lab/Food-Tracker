@@ -30,6 +30,12 @@
     const date = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${date}`;
   }
+  function getHour() {
+    const params = new URLSearchParams(window.location.search);
+    const hourParam = params.get('hour');
+    if (hourParam) return Number(hourParam);
+    return new Date().getHours();
+  }
 
   // Text put into HTML must be escaped (food names are typed by the user)
   function esc(s) {
@@ -1443,7 +1449,7 @@
 
   // "Had this meal?" is asked for past days with a plan still waiting, plus askDay while it is open
   function pastDays() {
-    const days = new Set(FT.pastToAsk(packs, today));
+    const days = new Set(FT.pastToAsk(packs, today, getHour()));
     if (askDay) days.add(askDay);
     return [...days].sort();
   }
@@ -1488,8 +1494,9 @@
     picker.hidden = true;
     dayListEl.innerHTML = '';
 
-    pastDays().forEach(day => dayListEl.appendChild(pastCard(day, picker)));
-    FT.mealDays(today).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
+    const asked = pastDays();
+    asked.forEach(day => dayListEl.appendChild(pastCard(day, picker)));
+    FT.mealDays(today).filter(day => !asked.includes(day)).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
     document.getElementById('nextDay').hidden = inHad();
     const nextSlot = document.getElementById('nextSlot');

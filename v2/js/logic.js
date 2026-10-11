@@ -801,13 +801,17 @@
     return !!p.plannedFor && (p.status === "in_fridge" || (p.kind === "takeaway" && p.status === "plan"));
   }
 
-  // Days 1-3 ago that still have a waiting plan (oldest first)
-  function pastToAsk(packs, today) {
+  // From this hour, today's waiting plan is asked "Had this meal?" too
+  const TONIGHT_HOUR = 17;
+
+  // Days 1-3 ago that still have a waiting plan, and today's once it is TONIGHT_HOUR (oldest first)
+  function pastToAsk(packs, today, hour) {
     const days = new Set();
     for (const p of packs) {
       if (!isWaitingPlan(p)) continue;
       const left = daysLeft(p.plannedFor, today);
       if (left >= -3 && left <= -1) days.add(p.plannedFor);
+      if (left === 0 && hour != null && hour >= TONIGHT_HOUR) days.add(p.plannedFor);
     }
     return [...days].sort();
   }
@@ -1054,6 +1058,7 @@
     autoOnFinish,
     autoOutOfDate,
     mealDays,
+    TONIGHT_HOUR,
     pastToAsk,
     expiredPlans,
     partUse,
