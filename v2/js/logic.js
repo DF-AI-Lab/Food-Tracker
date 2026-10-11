@@ -1169,7 +1169,10 @@
 
   // The Settings line
   function lastBackupLabel(ms) {
-    return ms ? `Last backup: ${dayLabel(ms)}` : "Never backed up";
+    if (!ms) return "Never backed up";
+    const d = new Date(ms);
+    const hhmm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    return `Last backup: ${dayLabel(ms)}, ${hhmm}`;
   }
 
   // Export

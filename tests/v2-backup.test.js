@@ -95,7 +95,9 @@ test("reminder: a 'No' from before the last backup is forgotten", () => {
 
 test("last backup line for Settings", () => {
   assert.equal(FT.lastBackupLabel(null), "Never backed up");
-  assert.equal(FT.lastBackupLabel(Date.UTC(2026, 9, 11, 18, 5)), "Last backup: Sun 11 Oct");
+  const ms = new Date(2026, 9, 11, 18, 5).getTime(); // local time, like the phone
+  assert.equal(FT.lastBackupLabel(ms), "Last backup: Sun 11 Oct, 18:05");
+  assert.equal(FT.lastBackupLabel(new Date(2026, 9, 11, 9, 7).getTime()), "Last backup: Sun 11 Oct, 09:07");
 });
 
 // ---------- the backup time is kept in the 🔔 activity list (shared by both phones) ----------
