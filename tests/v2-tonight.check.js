@@ -85,6 +85,28 @@ function startStatic() {
     await until(async () => assert.match(await page.locator("#dayList").innerText(), /What did you have\?/));
   });
 
+  if (APP_DIR === "v2-next") {
+    await step("V2.5: tonight's card still lets you add more food after 5pm (+ Add)", async () => {
+      await page.goto(url(18));
+      // two foods in the fridge
+      for (const name of ["Chicken", "Bacon"]) {
+        await page.click('[data-tab="add"]');
+        await page.click('[data-kind="main"]');
+        await page.fill("#name", name);
+        await page.fill("#days", "4");
+        await page.click("#addBtn");
+      }
+      await page.click('[data-tab="meals"]');
+      await page.locator("#pickList .item", { hasText: "Chicken" }).click();
+      await until(async () => assert.equal(await pastDay().count(), 1));
+      assert.equal(await pastDay().locator(".chip2").count(), 1);
+      await pastDay().locator(".had-add").click();
+      await pastDay().locator("#pickList .item", { hasText: "Bacon" }).click();
+      await until(async () => assert.equal(await pastDay().locator(".chip2").count(), 2));
+      assert.match(await pastDay().innerText(), /Used\?/);
+    });
+  }
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   await browser.close();

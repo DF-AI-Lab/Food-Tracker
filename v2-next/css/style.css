@@ -565,3 +565,4 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .askrow .act.mini{flex:none;min-height:36px;min-width:64px;padding:0 14px;font-size:14px;border-radius:10px}
 .askrow .act.had-yes{background:transparent;color:var(--accent);border:1px solid var(--accent-border)}
 .askrow .act.had-no{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.askrow .act.had-add{background:transparent;color:var(--text-2);border:1px dashed var(--accent-border);gap:4px;min-width:0;padding:0 10px}
