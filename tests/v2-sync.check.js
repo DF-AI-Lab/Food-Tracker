@@ -245,7 +245,7 @@ function startStatic() {
     assert.match(await A.page.locator("#backupNote").innerText(), /Never backed up/);
     const [dl] = await Promise.all([A.page.waitForEvent("download"), A.page.click("#backupBtn")]);
     assert.match(dl.suggestedFilename(), /^food-backup-2026-10-07\.json$/);
-    await until(A.page, async () => assert.match(await A.page.locator("#backupNote").innerText(), /^Last backup: \w{3} \d+ \w{3}$/));
+    await until(A.page, async () => assert.match(await A.page.locator("#backupNote").innerText(), /^Last backup: \w{3} \d+ \w{3}, \d\d:\d\d$/));
     const label = await A.page.locator("#backupNote").innerText();
     await A.page.click("#settingsClose");
     await B.page.click("#settingsBtn");
