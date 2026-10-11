@@ -9,7 +9,8 @@
     "check:rules": "firebase emulators:exec --only firestore --project demo-food-tracker \"node --test --test-concurrency=1 tests/rules.check.js tests/household.check.js tests/db-firestore.check.js\"",
     "check:account": "firebase emulators:exec --only firestore,auth --project demo-food-tracker \"node tests/v2-account.check.js\"",
     "check:sync": "firebase emulators:exec --only firestore,auth --project demo-food-tracker \"node tests/v2-sync.check.js\"",
-    "check:pwa": "node tests/v2-pwa.check.js"
+    "check:pwa": "node tests/v2-pwa.check.js",
+    "check:v2next": "V2DIR=v2-next npm run check:v2 && V2DIR=v2-next npm run check:pwa"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",

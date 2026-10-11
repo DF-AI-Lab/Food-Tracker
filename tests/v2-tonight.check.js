@@ -7,9 +7,11 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// V2DIR=v2-next runs the same checks against the V2.5 demo
+const APP_DIR = process.env.V2DIR || "v2";
 const PORT = 5199;
 const ROOT = path.join(__dirname, "..");
-const url = hour => `http://localhost:${PORT}/Food-Tracker/v2/?local=1&today=2026-10-07&hour=${hour}`;
+const url = hour => `http://localhost:${PORT}/Food-Tracker/${APP_DIR}/?local=1&today=2026-10-07&hour=${hour}`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json" };
 
 function startStatic() {

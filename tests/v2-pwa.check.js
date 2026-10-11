@@ -8,9 +8,11 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// V2DIR=v2-next runs the same checks against the V2.5 demo
+const APP_DIR = process.env.V2DIR || "v2";
 const PORT = 5195;
 const ROOT = path.join(__dirname, "..");
-const URL_ = `http://localhost:${PORT}/Food-Tracker/v2/?local=1&sw=1&today=2026-10-07`;
+const URL_ = `http://localhost:${PORT}/Food-Tracker/${APP_DIR}/?local=1&sw=1&today=2026-10-07`;
 const TYPES = {
   ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
   ".png": "image/png", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json",
@@ -30,7 +32,7 @@ function startStatic() {
       res.writeHead(404); return res.end();
     }
     const type = TYPES[path.extname(file)] || "application/octet-stream";
-    if (published && (p === "/v2/sw.js" || p === "/v2/js/version.js")) {
+    if (published && (p === `/${APP_DIR}/sw.js` || p === `/${APP_DIR}/js/version.js`)) {
       const text = fs.readFileSync(file, "utf8")
         .replace(/const VERSION = (\d+);/, (_, n) => `const VERSION = ${+n + 1};`)
         .replace(/n: (\d+),/, (_, n) => `n: ${+n + 1},`);
@@ -110,7 +112,7 @@ function startStatic() {
     published = true;
     assert.equal(await page.evaluate(() => window.FT_checkUpdate()), "new", "Check for updates finds it");
     await page.locator("#newVersion").waitFor({ state: "visible", timeout: 15000 });
-    assert.match(await page.locator("#newVersion").innerText(), /New version, tap to refresh/);
+    assert.match(await page.locator("#newVersion").innerText(), /New version.*tap to refresh/i);
   });
 
   await step("tap it: the page reloads on the new version", async () => {
