@@ -64,7 +64,7 @@ function startStatic() {
     assert.match(await pastDay().innerText(), /Wed/);
     assert.match(await pastDay().innerText(), /Takeaway/);
     // V2.5 demo: a small "Had the takeaway?" line instead of the big "Had this meal?" box
-    assert.match(await pastDay().innerText(), APP_DIR === "v2-next" ? /Had the takeaway\?/ : /Had this meal\?/);
+    assert.match(await pastDay().innerText(), /Had the takeaway\?/);
     // shown in place of today's planning card, not as well as it
     assert.equal(await todayCard().count(), 0);
   });
@@ -85,7 +85,7 @@ function startStatic() {
     await until(async () => assert.match(await page.locator("#dayList").innerText(), /What did you have\?/));
   });
 
-  if (APP_DIR === "v2-next") {
+  {
     await step("V2.5: tonight's card still lets you add more food after 5pm (+ Add)", async () => {
       await page.goto(url(18));
       // two foods in the fridge

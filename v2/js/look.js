@@ -32,6 +32,11 @@
     return "ok";
   }
 
+  // Past meal question: short and quiet (Darren 2026-10-11)
+  function askText(items) {
+    return (items || []).some(i => i.kind === "takeaway") ? "Had the takeaway?" : "Used?";
+  }
+
   // One line: "Today", "1 day", "Fri 16 Oct · 6 days" (meal picker)
   function whenText(date, today) {
     const p = whenParts(date, today);
@@ -117,7 +122,7 @@
 
   const LOOK = {
     daysLeft, formatDate,
-    freshPct, freshState, whenParts, whenText,
+    freshPct, freshState, whenParts, whenText, askText,
     freezerPct, freezerColour, frozenText,
     eatFirst, syncText, bellLabel, initials
   };

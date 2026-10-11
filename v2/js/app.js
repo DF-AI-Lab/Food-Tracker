@@ -11,6 +11,7 @@
   let openDay = today;    // day whose card is open (null = all closed); today is open on load
   let meals = [];         // meals history, saved in DB.meals
   let askDay = null;      // past day in "What did you have?" (or cost) mode
+  let addingTonight = false; // after 5pm: tonight's card has its picker open again (+ Add)
   const pastState = {};   // past day -> 'ask' | 'use' | 'cost' | 'had'
   const hadPicked = {};   // past day -> foods picked in "had" mode
   let cleaning = false;   // guards dropExpiredPlans against re-entry
@@ -389,7 +390,10 @@
     document.getElementById('clearAll').addEventListener('click', () => setClearAsk(true));
     document.getElementById('clrNo').addEventListener('click', () => setClearAsk(false));
     document.getElementById('clrYes').addEventListener('click', clearAllShop);
-    document.getElementById('gotAll').addEventListener('click', gotAllShop);
+    // Got all asks first: "Mark everything as got? Yes / No"
+    document.getElementById('gotAll').addEventListener('click', () => setGotAsk(true));
+    document.getElementById('gotYes').addEventListener('click', gotAllShop);
+    document.getElementById('gotNo').addEventListener('click', () => setGotAsk(false));
     document.getElementById('clearGot').addEventListener('click', clearGotShop);
     document.getElementById('ideaBtn').addEventListener('click', () => {
       ideasOn = !ideasOn;
@@ -1732,6 +1736,7 @@
   // Tap a day header: open that day (closing any other), or close it if already open
   function toggleDay(day) {
     finishHad();
+    addingTonight = false;
     if (openDay === day) {
       openDay = null;
     } else {
@@ -1757,7 +1762,7 @@
     asked.forEach(day => dayListEl.appendChild(pastCard(day, picker)));
     FT.mealDays(today).filter(day => !asked.includes(day)).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
-    document.getElementById('nextDay').hidden = inHad();
+    document.getElementById('nextDay').hidden = inHad() || (addingTonight && asked.includes(today));
     const nextSlot = document.getElementById('nextSlot');
     nextSlot.hidden = selSlot === 'veg';
     nextSlot.textContent = selSlot === 'main' ? 'Next: Sides' : 'Next: Veg';
@@ -1925,11 +1930,36 @@
     };
 
     if (state === 'ask') {
-      q('Had this meal?');
-      const row = btns();
-      row.append(
-        button('had-yes', 'Yes', () => answerYes(day)),
-        button('had-no', 'No', () => answerNo(day)));
+      // One quiet line: "Used?" / "Had the takeaway?" with small Yes / No
+      card.classList.add('asking');
+      const row = document.createElement('div');
+      row.className = 'askrow';
+      const text = document.createElement('span');
+      text.className = 'q-sm';
+      text.textContent = LOOK.askText(FT.dayMeals(packs, day));
+      const yes = button('had-yes mini', 'Yes', () => { addingTonight = false; answerYes(day); });
+      const no = button('had-no mini', 'No', () => { addingTonight = false; answerNo(day); });
+      row.append(text);
+      // Tonight (after 5pm) can still take more food: + Add opens the picker for today
+      if (day === today) {
+        const add = button('had-add mini', '', () => {
+          addingTonight = !addingTonight;
+          openDay = null; // only one picker: close any other open day
+          selDay = today;
+          selSlot = 'main';
+          pendingPlan = null;
+          renderMeals();
+        });
+        add.innerHTML = ICON(addingTonight ? 'close' : 'add', 14, 2.2) + (addingTonight ? 'Done' : 'Add');
+        add.setAttribute('aria-expanded', String(addingTonight));
+        row.append(add);
+      }
+      row.append(yes, no);
+      body.appendChild(row);
+      if (day === today && addingTonight) {
+        body.appendChild(picker);
+        picker.hidden = false;
+      }
     } else if (state === 'use') {
       q('How much did you use?');
       const planned = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway');
@@ -2174,6 +2204,8 @@
 
   async function planMeal(pack, day, slot) {
     pendingPlan = null;
+    // Planning tonight after 5pm turns today's card into "Used?": keep its picker open until Done
+    if (day === today) addingTonight = true;
     try {
       await savePack(FT.planPack(pack, day, slot));
     } catch (e) {
@@ -2534,7 +2566,13 @@
     await removeShopItems(shop.filter(i => i.got));
   }
 
+  function setGotAsk(asking) {
+    document.getElementById('gotAsk').hidden = !asking;
+    document.querySelector('.btns.sbot').hidden = asking;
+  }
+
   async function gotAllShop() {
+    setGotAsk(false);
     for (const item of shop) {
       if (item.got || item.del) continue;
       item.got = true;
