@@ -1,5 +1,5 @@
 // Click-through check of the V2 app screens in Chrome (phone size), served the way
-// GitHub Pages will serve it: plain static files under /Food-Tracker/v2/, no server API.
+// GitHub Pages will serve it: plain static files under /Food-Tracker/v2/ (or V2DIR), no server API.
 // ?local=1 skips sign-in and keeps data in memory (for this check only).
 // Run with: npm run check:v2   (needs Playwright installed)
 const { chromium } = require("playwright");
@@ -8,9 +8,11 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// V2DIR=v2-next runs the same checks against the V2.5 demo
+const APP_DIR = process.env.V2DIR || "v2";
 const PORT = 5198;
 const ROOT = path.join(__dirname, "..");
-const PAGE_URL = `http://localhost:${PORT}/Food-Tracker/v2/?local=1&today=2026-10-07`;
+const PAGE_URL = `http://localhost:${PORT}/Food-Tracker/${APP_DIR}/?local=1&today=2026-10-07`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json" };
 
 // Static files only, like GitHub Pages: /Food-Tracker/<path> -> repo/<path>, anything else 404
@@ -126,7 +128,9 @@ function startStatic() {
 
   await step("top right: 📷 · 🖨️ · 🔔 · ⚙️, bell opens and closes", async () => {
     const ids = await page.locator(".pal button").evaluateAll(bs => bs.map(b => b.id));
-    assert.deepEqual(ids, ["scanBtn", "printF", "bellBtn", "settingsBtn"]);
+    assert.deepEqual(ids, APP_DIR === "v2-next"
+      ? ["bellBtn", "scanBtn", "printF", "settingsBtn"]   // V2.5: bell first (HANDOVER 5.1)
+      : ["scanBtn", "printF", "bellBtn", "settingsBtn"]);
     assert.equal(await page.locator("#bellCount").isVisible(), false, "nothing new");
     await page.click("#bellBtn");
     assert.ok(await page.locator("#bell").isVisible());
