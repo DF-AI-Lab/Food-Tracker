@@ -149,20 +149,21 @@ function startStatic() {
   const sign = page => page.locator("#sync").innerText();
 
   await step("sync sign says synced", async () => {
-    await until(A.page, async () => assert.equal(await sign(A.page), "✅ synced"));
-    await until(B.page, async () => assert.equal(await sign(B.page), "✅ synced"));
+    // V2.5: words only, the colour shows the state (look.js syncText)
+    await until(A.page, async () => assert.equal(await sign(A.page), "Synced"));
+    await until(B.page, async () => assert.equal(await sign(B.page), "Synced"));
   });
 
   await step("offline: sign says offline, then counts what is waiting", async () => {
     await A.ctx.setOffline(true);
-    await until(A.page, async () => assert.equal(await sign(A.page), "📴 offline"));
+    await until(A.page, async () => assert.equal(await sign(A.page), "Offline"));
     await addMain(A.page, "Gammon");
-    await until(A.page, async () => assert.equal(await sign(A.page), "📴 offline · 1 waiting"));
+    await until(A.page, async () => assert.equal(await sign(A.page), "Offline · 1 waiting"));
   });
 
   await step("back online: sign goes back to synced", async () => {
     await A.ctx.setOffline(false);
-    await until(A.page, async () => assert.equal(await sign(A.page), "✅ synced"));
+    await until(A.page, async () => assert.equal(await sign(A.page), "Synced"));
     await showFridge(B.page);
     await until(B.page, async () => assert.match(await B.page.locator("#mains").innerText(), /Gammon/));
   });
@@ -178,7 +179,7 @@ function startStatic() {
     await A.page.click("#undoBtn");            // alice tries to undo her add
     await until(A.page, async () => assert.match(await A.page.locator("#updNote").innerText(), /Changed on another phone, can't undo/));
     await A.page.waitForTimeout(1500);
-    await B.page.click('[data-view="used"]');
+    await B.page.click('[data-nav="used"]');
     assert.match(await B.page.locator("#usedList").innerText(), /Bacon/, "bob's Used stays");
   });
 

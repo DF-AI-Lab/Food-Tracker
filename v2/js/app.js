@@ -20,7 +20,7 @@
   let shopTab = 'main';   // "bought before" tab: main | side | veg | other
   let ideasOn = false;
   const autoBusy = new Set();
-  let bellEntries = [];   // 🔔 what others did, from DB.activity
+  let bellEntries = [];   // bell: what others did, from DB.activity
   function getToday() {
     const params = new URLSearchParams(window.location.search);
     const todayParam = params.get('today');
@@ -191,7 +191,10 @@
   // Sync sign: ✅ synced · ⏳ N waiting · 📴 offline
   function renderSync() {
     const el = document.getElementById('sync');
-    if (el) el.textContent = FT.syncLabel(DB.status());
+    if (!el) return;
+    const s = LOOK.syncText(DB.status());
+    el.textContent = s.text;
+    el.dataset.state = s.state;
   }
 
   // Short note under the top bar; hides itself after ms
@@ -223,7 +226,7 @@
     const oldServer = info && !('version' in info);
     if (!oldServer && !v) { el.textContent = 'v?'; return; }
     if (oldServer || (disk && disk.n !== v.n)) {
-      el.textContent = '⚠️ New version waiting · Close the app and open it again';
+      el.textContent = 'New version waiting · Close the app and open it again';
       el.classList.add('stale');
       return;
     }
@@ -232,11 +235,11 @@
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    // One button: it shows the mode a click switches to
-    const btn = document.getElementById('theme');
-    btn.textContent = theme === 'light' ? '🌙' : '☀️';
-    btn.title = theme === 'light' ? 'Dark mode' : 'Light mode';
-    btn.setAttribute('aria-label', btn.title);
+    // Settings → Look: Dark | Light, the one in use is pressed
+    document.getElementById('themeDark').setAttribute('aria-pressed', String(theme !== 'light'));
+    document.getElementById('themeLight').setAttribute('aria-pressed', String(theme === 'light'));
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === 'light' ? '#94AB9C' : '#0A1210';
   }
 
   function setupTheme() {
@@ -251,11 +254,11 @@
   }
 
   function setupEventListeners() {
-    // Theme: one button, flips between dark and light
-    document.getElementById('theme').addEventListener('click', () => {
-      const now = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-      setTheme(now === 'light' ? 'dark' : 'light');
-    });
+    // Look: Dark | Light (Settings)
+    document.getElementById('themeDark').addEventListener('click', () => setTheme('dark'));
+    document.getElementById('themeLight').addEventListener('click', () => setTheme('light'));
+    document.getElementById('reloadApp').addEventListener('click', () => location.reload());
+    document.getElementById('editBack').addEventListener('click', closeEditForm);
 
     // 🔔 What others did
     document.getElementById('bellBtn').addEventListener('click', openBell);
@@ -279,13 +282,20 @@
     document.getElementById('printF').addEventListener('click', printFridgeSheet);
     // Mic: coming soon
     document.getElementById('mic').addEventListener('click', () => {
-      document.getElementById('micNote').textContent = '🎤 Voice input: coming soon';
+      document.getElementById('micNote').textContent = 'Voice input: coming soon';
     });
 
-    // Tabs
+    // Tabs (the bottom bar's Fridge, Meals and + carry data-tab)
     document.querySelectorAll('[data-tab]').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
+    // Bottom bar: Shop opens the shopping list, Used opens the used page
+    document.querySelector('[data-nav="shop"]').addEventListener('click', openShopList);
+    document.querySelector('[data-nav="used"]').addEventListener('click', () => {
+      switchTab('fridge');
+      switchView('used');
+    });
+    setupAddBar();
 
     // Fridge views (Shop opens the shopping list on the Add tab)
     document.querySelectorAll('[data-view]').forEach(btn => {
@@ -320,13 +330,12 @@
 
     document.getElementById('addBtn').addEventListener('click', addPacks);
 
-    // Date type: one pill, a tap flips Use by / Best before
+    // Date type: Use by | Best before, the tapped one is picked
     document.querySelectorAll('[data-dt]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const other = document.querySelector(`[data-dt]:not([data-dt="${btn.dataset.dt}"])`);
-        btn.classList.remove('on');
-        other.classList.add('on');
+        document.querySelectorAll('[data-dt]').forEach(b => b.classList.toggle('on', b === btn));
         updateDatePreview();
+        renderAddBar();
       });
     });
 
@@ -519,7 +528,7 @@
     }
     input.value = '';
     if (!result || !result.ok) {
-      scanMsg("⚠️ Couldn't find the sheet. Take the photo flat, with all 4 black corners in.", true);
+      scanMsg("Couldn't find the sheet. Take the photo flat, with all 4 black corners in.", true);
       return;
     }
     scanMsg('');
@@ -548,7 +557,7 @@
   function renderScanChanges() {
     const { changes } = scanChanges;
     const real = changes.filter(c => !c.done); // "already done" rows are shown but not counted
-    document.getElementById('scanHead').textContent = `📷 Changes found · ${real.length}`;
+    document.getElementById('scanHead').textContent = `Changes found · ${real.length}`;
     const list = document.getElementById('scanRows');
     list.innerHTML = '';
     if (!changes.length) {
@@ -585,7 +594,7 @@
     const chosen = real.filter(c => ['u', 'p', 'b'].includes(c.choice) || c.need).length;
     const ready = real.every(c => !(c.mark === 'ask' && c.choice === null));
     const apply = document.getElementById('scanApply');
-    apply.textContent = `✅ Apply all (${chosen})`;
+    apply.textContent = `Apply all (${chosen})`;
     apply.disabled = !ready;
   }
 
@@ -621,6 +630,7 @@
     document.querySelector(`[data-sub-pane="${sub}"]`).style.display = '';
 
     if (sub === 'shop') renderShop();
+    updateNav();
   }
 
   function openShopList() {
@@ -636,14 +646,14 @@
     } catch (e) {
       btn.textContent = 'Copy failed — select the text instead';
     }
-    setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+    setTimeout(() => { btn.innerHTML = ICON('copy', 16) + '<span>Copy message</span>'; }, 2000);
   }
 
   let quickFillItems = [];
   let quickFillBoxes = [];
   let quickFillRowEls = [];
 
-  const QF_KINDS = [['main', '🍖 Main'], ['side', '🥔 Side'], ['veg', '🥕 Veg'], ['misc', '🧂 Misc']];
+  const QF_KINDS = [['main', 'Main'], ['side', 'Side'], ['veg', 'Veg'], ['misc', 'Misc']];
 
   function clearQuickFillList() {
     quickFillItems = [];
@@ -676,7 +686,7 @@
 
   // One row: tick box, name, date, price; a food with no known kind gets 4 kind buttons
   function buildQuickFillRow(item, index) {
-    const emojiMap = { main: '🍖', side: '🥔', veg: '🥕', misc: '🧂' };
+    const kindName = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Misc' };
     const row = document.createElement('label');
     row.className = 'srow qf-row';
 
@@ -688,7 +698,7 @@
     row.appendChild(box);
 
     const text = document.createElement('span');
-    const emoji = emojiMap[item.kind] || '📦';
+    const kindTag = kindName[item.kind] || 'Food';
     const when = document.createElement('span');
     if (item.date) {
       when.textContent = FT.formatDate(item.date);
@@ -696,7 +706,7 @@
     } else {
       when.textContent = 'no date';
     }
-    text.textContent = `${emoji} ${item.name || '(no name)'} ×${item.count} · `;
+    text.textContent = `${item.name || '(no name)'} ×${item.count} · `;
     text.appendChild(when);
     if (item.price !== null) {
       const price = document.createElement('span');
@@ -704,7 +714,11 @@
       price.textContent = ` · £${item.price.toFixed(2)}`;
       text.appendChild(price);
     }
-    if (item.toFreezer) text.append(' · 🧊');
+    if (item.toFreezer) text.append(' · Freezer');
+    const kindEl = document.createElement('small');
+    kindEl.className = 'qf-kindtag';
+    kindEl.textContent = kindTag;
+    text.prepend(kindEl);
     row.appendChild(text);
 
     if (!item.ok) {
@@ -795,6 +809,7 @@
     } else if (tab === 'meals') {
       renderMeals();
     }
+    updateNav();
   }
 
   function switchView(view) {
@@ -804,9 +819,136 @@
     document.querySelectorAll('[data-view-pane]').forEach(p => p.style.display = 'none');
     document.querySelector(`[data-view-pane="${view}"]`).style.display = '';
 
-    if (view === 'fridge') renderFridgeView();
+    if (view === 'fridge' || view === 'misc') renderFridgeView();
     else if (view === 'freezer') renderFreezerView();
     else if (view === 'used') renderUsedView();
+    updateNav();
+  }
+
+  // ---- V2.5 look: which page is showing → bottom bar, top tabs, page title ----
+  function currentPage() {
+    const tab = document.querySelector('[data-tab].on')?.dataset.tab || 'fridge';
+    if (tab === 'add') return document.querySelector('[data-sub].on')?.dataset.sub === 'shop' ? 'shop' : 'add';
+    if (tab === 'meals') return 'meals';
+    const view = document.querySelector('[data-view].on')?.dataset.view || 'fridge';
+    return view === 'used' ? 'used' : view; // fridge | freezer | misc | used
+  }
+
+  const PAGE_TITLE = { fridge: 'Fridge', freezer: 'Freezer', misc: 'Misc', used: 'Used', meals: 'Meals', add: 'Add food', shop: 'Shopping' };
+  const NAV_FOR = { fridge: 'fridge', freezer: 'fridge', misc: 'fridge', used: 'used', meals: 'meals', add: 'add', shop: 'shop' };
+
+  function updateNav() {
+    const page = currentPage();
+    document.querySelectorAll('[data-nav]').forEach(b => {
+      const on = b.dataset.nav === NAV_FOR[page];
+      b.classList.toggle('cur', on); // not 'on': Fridge / Meals / + use 'on' for the open tab
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    document.body.dataset.page = page;
+    document.getElementById('fridgeTabs').hidden = page === 'used';
+    document.getElementById('subTabs').hidden = page === 'shop';
+    document.getElementById('pageTitle').textContent = PAGE_TITLE[page];
+    renderPageCount();
+    renderAddBar();
+  }
+
+  // Small line beside / above the title: item counts, the week, the month
+  function renderPageCount() {
+    const page = currentPage();
+    const count = document.getElementById('pageCount');
+    const kicker = document.getElementById('pageKicker');
+    const view = FT.fridgeView(packs, today);
+    const items = n => n === 1 ? '1 item' : n + ' items';
+    let right = '', above = '';
+    if (page === 'fridge') right = items(view.mainCount + view.sideCount + view.vegCount);
+    else if (page === 'misc') right = items(view.miscCount);
+    else if (page === 'freezer') right = items(FT.freezerList(packs, today).length);
+    else if (page === 'used') above = new Date(today + 'T00:00:00Z').toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' }) + ' so far';
+    else if (page === 'meals') {
+      const days = FT.mealDays(today);
+      above = FT.formatDate(days[0]).replace(/ \w+$/, '') + ' – ' + FT.formatDate(days[days.length - 1]).replace(/^\w+ /, '');
+    } else if (page === 'shop') {
+      const left = shop.filter(i => !i.got && !i.del).length;
+      const got = shop.filter(i => i.got && !i.del).length;
+      above = `${left} to buy · ${got} got`;
+    }
+    count.textContent = right;
+    kicker.textContent = above;
+    kicker.hidden = !above;
+  }
+
+  // Top tabs: Fridge · N | Freezer · N | Misc · N
+  function renderTabCounts() {
+    const view = FT.fridgeView(packs, today);
+    document.getElementById('tabFridgeN').textContent = view.mainCount + view.sideCount + view.vegCount;
+    document.getElementById('tabMiscN').textContent = view.miscCount;
+    document.getElementById('tabFreezerN').textContent = FT.freezerList(packs, today).length;
+  }
+
+  // ---- Add bar: pinned on top of the keyboard, or above the bottom bar ----
+  function addSpec() {
+    const noDate = document.getElementById('noDate').checked;
+    let date = null;
+    if (!noDate) {
+      const ddmm = document.getElementById('ddmm').value;
+      const days = document.getElementById('days').value;
+      if (ddmm) date = FT.parseDDMM(ddmm, today);
+      else if (days) date = FT.parseDays(days, today);
+    }
+    const count = parseInt(document.getElementById('count').textContent) || 1;
+    return { name: document.getElementById('name').value.trim(), noDate, date, count,
+      toFreezer: document.getElementById('toFreezer').checked };
+  }
+
+  function renderAddBar() {
+    const bar = document.getElementById('addBar');
+    if (!bar) return;
+    const spec = addSpec();
+    const show = currentPage() === 'add' && document.querySelector('[data-sub].on')?.dataset.sub === 'fridge' && !!spec.name;
+    bar.hidden = !show;
+    document.body.classList.toggle('has-addbar', show);
+    if (!show) return;
+    const name = spec.name.charAt(0).toUpperCase() + spec.name.slice(1);
+    document.getElementById('abName').textContent = name;
+    const when = spec.noDate ? 'No date' : spec.date ? FT.formatDate(spec.date) : 'No date yet';
+    const where = spec.toFreezer ? 'Freezer' : 'Fridge';
+    document.getElementById('abSum').textContent = `${when} · ${spec.count} pack${spec.count === 1 ? '' : 's'} · ${where}`;
+    const frz = document.getElementById('barFreezer');
+    frz.setAttribute('aria-pressed', String(spec.toFreezer));
+    frz.setAttribute('aria-label', spec.toFreezer ? 'Send to fridge instead' : 'Send to freezer instead');
+    document.getElementById('addBtn').setAttribute('aria-label', `Add ${name} to ${where.toLowerCase()}`);
+  }
+
+  // The keyboard takes the bottom of the screen: lift the bar by that much and hide the bottom bar
+  function placeAddBar() {
+    const vv = window.visualViewport;
+    const kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    const open = kb > 80;
+    document.body.classList.toggle('kb-open', open);
+    document.documentElement.style.setProperty('--kb', open ? kb + 'px' : '0px');
+  }
+
+  function setupAddBar() {
+    ['name', 'ddmm', 'days'].forEach(id => document.getElementById(id).addEventListener('input', renderAddBar));
+    ['noDate', 'toFreezer'].forEach(id => document.getElementById(id).addEventListener('change', renderAddBar));
+    ['minus', 'plus'].forEach(id => document.getElementById(id).addEventListener('click', renderAddBar));
+    document.getElementById('barFreezer').addEventListener('click', () => {
+      const box = document.getElementById('toFreezer');
+      box.checked = !box.checked;
+      renderAddBar();
+    });
+    // Enter on the keyboard does the same as Add
+    ['name', 'ddmm', 'days'].forEach(id => document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.getElementById('name').value.trim()) {
+        e.preventDefault();
+        addPacks();
+      }
+    }));
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', placeAddBar);
+      window.visualViewport.addEventListener('scroll', placeAddBar);
+    }
+    placeAddBar();
   }
 
   function currentKind() {
@@ -860,7 +1002,9 @@
         if (kind !== currentKind()) selectKind(kind);
         applyNoDateRule();
         updateDatePreview();
+        renderAddBar();
       });
+      btn.classList.toggle('on', !!typed && name.toLowerCase() === typed.toLowerCase());
       usuals.appendChild(btn);
     });
   }
@@ -871,6 +1015,7 @@
     const noDate = document.getElementById('noDate').checked;
     const preview = document.getElementById('datePreview');
     preview.className = 'datebox';
+    renderAddBar();
 
     if (noDate) {
       preview.textContent = 'No date · will show its age';
@@ -968,6 +1113,7 @@
     updateDatePreview();
     refreshUsuals();
     renderAll();
+    renderAddBar();
   }
 
   let selectedPackId = null;
@@ -1173,10 +1319,11 @@
 
   const STATUS_CLASS = { green: 'ok', amber: 'soon', red: 'off' };
 
+  // One pack = one row: name (+ planned icon), date and days left, and a thin freshness line
   function packButton(pack) {
     const colour = FT.colour(pack.date, today);
     const btn = document.createElement('button');
-    btn.className = 'pack ' + STATUS_CLASS[colour] + ' use-by-' + colour;
+    btn.className = 'pack row ' + STATUS_CLASS[colour] + ' use-by-' + colour;
     btn.dataset.id = pack.id;
     return btn;
   }
@@ -1186,82 +1333,102 @@
     showSheet(pack.id);
   }
 
-  function renderCards(el, cards) {
-    el.innerHTML = '';
-    cards.forEach(card => {
-      const cardEl = document.createElement('div');
-      cardEl.className = 'card';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'name';
-      nameEl.textContent = card.name;
-      cardEl.appendChild(nameEl);
-      const packsEl = document.createElement('div');
-      packsEl.className = 'packs';
-      card.packs.forEach(pack => {
-        const btn = packButton(pack);
-        const when = document.createElement('span');
-        when.textContent = FT.countdown(pack.date, today);
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.textContent = pack.partUsed ? 'PART USED' : (pack.dateType === 'best_before' ? 'BB' : 'USE BY');
-        if (plannedThisWeek(pack)) {
-          btn.classList.add('plan');
-          tag.textContent = '🍽️ ' + shortDay(pack.plannedFor);
-        }
-        // The name is on the card; it is also in the button for screen readers (and the checks)
-        const hidden = document.createElement('span');
-        hidden.className = 'sr-only';
-        hidden.textContent = card.name;
-        btn.append(hidden, when, tag);
-        btn.addEventListener('click', () => packTap(pack));
-        packsEl.appendChild(btn);
-      });
-      cardEl.appendChild(packsEl);
-      el.appendChild(cardEl);
-    });
+  function rowTop(name, pack, rightEl) {
+    const top = document.createElement('span');
+    top.className = 'rtop';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'rname';
+    nameEl.textContent = name;
+    if (pack.partUsed) {
+      const part = document.createElement('small');
+      part.className = 'part';
+      part.textContent = 'part used';
+      nameEl.append(' ', part);
+    }
+    if (plannedThisWeek(pack)) {
+      const plan = document.createElement('span');
+      plan.className = 'plan';
+      plan.title = 'Planned for ' + shortDay(pack.plannedFor);
+      plan.setAttribute('role', 'img');
+      plan.setAttribute('aria-label', 'Planned for ' + shortDay(pack.plannedFor));
+      plan.innerHTML = ICON('meals', 13, 2);
+      nameEl.append(plan);
+    }
+    top.append(nameEl, rightEl);
+    return top;
   }
 
-  // Dated pack: name left, countdown right (coloured like the cards)
-  function datedButton(pack) {
+  // Dated pack row: "Fri 16 Oct · 6 days" or "Today" / "1 day", line fills over a 5-day countdown
+  function datedRow(pack, name) {
     const btn = packButton(pack);
-    const name = document.createElement('span');
-    name.textContent = pack.name + (pack.partUsed ? ' · part used' : '');
+    const state = LOOK.freshState(pack.date, today);
+    btn.classList.add('st-' + state);
+    const parts = LOOK.whenParts(pack.date, today);
     const when = document.createElement('span');
-    when.textContent = FT.countdown(pack.date, today);
-    btn.append(name, when);
+    when.className = 'when';
+    when.textContent = parts.main;
+    if (parts.sub) {
+      const sub = document.createElement('span');
+      sub.className = 'dim';
+      sub.textContent = ' · ' + parts.sub;
+      when.appendChild(sub);
+    }
+    if (pack.dateType === 'best_before') btn.title = 'Best before';
+    const line = document.createElement('span');
+    line.className = 'line';
+    const fill = document.createElement('b');
+    fill.style.width = LOOK.freshPct(FT.daysLeft(pack.date, today)) + '%';
+    line.appendChild(fill);
+    btn.append(rowTop(name, pack, when), line);
     btn.addEventListener('click', () => packTap(pack));
     return btn;
   }
 
-  // Pack with no date: name left, age right (goes old after 7 days)
+  function renderCards(el, cards) {
+    el.innerHTML = '';
+    cards.forEach(card => card.packs.forEach(pack => el.appendChild(datedRow(pack, card.name))));
+  }
+
+  function datedButton(pack) {
+    return datedRow(pack, pack.name);
+  }
+
+  // Pack with no date: name left, age right (amber after 7 days), no line
   function undatedButton(pack) {
     const old = FT.isOld(pack.added, today);
     const btn = document.createElement('button');
-    btn.className = 'age' + (old ? ' old' : '');
+    btn.className = 'age row nodate' + (old ? ' old' : '');
     btn.dataset.id = pack.id;
-    const name = document.createElement('b');
-    name.textContent = pack.name;
     const age = document.createElement('span');
-    age.textContent = FT.ageLabel(pack.added, today) + (old ? ' ⚠️' : '') + (pack.partUsed ? ' · part used' : '');
-    btn.append(name, age);
+    age.className = 'when';
+    age.textContent = FT.ageLabel(pack.added, today);
+    btn.append(rowTop(pack.name, pack, age));
     btn.addEventListener('click', () => packTap(pack));
     return btn;
   }
 
-  // Use soon strip: fridge packs due within 2 days, tap opens the menu
+  // Eat first: the use-soon packs (2 days or less), top 3, one per line; tap opens the menu
   function renderUseSoon() {
-    const soon = FT.useSoon(packs, today);
+    const ef = LOOK.eatFirst(packs, today);
     const box = document.getElementById('useSoon');
     const list = document.getElementById('useSoonList');
     list.innerHTML = '';
-    soon.forEach(pack => {
-      const chip = document.createElement('button');
-      chip.className = 'chip' + (FT.colour(pack.date, today) === 'red' ? ' red' : '');
-      chip.textContent = `${pack.name} · ${FT.countdown(pack.date, today)}`;
-      chip.addEventListener('click', () => showSheet(pack.id));
-      list.appendChild(chip);
+    ef.lines.forEach(line => {
+      const b = document.createElement('button');
+      b.className = 'eatline ' + line.state;
+      b.dataset.id = line.id;
+      b.append(line.name + ' ');
+      const w = document.createElement('em');
+      w.textContent = line.word;
+      b.appendChild(w);
+      b.addEventListener('click', () => showSheet(line.id));
+      list.appendChild(b);
     });
-    box.hidden = soon.length === 0;
+    const sub = document.getElementById('useSoonSub');
+    const more = ef.more ? `+${ef.more} more soon` : '';
+    sub.textContent = [ef.sub, more].filter(Boolean).join(' · ');
+    sub.hidden = !sub.textContent;
+    box.hidden = ef.lines.length === 0;
   }
 
   function renderFridgeView() {
@@ -1293,6 +1460,13 @@
     miscEl.innerHTML = '';
     view.misc.forEach(pack => miscEl.appendChild(pack.date ? datedButton(pack) : undatedButton(pack)));
 
+    // Empty boxes fold away; a whole empty page says how to fill it
+    [['mains', view.mainCount], ['sides', view.sideCount], ['veg', view.vegCount], ['misc', view.miscCount]]
+      .forEach(([id, n]) => { document.getElementById(id).closest('.fbox').hidden = n === 0; });
+    document.getElementById('emptyFridge').hidden = view.mainCount + view.sideCount + view.vegCount > 0;
+    document.getElementById('emptyMisc').hidden = view.miscCount > 0;
+    renderTabCounts();
+
     // Deleted today or yesterday: red line, with Undo
     const deletedEl = document.getElementById('deletedList');
     deletedEl.innerHTML = '';
@@ -1304,10 +1478,10 @@
       nameEl.textContent = pack.name + (pack.date ? ' · ' + FT.formatDate(pack.date) : '');
       const tagEl = document.createElement('span');
       tagEl.className = 'gonetag';
-      tagEl.textContent = 'deleted · gone tomorrow';
+      tagEl.textContent = 'Deleted · gone tomorrow';
       const undoEl = document.createElement('button');
       undoEl.className = 'undo';
-      undoEl.textContent = '↩ Undo';
+      undoEl.textContent = 'Undo';
       undoEl.addEventListener('click', async () => {
         const restored = { ...pack, status: 'in_fridge' };
         delete restored.del;
@@ -1321,38 +1495,44 @@
     });
   }
 
+  // Freezer: oldest first, each row has a blue line for how long it has been frozen (full at 3 months)
   function renderFreezerView() {
     const list = FT.freezerList(packs, today);
     const freezerEl = document.getElementById('freezerList');
     document.getElementById('freezerCount').textContent = list.length;
     freezerEl.innerHTML = '';
+    freezerEl.classList.toggle('is-empty', !list.length);
     if (!list.length) {
-      freezerEl.innerHTML = '<div class="note">Freezer is empty.</div>';
+      freezerEl.innerHTML = '<div class="empty">Freezer is empty.</div>';
     }
 
     list.forEach(item => {
       const rowEl = document.createElement('div');
-      rowEl.className = 'srow frz' + (item.old ? ' old old3' : '');
+      rowEl.className = 'row frz' + (item.old ? ' old' : '');
+      const days = FT.daysLeft(today, item.pack.frozen);
 
-      const emojiMap = { main: '🍖', side: '🥔', veg: '🥕', misc: '🧂' };
-      const emoji = emojiMap[item.pack.kind] || '📦';
-
-      const label = document.createElement('label');
-      label.className = 'grow';
-      label.style.cursor = 'default';
-      label.append(`${emoji} `);
+      const top = document.createElement('span');
+      top.className = 'rtop';
       const nameEl = document.createElement('span');
-      nameEl.className = 'name';
+      nameEl.className = 'rname name';
       nameEl.textContent = item.pack.name;
-      const tag = document.createElement('span');
-      tag.className = 'tag label';
-      tag.textContent = item.label;
-      label.append(nameEl, ' ', tag);
-      rowEl.appendChild(label);
+      const label = LOOK.frozenText(item.label);
+      const when = document.createElement('span');
+      when.className = 'when label';
+      const cut = label.lastIndexOf(' · ');
+      when.textContent = cut > 0 ? label.slice(0, cut) : label;
+      if (cut > 0) {
+        const age = document.createElement('span');
+        age.className = 'dim';
+        age.textContent = label.slice(cut);
+        when.appendChild(age);
+      }
+      top.append(nameEl, when);
 
       const btn = document.createElement('button');
       btn.className = 'undo defrost';
       btn.textContent = 'Defrost';
+      btn.setAttribute('aria-label', 'Defrost ' + item.pack.name);
       btn.addEventListener('click', async () => {
         const updated = FT.defrost(item.pack, today);
         await DB.put(updated);
@@ -1361,37 +1541,87 @@
         showUndoBar();
         renderAll();
       });
-      rowEl.appendChild(btn);
 
+      const line = document.createElement('span');
+      line.className = 'line frz';
+      const fill = document.createElement('b');
+      fill.style.width = LOOK.freezerPct(days) + '%';
+      fill.style.background = LOOK.freezerColour(days);
+      line.appendChild(fill);
+
+      const main = document.createElement('div');
+      main.className = 'grow';
+      main.append(top, line);
+      rowEl.append(main, btn);
       freezerEl.appendChild(rowEl);
     });
+    renderTabCounts();
   }
 
+  // Used: this month's used / wasted tiles, takeaways, then the list grouped by day
   function renderUsedView() {
     const summary = FT.usedSummary(packs, today);
     document.getElementById('usedCount').textContent = summary.used;
     document.getElementById('wastedCount').textContent = summary.wasted;
-    const takeaways = FT.takeawaySummary(meals, today);
-    document.getElementById('takeawaySum').textContent =
-      `🥡 Takeaways this month: ${takeaways.count} · £${takeaways.total.toFixed(2)}`;
+    const total = summary.used + summary.wasted;
+    document.getElementById('usedBar').style.width = (total ? Math.round(summary.used / total * 100) : 0) + '%';
+    document.getElementById('wastedBar').style.width = (total ? Math.round(summary.wasted / total * 100) : 0) + '%';
 
+    const takeaways = FT.takeawaySummary(meals, today);
+    const tk = document.getElementById('takeawaySum');
+    tk.innerHTML = `<span class="tkicon">${ICON('takeaway', 18)}</span><span class="grow"><b>Takeaways</b><small></small></span><span class="mono"></span>`;
+    tk.querySelector('small').textContent = `${takeaways.count} this month`;
+    tk.querySelector('.mono').textContent = `£${takeaways.total.toFixed(2)}`;
+
+    const KIND = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Misc' };
     const listEl = document.getElementById('usedList');
     listEl.innerHTML = '';
+    if (!summary.list.length) {
+      listEl.innerHTML = '<div class="empty">Nothing used or wasted yet this month.</div>';
+      return;
+    }
+    const groups = [];
     summary.list.forEach(pack => {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'row';
-      const used = pack.status === 'used';
-      const name = document.createElement('span');
-      name.className = 'name nm';
-      name.textContent = pack.name;
-      const right = document.createElement('span');
-      right.append(`${FT.formatDate(pack.left || pack.date)} · `);
-      const st = document.createElement('span');
-      st.className = 'status st ' + (used ? 'u' : 'w');
-      st.textContent = used ? 'Used' : 'Wasted';
-      right.appendChild(st);
-      rowEl.append(name, right);
-      listEl.appendChild(rowEl);
+      const day = pack.left || pack.date;
+      let g = groups[groups.length - 1];
+      if (!g || g.day !== day) groups.push(g = { day, packs: [] });
+      g.packs.push(pack);
+    });
+    groups.forEach(g => {
+      const section = document.createElement('div');
+      section.className = 'section';
+      const head = document.createElement('h2');
+      head.className = 'sec';
+      head.textContent = g.day ? FT.formatDate(g.day) + ' ' : '';
+      const n = document.createElement('span');
+      n.className = 'n';
+      n.textContent = '· ' + g.packs.length;
+      head.appendChild(n);
+      const card = document.createElement('div');
+      card.className = 'rows card';
+      g.packs.forEach(pack => {
+        const used = pack.status === 'used';
+        const rowEl = document.createElement('div');
+        rowEl.className = 'row urow';
+        const icon = document.createElement('span');
+        icon.className = 'uicon ' + (used ? 'u' : 'w');
+        icon.innerHTML = ICON(used ? 'check' : 'close', 12, 3);
+        const text = document.createElement('span');
+        text.className = 'grow';
+        const name = document.createElement('span');
+        name.className = 'name nm';
+        name.textContent = pack.name;
+        const kind = document.createElement('small');
+        kind.textContent = KIND[pack.kind] || '';
+        text.append(name, kind);
+        const st = document.createElement('span');
+        st.className = 'status st ' + (used ? 'u' : 'w');
+        st.textContent = used ? 'Used' : 'Wasted';
+        rowEl.append(icon, text, st);
+        card.appendChild(rowEl);
+      });
+      section.append(head, card);
+      listEl.appendChild(section);
     });
   }
 
@@ -1530,7 +1760,7 @@
     document.getElementById('nextDay').hidden = inHad();
     const nextSlot = document.getElementById('nextSlot');
     nextSlot.hidden = selSlot === 'veg';
-    nextSlot.textContent = selSlot === 'main' ? 'Sides ▸' : 'Veg ▸';
+    nextSlot.textContent = selSlot === 'main' ? 'Next: Sides' : 'Next: Veg';
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();
@@ -1591,7 +1821,7 @@
       const b = document.createElement('b');
       b.textContent = idea.name;
       const span = document.createElement('span');
-      const had = `had ${idea.count}×`;
+      const had = `Had ${idea.count}×`;
       if (idea.missing.length) {
         span.className = 'miss';
         span.textContent = `${had} · need ${idea.missing.join(', ')}`;
@@ -1603,7 +1833,8 @@
       const plus = document.createElement('button');
       plus.className = 'plus' + (idea.missing.length ? ' off' : '');
       plus.type = 'button';
-      plus.textContent = '+';
+      plus.innerHTML = ICON('add', 18, 2.2);
+      plus.setAttribute('aria-label', idea.missing.length ? 'Put ' + idea.missing.join(', ') + ' on the shopping list' : 'Plan ' + idea.name);
       plus.addEventListener('click', () => (idea.missing.length ? shopIdea(idea, plus) : planIdea(idea)));
 
       row.append(t, plus);
@@ -1636,7 +1867,7 @@
     if (meals.length === 0) {
       const hint = document.createElement('span');
       hint.className = 'hint';
-      hint.textContent = 'Tap to plan ›';
+      hint.innerHTML = ICON('add', 14, 2.2) + 'Plan';
       head.appendChild(hint);
     }
     head.addEventListener('click', () => toggleDay(day));
@@ -1697,8 +1928,8 @@
       q('Had this meal?');
       const row = btns();
       row.append(
-        button('had-yes', '✅ Yes', () => answerYes(day)),
-        button('had-no', '❌ No', () => answerNo(day)));
+        button('had-yes', 'Yes', () => answerYes(day)),
+        button('had-no', 'No', () => answerNo(day)));
     } else if (state === 'use') {
       q('How much did you use?');
       const planned = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway');
@@ -1769,11 +2000,15 @@
     const slot = document.createElement('span');
     slot.className = 'slot';
     slot.textContent = isTakeaway ? 'Main' : SLOT_LABEL[item.slot];
-    label.append(slot, ' ' + (isTakeaway ? '🥡 Takeaway' : item.name) + (late ? ' ⚠️' : ''));
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = isTakeaway ? 'Takeaway' : item.name;
+    label.append(slot, nm);
+    if (late) label.title = 'Out of date by then';
 
     const x = document.createElement('button');
     x.className = 'x';
-    x.textContent = '✕';
+    x.innerHTML = ICON('close', 12, 2.4);
     x.setAttribute('aria-label', 'Remove ' + item.name);
     x.addEventListener('click', e => {
       e.stopPropagation();
@@ -1792,7 +2027,7 @@
     const { pack, day, slot } = pendingPlan;
     const n = FT.outByDay(pack, day);
     const text = document.createElement('span');
-    text.textContent = `⚠️ ${pack.name} will be ${n} day${n > 1 ? 's' : ''} out by ${shortDay(day)}`;
+    text.textContent = `${pack.name} will be ${n} day${n > 1 ? 's' : ''} out by ${shortDay(day)}`;
 
     const btns = document.createElement('div');
     btns.className = 'btns';
@@ -1821,7 +2056,7 @@
       const ta = document.createElement('button');
       ta.className = 'item ta';
       const label = document.createElement('span');
-      label.textContent = '🥡 Takeaway';
+      label.innerHTML = ICON('takeaway', 16) + '<span>Takeaway</span>';
       ta.appendChild(label);
       ta.addEventListener('click', addTakeaway);
       listEl.appendChild(ta);
@@ -1831,11 +2066,11 @@
     rows.forEach(row => {
       const p = row.pack;
       const btn = document.createElement('button');
-      btn.className = 'item ' + (p.date ? STATUS_CLASS[FT.colour(p.date, today)] : 'nd');
+      btn.className = 'item ' + (p.date ? 'st-' + LOOK.freshState(p.date, today) : 'nd');
       const name = document.createElement('span');
       name.textContent = row.name + (row.count > 1 ? ' ×' + row.count : '');
       const when = document.createElement('span');
-      when.textContent = p.date ? FT.countdown(p.date, today) : FT.daysLeft(today, p.added) + 'd old';
+      when.textContent = p.date ? LOOK.whenText(p.date, today) : FT.ageLabel(p.added, today);
       btn.append(name, when);
       btn.addEventListener('click', () => choosePick(p));
       listEl.appendChild(btn);
@@ -1994,18 +2229,17 @@
   // Top line: today's date (needs no stored data, so it shows before the database loads)
   function renderTopDate() {
     const todayEl = document.getElementById('today');
-    todayEl.textContent = '📅 Today · ';
-    const dateB = document.createElement('b');
-    dateB.textContent = FT.formatDate(today);
-    todayEl.appendChild(dateB);
+    todayEl.textContent = 'Today · ' + FT.formatDate(today);
   }
 
   function renderAll() {
     renderTopDate();
     const activeView = document.querySelector('[data-view].on')?.dataset.view;
-    if (activeView === 'fridge') renderFridgeView();
+    if (activeView === 'fridge' || activeView === 'misc') renderFridgeView();
     else if (activeView === 'freezer') renderFreezerView();
     else if (activeView === 'used') renderUsedView();
+    if (packs) renderTabCounts();
+    renderPageCount();
     renderBell();
     refreshBackup();
   }
@@ -2040,8 +2274,8 @@
     const names = bellNames();
     const now = Date.now();
     const rows = FT.activityFeed(bellEntries, DB.uid).map(g =>
-      `<li>${esc(FT.activityText(g, names[g.by]))} <span class="when">· ${esc(FT.timeAgo(g.at, now))}</span></li>`);
-    document.getElementById('bellList').innerHTML = rows.length ? rows.join('') : '<li>Nothing yet</li>';
+      `<li><span>${esc(FT.activityText(g, names[g.by]))}</span> <span class="when">${esc(FT.timeAgo(g.at, now))}</span></li>`);
+    document.getElementById('bellList').innerHTML = rows.length ? rows.join('') : '<li class="none">Nothing yet</li>';
   }
 
   // The badge on 🔔: lines from others since the list was last open
@@ -2053,6 +2287,7 @@
     const badge = document.getElementById('bellCount');
     badge.textContent = String(count);
     badge.hidden = count === 0;
+    document.getElementById('bellBtn').setAttribute('aria-label', LOOK.bellLabel(count));
     // Alone in a household with nothing from anyone else: no bell to tap (local mode always has one)
     const members = window.FT_HOUSEHOLD ? window.FT_HOUSEHOLD.members.length : 2;
     const alone = members < 2 && FT.activityFeed(bellEntries, DB.uid).length === 0;
@@ -2099,7 +2334,7 @@
     const last = DB.lastBackup();
     backupChanges = FT.changesSinceBackup(await DB.activity.all(), last);
     const due = FT.backupDue(backupChanges, readSnooze(), last);
-    document.getElementById('backupAskText').textContent = `💾 ${backupChanges} changes since your last backup. Back up now?`;
+    document.getElementById('backupAskText').textContent = `${backupChanges} changes since your last backup. Back up now?`;
     document.getElementById('backupAsk').hidden = !due;
   }
 
@@ -2321,7 +2556,8 @@
     if (item.auto) {
       const auto = document.createElement('span');
       auto.className = 'auto';
-      auto.textContent = '🤖 auto · ' + item.auto;
+      auto.textContent = 'Auto · ' + item.auto;
+      if (/ran out|binned|out of date/i.test(item.auto)) auto.classList.add('red');
       label.append(' ', auto);
     }
     if (gone) {
@@ -2346,7 +2582,7 @@
     if (gone || item.got) {
       const undo = document.createElement('button');
       undo.className = 'undo';
-      undo.textContent = '↩ Undo';
+      undo.textContent = 'Undo';
       undo.addEventListener('click', async () => {
         item.got = false;
         item.del = null;
@@ -2358,7 +2594,7 @@
     if (!gone) {
       const del = document.createElement('button');
       del.className = 'del';
-      del.textContent = '🗑️';
+      del.innerHTML = ICON('trash', 17);
       del.setAttribute('aria-label', 'Delete ' + item.name + ' (not counted as bought)');
       del.addEventListener('click', async () => {
         item.del = today;
@@ -2385,7 +2621,8 @@
       const on = onShopList(name);
       const btn = document.createElement('button');
       btn.className = 'qc' + (on ? ' on' : '');
-      btn.textContent = (on ? '✓ ' : '+ ') + name;
+      btn.innerHTML = ICON(on ? 'check' : 'add', 12, 2.6);
+      btn.append(name);
       btn.addEventListener('click', () => tapShopName(name));
       box.appendChild(btn);
     });
@@ -2394,9 +2631,30 @@
   function renderShop() {
     const listEl = document.getElementById('shopList');
     listEl.innerHTML = '';
-    FT.shopOrder(shop, today).forEach(item => listEl.appendChild(shopRow(item)));
+    // Two sections: To buy, then Got (ticked, and deleted ones still showing Undo)
+    const order = FT.shopOrder(shop, today);
+    const section = (title, items, cls) => {
+      if (!items.length) return;
+      const head = document.createElement('h2');
+      head.className = 'sec ' + cls;
+      head.textContent = title + ' ';
+      const n = document.createElement('span');
+      n.className = 'n';
+      n.textContent = '· ' + items.length;
+      head.appendChild(n);
+      const card = document.createElement('div');
+      card.className = 'rows card';
+      items.forEach(item => card.appendChild(shopRow(item)));
+      const wrap = document.createElement('div');
+      wrap.className = 'section';
+      wrap.append(head, card);
+      listEl.appendChild(wrap);
+    };
+    section('To buy', order.filter(i => !i.got && !i.del), 'tobuy');
+    section('Got', order.filter(i => i.got || i.del), 'got');
     const left = shop.filter(i => !i.got && !i.del).length;
-    document.getElementById('shopCount').textContent = left ? left + ' to get' : 'All got ✅';
+    document.getElementById('shopCount').textContent = left ? left + ' to get' : 'All got';
+    renderPageCount();
     renderQuick();
     renderIdeas();
   }
@@ -2426,7 +2684,7 @@
     stars.className = 'stars';
     for (let k = 1; k <= 5; k++) {
       const star = document.createElement('button');
-      star.textContent = '★';
+      star.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
       star.className = k <= row.rating ? 'on' : '';
       star.setAttribute('aria-label', k + ' stars');
       star.addEventListener('click', () => rateIdea(row.name, k));
@@ -2435,7 +2693,7 @@
 
     const add = document.createElement('button');
     add.className = 'qc';
-    add.textContent = '+';
+    add.innerHTML = ICON('add', 14, 2.4);
     add.setAttribute('aria-label', 'Add ' + row.name);
     add.addEventListener('click', () => tapShopName(row.name));
 
@@ -2450,7 +2708,7 @@
     if (!ideasOn) return;
     const tag = document.createElement('div');
     tag.className = 'tag';
-    tag.textContent = '💡 ' + TAB_NAME[shopTab] + ' ideas · best rated, then most bought';
+    tag.textContent = TAB_NAME[shopTab] + ' ideas · best rated, then most bought';
     box.appendChild(tag);
     const rows = FT.ideas(packs, ratings, shopTab);
     if (rows.length === 0) {

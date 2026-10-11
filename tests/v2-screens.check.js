@@ -128,9 +128,7 @@ function startStatic() {
 
   await step("top right: 📷 · 🖨️ · 🔔 · ⚙️, bell opens and closes", async () => {
     const ids = await page.locator(".pal button").evaluateAll(bs => bs.map(b => b.id));
-    assert.deepEqual(ids, APP_DIR === "v2-next"
-      ? ["bellBtn", "scanBtn", "printF", "settingsBtn"]   // V2.5: bell first (HANDOVER 5.1)
-      : ["scanBtn", "printF", "bellBtn", "settingsBtn"]);
+    assert.deepEqual(ids, ["bellBtn", "scanBtn", "printF", "settingsBtn"]); // V2.5: bell first (HANDOVER 5.1)
     assert.equal(await page.locator("#bellCount").isVisible(), false, "nothing new");
     await page.click("#bellBtn");
     assert.ok(await page.locator("#bell").isVisible());
