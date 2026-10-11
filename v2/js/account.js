@@ -8,6 +8,19 @@ const CDN = "https://www.gstatic.com/firebasejs/12.19.0/";
 const params = new URLSearchParams(location.search);
 const $ = id => document.getElementById(id);
 
+// Settings → 🔄 Check for updates (FT_checkUpdate is defined by pwa.js)
+$("checkUpdate").onclick = async () => {
+  $("updateMsg").textContent = "Checking…";
+  try {
+    const r = await window.FT_checkUpdate();
+    $("updateMsg").textContent = r === "new"
+      ? "🆕 New version found, tap the green button"
+      : `✓ Up to date · v${window.FT_VERSION.n}`;
+  } catch (e) {
+    $("updateMsg").textContent = "Couldn't check for updates";
+  }
+};
+
 // app.js waits for this before it starts
 let resolveReady;
 window.FT_READY = new Promise(r => { resolveReady = r; });
