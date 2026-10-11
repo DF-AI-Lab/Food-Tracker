@@ -27,9 +27,15 @@
   // Freshness state: 2 days or less = soon, past = out
   function freshState(date, today) {
     const d = daysLeft(date, today);
-    if (d < 0) return "out";
+    if (d <= 0) return "out"; // due today or older: red (Darren 2026-10-11)
     if (d <= 2) return "soon";
     return "ok";
+  }
+
+  // One line: "Today", "1 day", "Fri 16 Oct · 6 days" (meal picker)
+  function whenText(date, today) {
+    const p = whenParts(date, today);
+    return p.sub ? `${p.main} · ${p.sub}` : p.main;
   }
 
   // Row date words
@@ -111,7 +117,7 @@
 
   const LOOK = {
     daysLeft, formatDate,
-    freshPct, freshState, whenParts,
+    freshPct, freshState, whenParts, whenText,
     freezerPct, freezerColour, frozenText,
     eatFirst, syncText, bellLabel, initials
   };
