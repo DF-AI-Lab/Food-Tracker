@@ -201,6 +201,42 @@ function startStatic() {
     await until(B.page, async () => assert.match(await B.page.locator("#mains").innerText(), /Gammon steak/));
   });
 
+  // ---------- step 7c: 🔔 what the other person did ----------
+  const bellCount = page => page.locator("#bellCount");
+  const openBell = async page => {
+    await page.click("#bellBtn");
+    await visible(page, "#bellList");
+    return page.locator("#bellList").innerText();
+  };
+
+  await step("bell: bob has unread news from alice", async () => {
+    await until(B.page, async () => assert.ok(await bellCount(B.page).isVisible()));
+    assert.match(await bellCount(B.page).innerText(), /^[1-9]\d*$/);
+  });
+
+  await step("bell: bob sees what alice did, never his own changes", async () => {
+    const list = await openBell(B.page);
+    assert.match(list, /Alice added .*Chicken/);
+    assert.match(list, /ago|just now/);
+    assert.doesNotMatch(list, /Bob/);
+    await B.page.click("#bellClose");
+    await until(B.page, async () => assert.equal(await bellCount(B.page).isVisible(), false));
+  });
+
+  await step("bell: alice sees bob used the Chicken", async () => {
+    const list = await openBell(A.page);
+    assert.match(list, /Bob used .*Chicken/);
+    assert.doesNotMatch(list, /Alice/);
+    await A.page.click("#bellClose");
+  });
+
+  await step("bell: a new change shows on the other phone without reloading", async () => {
+    await addMain(A.page, "Eggs");
+    await until(B.page, async () => assert.equal(await bellCount(B.page).innerText(), "1"));
+    assert.match(await openBell(B.page), /Alice added Eggs/);
+    await B.page.click("#bellClose");
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   await browser.close();

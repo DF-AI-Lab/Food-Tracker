@@ -116,7 +116,7 @@ async function start() {
         return;
       }
       const { makeCloudDB } = await import("./db-firestore.js");
-      window.DB = makeCloudDB(F, db, h.id, user.uid);
+      window.DB = makeCloudDB(F, db, h.id, user.uid, { describe: window.FT.activityChange });
       started = { uid: user.uid, householdId: h.id };
       window.FT_HOUSEHOLD = h;
       $("gate").hidden = true;

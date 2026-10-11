@@ -20,6 +20,7 @@
   let shopTab = 'main';   // "bought before" tab: main | side | veg | other
   let ideasOn = false;
   const autoBusy = new Set();
+  let bellEntries = [];   // 🔔 what others did, from DB.activity
   function getToday() {
     const params = new URLSearchParams(window.location.search);
     const todayParam = params.get('today');
@@ -169,6 +170,7 @@
     } catch (e) {
       // try again next time the app starts
     }
+    bellEntries = await DB.activity.all();
     setupTheme();
     setupEventListeners();
     renderAll();
@@ -180,6 +182,7 @@
         shop = await DB.shop.all();
         meals = await DB.meals.all();
         for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
+        bellEntries = await DB.activity.all();
         renderAll();
       });
     }
@@ -253,6 +256,10 @@
       const now = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
       setTheme(now === 'light' ? 'dark' : 'light');
     });
+
+    // 🔔 What others did
+    document.getElementById('bellBtn').addEventListener('click', openBell);
+    document.getElementById('bellClose').addEventListener('click', closeBell);
 
     // Print: fill the A4 fridge sheet, then open the print dialog
     document.getElementById('printF').addEventListener('click', printFridgeSheet);
@@ -1977,6 +1984,67 @@
     if (activeView === 'fridge') renderFridgeView();
     else if (activeView === 'freezer') renderFreezerView();
     else if (activeView === 'used') renderUsedView();
+    renderBell();
+  }
+
+  // ---- 🔔 What others did ----
+
+  // uid -> name, from the household's members (names are not kept on their own)
+  function bellNames() {
+    const members = (window.FT_HOUSEHOLD && window.FT_HOUSEHOLD.members) || [];
+    return Object.fromEntries(members.map(m => [m.uid, m.name]));
+  }
+
+  // "Seen up to" (ms), kept per phone. First time here: now.
+  function bellSeenAt() {
+    try {
+      const stored = localStorage.getItem('bellSeen');
+      if (stored) return Number(stored);
+      const now = Date.now();
+      localStorage.setItem('bellSeen', String(now));
+      return now;
+    } catch (e) { return Date.now(); }
+  }
+
+  // Everything in the list counts as seen once it is on screen
+  function markBellSeen() {
+    const feed = FT.activityFeed(bellEntries, DB.uid);
+    const newest = feed.length ? feed[0].at : 0;
+    try { localStorage.setItem('bellSeen', String(Math.max(Date.now(), newest))); } catch (e) { /* ignore */ }
+  }
+
+  function renderBellList() {
+    const names = bellNames();
+    const now = Date.now();
+    const rows = FT.activityFeed(bellEntries, DB.uid).map(g =>
+      `<li>${esc(FT.activityText(g, names[g.by]))} <span class="when">· ${esc(FT.timeAgo(g.at, now))}</span></li>`);
+    document.getElementById('bellList').innerHTML = rows.length ? rows.join('') : '<li>Nothing yet</li>';
+  }
+
+  // The badge on 🔔: lines from others since the list was last open
+  function renderBell() {
+    const bell = document.getElementById('bell');
+    const open = !bell.hidden;
+    if (open) markBellSeen();
+    const count = FT.unreadCount(bellEntries, DB.uid, bellSeenAt());
+    const badge = document.getElementById('bellCount');
+    badge.textContent = String(count);
+    badge.hidden = count === 0;
+    // Alone in a household with nothing from anyone else: no bell to tap (local mode always has one)
+    const members = window.FT_HOUSEHOLD ? window.FT_HOUSEHOLD.members.length : 2;
+    const alone = members < 2 && FT.activityFeed(bellEntries, DB.uid).length === 0;
+    document.getElementById('bellBtn').hidden = alone;
+    if (open) renderBellList();
+  }
+
+  function openBell() {
+    document.getElementById('bell').hidden = false;
+    renderBell();
+  }
+
+  function closeBell() {
+    document.getElementById('bell').hidden = true;
+    renderBell();
   }
 
   // ---- Shopping list ----

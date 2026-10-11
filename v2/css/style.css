@@ -165,6 +165,14 @@ button.act.ghost{box-shadow:none}
 .pal button.on{border-color:var(--accent)}
 .pal i{display:inline-flex;width:28px;height:14px;border-radius:4px;overflow:hidden}
 .pal i b{flex:1}
+/* 🔔 button: a small red count of lines nobody has seen yet */
+#bellBtn{position:relative}
+#bellBtn[hidden]{display:none}
+.bell-count{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;border-radius:9px;background:#d64545;color:#fff;font-size:11px;line-height:17px;font-weight:700;text-align:center;padding:0 4px;box-sizing:border-box}
+.bell-count[hidden]{display:none}
+#bellList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+#bellList li{background:var(--bg);border-radius:8px;padding:8px 10px;font-size:14px;line-height:1.4}
+#bellList .when{font-size:12px;color:var(--muted)}
 
 /* ---- Real-app additions (same look, real behaviour) ---- */
 [data-tab-pane],[data-view-pane],[data-sub-pane]{display:flex;flex-direction:column;gap:16px;min-width:0}

@@ -1006,6 +1006,92 @@
     });
   }
 
+  // 🔔 What the other people did (step 7c). Only real news: no deletes, edits or plans.
+  const SHOP_VERB = "added to the shopping list";
+  const MERGE_MS = 10 * 60 * 1000;
+  const NO_MERGE = ["had", "had a takeaway"];
+
+  // "A", "A and B", "A, B and C"
+  function joinNames(names) {
+    if (names.length <= 1) return names.join("");
+    return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  }
+
+  // What one change means in words ({verb, name}), or null when it is not news
+  function activityChange(list, before, after) {
+    if (list === "packs") {
+      if (!after || after.kind === "takeaway") return null;
+      const name = after.name;
+      const was = before ? before.status : null;
+      const now = after.status;
+      if (!before) return now === "in_fridge" || now === "frozen" ? { verb: "added", name } : null;
+      if (was === "deleted" || now === "deleted") return null;
+      if (!before.partUsed && after.partUsed && now === "in_fridge") return { verb: "used some of", name };
+      if (was === now) return null;
+      if (now === "used") return { verb: "used", name };
+      if (now === "thrown_away") return { verb: "threw away", name };
+      if (now === "frozen") return { verb: "froze", name };
+      if (was === "frozen" && now === "in_fridge") return { verb: "defrosted", name };
+      if ((was === "used" || was === "thrown_away") && now === "in_fridge") return { verb: "put back", name };
+      return null;
+    }
+    if (list === "shop") {
+      // Added by hand only: automatic adds (auto set) and ticks are not news
+      if (before || !after || after.auto) return null;
+      return { verb: SHOP_VERB, name: after.name };
+    }
+    if (list === "meals") {
+      if (before || !after) return null;
+      if (after.takeaway === true) return { verb: "had a takeaway", name: "" };
+      const names = (after.items || []).map(i => i.name);
+      if (names.length === 0) return null;
+      return { verb: "had", name: joinNames(names) };
+    }
+    return null;
+  }
+
+  // The 🔔 list: other people's changes, newest first. Same person, same thing,
+  // within 10 minutes of each other = one line.
+  function activityFeed(entries, me) {
+    const sorted = (entries || []).filter(e => e.by !== me).sort((a, b) => b.at - a.at);
+    const groups = [];
+    let lastAt = 0;
+    for (const e of sorted) {
+      const last = groups[groups.length - 1];
+      if (last && last.by === e.by && last.verb === e.verb && !NO_MERGE.includes(e.verb) && lastAt - e.at <= MERGE_MS) {
+        last.names.push(e.name);
+      } else {
+        groups.push({ by: e.by, verb: e.verb, names: [e.name], at: e.at });
+      }
+      lastAt = e.at;
+    }
+    return groups;
+  }
+
+  // One line of the 🔔 list, e.g. "Sarah used Leeks and Mince"
+  function activityText(group, whoName) {
+    const who = whoName || "Someone";
+    const list = joinNames(group.names.filter(n => n));
+    if (group.verb === SHOP_VERB) return `${who} added ${list} to the shopping list`;
+    return [who, group.verb, list].filter(Boolean).join(" ");
+  }
+
+  // "just now", "5 min ago", "2 h ago", "yesterday", "3 days ago"
+  function timeAgo(at, now) {
+    const min = Math.floor((now - at) / 60000);
+    if (min < 1) return "just now";
+    if (min < 60) return `${min} min ago`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `${h} h ago`;
+    if (h < 48) return "yesterday";
+    return `${Math.floor(h / 24)} days ago`;
+  }
+
+  // Lines from other people newer than "seen up to" (ms)
+  function unreadCount(entries, me, seenAt) {
+    return activityFeed(entries, me).filter(g => g.at > seenAt).length;
+  }
+
   // Export
   const FT = {
     addDays,
@@ -1070,7 +1156,12 @@
     sheetChanges,
     syncLabel,
     UNDO_BLOCKED_MSG,
-    undoBlocked
+    undoBlocked,
+    activityChange,
+    activityFeed,
+    activityText,
+    timeAgo,
+    unreadCount
   };
 
   if (typeof module !== "undefined") {

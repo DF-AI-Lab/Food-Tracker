@@ -56,11 +56,19 @@ service cloud.firestore {
           get(/databases/$(database)/documents/invites/$(request.resource.data.joinedWith)).data.expires > request.time
         );
 
+      // 🔔 What people did: anyone in the household can read and trim it, only add as yourself.
+      // Never changed once written.
+      match /activity/{a} {
+        allow read, delete: if isMember(h);
+        allow create: if isMember(h) && request.resource.data.by == request.auth.uid;
+        allow update: if false;
+      }
+
       // Everything inside a household (packs, shop, meals, sheets, ratings, foods, inbox).
       // Needs a subcollection name first, so this never matches the household doc itself
       // (a plain {sub=**} would also match it and skip the checks above).
       match /{coll}/{rest=**} {
-        allow read, write: if isMember(h);
+        allow read, write: if isMember(h) && coll != 'activity';
       }
     }
 

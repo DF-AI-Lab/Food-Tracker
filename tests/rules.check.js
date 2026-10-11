@@ -178,6 +178,25 @@ test("a removed member loses access straight away", async () => {
   await assertFails(getDoc(doc(as("bob"), "households", H, "packs", "p1")));
 });
 
+// ---------- 🔔 activity (7c) ----------
+
+test("activity: a member can add an entry only as themselves", async () => {
+  const col = collection(as("alice"), "households", H, "activity");
+  await assertSucceeds(addDoc(col, { by: "alice", verb: "added", name: "Milk", at: Timestamp.now() }));
+  await assertFails(addDoc(col, { by: "sarah", verb: "added", name: "Milk", at: Timestamp.now() }));
+  await assertFails(addDoc(collection(as("bob"), "households", H, "activity"), { by: "bob", verb: "added", name: "X", at: Timestamp.now() }));
+});
+
+test("activity: entries can be read and trimmed by members, never changed", async () => {
+  await env.withSecurityRulesDisabled(async ctx => {
+    await setDoc(doc(ctx.firestore(), "households", H, "activity", "a1"), { by: "alice", verb: "used", name: "Ham", at: Timestamp.now() });
+  });
+  await assertSucceeds(getDocs(collection(as("alice"), "households", H, "activity")));
+  await assertFails(updateDoc(doc(as("alice"), "households", H, "activity", "a1"), { name: "Eggs" }));
+  await assertFails(getDocs(collection(as("bob"), "households", H, "activity")));
+  await assertSucceeds(deleteDoc(doc(as("alice"), "households", H, "activity", "a1")));
+});
+
 test("other top-level collections are closed", async () => {
   await assertFails(setDoc(doc(as("alice"), "secrets", "x"), { a: 1 }));
   await assertFails(getDoc(doc(as("alice"), "secrets", "x")));

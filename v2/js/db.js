@@ -70,6 +70,13 @@
     // Printed fridge sheets: { code, printed, rows }
     sheets: store(),
 
+    // The 🔔 list: nobody else in memory mode, so always empty
+    activity: {
+      async all() {
+        return [];
+      }
+    },
+
     // Idea ratings, one per food name: { name, rating }
     ratings: (function() {
       const byName = new Map();
