@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13), 8 sheet (v14–v15), 9 backups (v16). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → ~~7 📷 Photos → Claude~~ (moved to V3, 2026-10-11) → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13), 8 sheet (v14–v15), 9 backups (v16–v17), 10 🎉 LIVE with real V1 data (2026-10-11). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → ~~7 📷 Photos → Claude~~ (moved to V3, 2026-10-11) → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -202,11 +202,11 @@ Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
 - ~~PC: weekly automatic backup into Google Drive~~ → V3.
 - ~~Warning "No backup for 7+ days"~~ → replaced by the 5-changes reminder.
 
-### 10. Live on both phones ← NEXT
+### 10. Live on both phones ✅ LIVE 2026-10-11
 
-- [ ] **Copy all V1 data** (`FoodTrackerData/food.db`) into the real household: one-off PC script, tests first. Back up `food.db` first. Wipe `tryout`.
-  - Built 2026-10-11: `tools/v1-to-backup.js` turns food.db into a V2 backup file (read-only, no key file); load it with ⚙️ ⬆️ Restore. Tests: `tests/v1-to-backup.test.js`, go-live step in `tests/v2-backup.check.js`.
-- [ ] The 29 photos already read in V1 are covered by this copy. Don't re-read them or load their JSON (doubles).
+- [x] **Copy all V1 data** (`FoodTrackerData/food.db`) into the real household: one-off PC script, tests first. Back up `food.db` first. Wipe `tryout`.
+  - Built 2026-10-11: `tools/v1-to-backup.js` turns food.db into a V2 backup file (read-only, no key file); load it with ⚙️ ⬆️ Restore. ✅ Done 2026-10-11: 45 packs (40 in the fridge), 4 shop, 2 meals, 6 ratings. `food-before-v2.db` kept as a safety copy. Tests: `tests/v1-to-backup.test.js`, go-live step in `tests/v2-backup.check.js`.
+- [x] The 29 photos already read in V1 are covered by this copy. Don't re-read them or load their JSON (doubles).
 
 - [ ] Install on both Samsungs, join the household, use it for a week.
 - [ ] Note anything to tune → [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39).
