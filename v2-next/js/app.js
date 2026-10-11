@@ -1928,11 +1928,17 @@
     };
 
     if (state === 'ask') {
-      q('Had this meal?');
-      const row = btns();
-      row.append(
-        button('had-yes', 'Yes', () => answerYes(day)),
-        button('had-no', 'No', () => answerNo(day)));
+      // One quiet line: "Used?" / "Had the takeaway?" with small Yes / No
+      card.classList.add('asking');
+      const row = document.createElement('div');
+      row.className = 'askrow';
+      const text = document.createElement('span');
+      text.className = 'q-sm';
+      text.textContent = LOOK.askText(FT.dayMeals(packs, day));
+      const yes = button('had-yes mini', 'Yes', () => answerYes(day));
+      const no = button('had-no mini', 'No', () => answerNo(day));
+      row.append(text, yes, no);
+      body.appendChild(row);
     } else if (state === 'use') {
       q('How much did you use?');
       const planned = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway');

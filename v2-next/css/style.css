@@ -557,3 +557,11 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .undo.danger{color:var(--danger);border-color:var(--danger)}
 .sbot.gotask{grid-template-columns:1fr auto auto;align-items:center;font-size:14px;font-weight:500}
 .sbot.gotask .act{min-width:84px}
+
+/* Past meal: a quiet "Used?" line, small Yes / No (Darren 2026-10-11) */
+.day.past.asking{border-style:solid;border-color:var(--border)}
+.askrow{display:flex;align-items:center;gap:8px}
+.askrow .q-sm{flex:1;font-size:14px;color:var(--muted)}
+.askrow .act.mini{flex:none;min-height:36px;min-width:64px;padding:0 14px;font-size:14px;border-radius:10px}
+.askrow .act.had-yes{background:transparent;color:var(--accent);border:1px solid var(--accent-border)}
+.askrow .act.had-no{background:transparent;color:var(--muted);border:1px solid var(--border)}

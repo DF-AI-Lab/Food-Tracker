@@ -124,3 +124,10 @@ test("one line of date words (meal picker): same words as the fridge rows", () =
   assert.equal(LOOK.whenText(day(6), TODAY), "Fri 16 Oct · 6 days");
   assert.equal(LOOK.whenText(day(-2), TODAY), "2 days out");
 });
+
+test("past meal asks a short question: 'Used?' for food, 'Had the takeaway?' for a takeaway (Darren 2026-10-11)", () => {
+  assert.equal(LOOK.askText([{ kind: "main", name: "Chicken" }, { kind: "veg", name: "Peas" }]), "Used?");
+  assert.equal(LOOK.askText([{ kind: "takeaway", name: "Takeaway" }]), "Had the takeaway?");
+  assert.equal(LOOK.askText([{ kind: "takeaway" }, { kind: "side", name: "Chips" }]), "Had the takeaway?");
+  assert.equal(LOOK.askText([]), "Used?");
+});
