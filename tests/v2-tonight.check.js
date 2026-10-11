@@ -63,7 +63,8 @@ function startStatic() {
     await until(async () => assert.equal(await pastDay().count(), 1));
     assert.match(await pastDay().innerText(), /Wed/);
     assert.match(await pastDay().innerText(), /Takeaway/);
-    assert.match(await pastDay().innerText(), /Had this meal\?/);
+    // V2.5 demo: a small "Had the takeaway?" line instead of the big "Had this meal?" box
+    assert.match(await pastDay().innerText(), APP_DIR === "v2-next" ? /Had the takeaway\?/ : /Had this meal\?/);
     // shown in place of today's planning card, not as well as it
     assert.equal(await todayCard().count(), 0);
   });
