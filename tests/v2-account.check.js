@@ -171,6 +171,8 @@ function startStatic() {
 
   await step("rename the household", async () => {
     await alice.click("#renameHH");
+    const box = await alice.locator("#hhNameEdit").boundingBox();
+    assert.ok(box.width >= 200, `name box is wide enough to type in (${box.width}px)`);
     await alice.fill("#hhNameEdit", "Fawcett Fridge");
     await alice.click("#hhNameSave");
     await until(alice, async () => assert.match(await alice.locator("#hhTitle").innerText(), /Fawcett Fridge/));
@@ -179,6 +181,8 @@ function startStatic() {
   await step("rename yourself: the other phone sees the new name", async () => {
     await bob.click("#settingsBtn");
     await bob.click("#renameMe");
+    const box = await bob.locator("#meNameEdit").boundingBox();
+    assert.ok(box.width >= 200, `my-name box is wide enough to type in (${box.width}px)`);
     await bob.fill("#meNameEdit", "Bob's 2nd phone");
     await bob.click("#meNameSave");
     await bob.click("#settingsClose");
