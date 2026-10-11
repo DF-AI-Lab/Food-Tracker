@@ -141,6 +141,39 @@ function startStatic() {
     await until(async () => assert.equal(await page.locator("#recipes .recipe").count(), 0));
   });
 
+  await step("a planned day has a 'Meal?' button: opens the recipe form with that day's foods", async () => {
+    const meal = page.locator("#dayList .day.today .day-meal");
+    assert.match(await meal.innerText(), /Meal\?/);
+    await meal.click();
+    assert.ok(await page.locator("#recipeForm").isVisible());
+    assert.equal(await page.inputValue("#recipeName"), "");
+    const fresh = await page.locator("#recipeForm .fresh-item").allInnerTexts();
+    assert.equal(fresh.length, 2);
+    assert.match(fresh.join(" "), /Chicken/);
+    assert.match(fresh.join(" "), /Bacon/);
+  });
+
+  await step("typing a fresh food shows tap chips, even with a spelling slip", async () => {
+    await page.fill("#freshIn", "musrooms");
+    const chip = page.locator("#freshSuggest .sug", { hasText: "Mushrooms" });
+    await until(async () => assert.equal(await chip.count(), 1));
+    await chip.click();
+    assert.equal(await page.locator("#recipeForm .fresh-item").count(), 3);
+    assert.equal(await page.inputValue("#freshIn"), "");
+    // foods already in the recipe aren't offered again
+    await page.fill("#freshIn", "chic");
+    await page.waitForTimeout(150);
+    assert.equal(await page.locator("#freshSuggest .sug", { hasText: /^\W*Chicken\W*$/ }).count(), 0);
+  });
+
+  await step("name it and save: it's in the Recipes list", async () => {
+    await page.fill("#freshIn", "");
+    await page.fill("#recipeName", "Chicken bake");
+    await page.click("#recipeSave");
+    await until(async () => assert.equal(await page.locator("#recipes .recipe").count(), 1));
+    assert.match(await recipe().locator(".recipe-name").innerText(), /Chicken bake/);
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   await browser.close();

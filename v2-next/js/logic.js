@@ -200,38 +200,86 @@
     return starter || null;
   }
 
-  // Add-screen search: foods (from packs, then starters) whose name contains the text.
-  // Names starting with the text come first, then most-added, then alphabetical. Max 10.
-  function searchFoods(allPacks, query) {
-    const q = String(query ?? "").trim().toLowerCase();
-    if (!q) return [];
-    const live = (allPacks || []).filter(p => p.status !== "deleted");
+  // Every food the Add search can offer: non-deleted pack names (deduped case-insensitively,
+  // first spelling kept, kind remembered) then the starter foods. Each has a lower-case key.
+  function foodCandidates(allPacks) {
     const counts = {};
-    const cands = []; // { name, kind, count }, deduped case-insensitively, first spelling kept
+    const cands = []; // { name, key, kind, count }
     const seen = new Set();
-    for (const p of live) {
+    for (const p of (allPacks || []).filter(p => p.status !== "deleted")) {
       const name = String(p.name ?? "").trim();
       const key = name.toLowerCase();
       if (!key) continue;
       counts[key] = (counts[key] || 0) + 1;
       if (seen.has(key)) continue;
       seen.add(key);
-      cands.push({ name, key, kind: rememberedKind(allPacks, name) });
+      cands.push({ name, key, kind: rememberedKind(allPacks, name), count: 0 });
     }
     for (const kind of KINDS) {
       for (const name of STARTERS[kind] || []) {
         const key = name.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
-        cands.push({ name, key, kind });
+        cands.push({ name, key, kind, count: 0 });
       }
     }
-    return cands
+    for (const c of cands) c.count = counts[c.key] || 0;
+    return cands;
+  }
+
+  // Add-screen search: foods (from packs, then starters) whose name contains the text.
+  // Names starting with the text come first, then most-added, then alphabetical. Max 10.
+  function searchFoods(allPacks, query) {
+    const q = String(query ?? "").trim().toLowerCase();
+    if (!q) return [];
+    return foodCandidates(allPacks)
       .filter(c => c.key.includes(q))
-      .map(c => ({ ...c, count: counts[c.key] || 0, starts: c.key.startsWith(q) }))
+      .map(c => ({ ...c, starts: c.key.startsWith(q) }))
       .sort((a, b) => (b.starts - a.starts) || (b.count - a.count) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
       .slice(0, 10)
       .map(c => ({ name: c.name, kind: c.kind }));
+  }
+
+  // Edit distance between two strings (insert, delete, replace each cost 1)
+  function editDistance(a, b) {
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  // Chips while typing a fresh food: searchFoods first, then spelling-slip matches (closest first,
+  // then name). Blank text = nothing; under 3 letters = no slip matches. Names in `exclude` (any case)
+  // are left out. Max 10.
+  function suggestFoods(allPacks, query, exclude = []) {
+    const q = String(query ?? "").trim().toLowerCase();
+    if (!q) return [];
+    const out = searchFoods(allPacks, query);
+    const have = new Set(out.map(o => o.name.toLowerCase()));
+    if (q.length >= 3) {
+      const limit = q.length >= 6 ? 2 : 1;
+      const slips = [];
+      for (const c of foodCandidates(allPacks)) {
+        if (have.has(c.key)) continue;
+        const n = q.length;
+        let best = Infinity;
+        for (const L of [n - 1, n, n + 1]) {
+          if (L < 1) continue;
+          best = Math.min(best, editDistance(q, c.key.slice(0, L)));
+        }
+        best = Math.min(best, editDistance(q, c.key));
+        if (best <= limit) slips.push({ name: c.name, key: c.key, kind: c.kind, dist: best });
+      }
+      slips.sort((a, b) => (a.dist - b.dist) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+      for (const s of slips) out.push({ name: s.name, kind: s.kind });
+    }
+    const skip = new Set(exclude.map(e => String(e ?? "").trim().toLowerCase()));
+    return out.filter(o => !skip.has(o.name.toLowerCase())).slice(0, 10);
   }
 
   // How many packs of this food were ever added (not counting deleted ones)
@@ -1298,6 +1346,7 @@
     rememberedNoDate,
     rememberedKind,
     searchFoods,
+    suggestFoods,
     boughtCount,
     quickFillRow,
     parseQuickFill,
