@@ -9,6 +9,33 @@
   const installBtn = document.getElementById("installBtn");
   const CHECK_EVERY_MS = 30 * 60 * 1000;
 
+  // ---- Check for updates (Settings → 🔄 Check for updates) ----
+  // Resolves "none" (no service worker, or no new version) or "new" (shows #newVersion).
+  // Defined before any early return below so it always exists.
+  window.FT_checkUpdate = async () => {
+    const reg = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (!reg) return "none";
+    await reg.update();
+    // A new worker is being installed: wait up to 10s for it to finish
+    const worker = reg.installing;
+    if (worker && worker.state !== "installed" && worker.state !== "redundant") {
+      await new Promise(done => {
+        const timer = setTimeout(done, 10000);
+        worker.addEventListener("statechange", () => {
+          if (worker.state === "installed" || worker.state === "redundant") {
+            clearTimeout(timer);
+            done();
+          }
+        });
+      });
+    }
+    if (reg.waiting) {
+      document.getElementById("newVersion").hidden = false;
+      return "new";
+    }
+    return "none";
+  };
+
   // ---- Install prompt ----
   let deferredPrompt = null;
 

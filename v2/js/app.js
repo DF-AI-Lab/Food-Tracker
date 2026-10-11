@@ -167,15 +167,6 @@
     setupEventListeners();
     renderAll();
 
-    // Say so once if the last reload picked up a new version
-    let justUpdated = false;
-    try {
-      justUpdated = sessionStorage.getItem('ftUpdated') === '1';
-      sessionStorage.removeItem('ftUpdated');
-    } catch (e) { /* ignore */ }
-    if (justUpdated) showUpdateNote();
-
-
     // Another phone changed something: reload the lists the same way init does, then redraw
     if (DB.onChange) {
       DB.onChange(async () => {
@@ -204,10 +195,6 @@
     noteTimer = setTimeout(() => { note.hidden = true; }, ms);
   }
 
-  function showUpdateNote() {
-    flashNote('✨ Updated to the latest version', 6000);
-  }
-
   // Version line at the bottom: "v<n> · <date>", or a warning when the files on disk are newer
   // than the server that is running (it needs a restart)
   function shortDate(iso) {
@@ -232,77 +219,6 @@
       return;
     }
     el.textContent = ['v' + v.n, shortDate(v.date)].filter(Boolean).join(' · ');
-  }
-
-  // "Up to date" note, or the restart warning when an old server is still running
-  async function upToDateNote() {
-    const n = await latestNumber();
-    return n === null
-      ? ['⚠️ Close the app and open it again to finish updating', 6000]
-      : ['✓ Up to date · v' + n, 3000];
-  }
-
-  // Latest version number on disk, for the "up to date" note ('?' if unknown, null if old server)
-  async function latestNumber() {
-    try {
-      const info = await (await fetch('/api/info')).json();
-      renderVersion(info);
-      if (!('version' in info)) return null; // old server still running
-      const v = info.disk || info.version;
-      return v ? v.n : '?';
-    } catch (e) {
-      return '?';
-    }
-  }
-
-  // Ask the server to pull the latest app from GitHub. Reloads if it changed.
-  // force is true when the 🔄 button was pressed: then it also says "up to date" (or that the check failed).
-  let checkingUpdate = false;
-  let loadedVersion = null; // version stamp of the files this page was loaded from
-  const MIN_SPIN_MS = 800;
-  async function checkUpdate(force) {
-    if (checkingUpdate) return;
-    checkingUpdate = true;
-    const btn = document.getElementById('refresh');
-    btn.disabled = true;
-    btn.classList.add('spin');
-    const started = Date.now();
-    let updated = false;
-    let restart = false;
-    let failed = false;
-    try {
-      const r = await fetch('/api/update', { method: 'POST' });
-      const body = await r.json();
-      updated = !!body.updated;
-      restart = !!body.restart;
-      // The PC also updates itself in the background: a new stamp means new files
-      if (loadedVersion === null) loadedVersion = body.version;
-      else if (body.version && body.version !== loadedVersion) updated = true;
-    } catch (e) {
-      failed = true; // offline or no update support: nothing changed
-    }
-    if (updated) {
-      try { sessionStorage.setItem('ftUpdated', '1'); } catch (e) { /* ignore */ }
-    }
-    let note = null; // [text, ms] for the 🔄 button, if pressed and nothing was updated
-    if (!updated && force) {
-      note = failed
-        ? ["Couldn't check for updates", 3000]
-        : await upToDateNote();
-    }
-    // Keep the spinner going long enough to be seen
-    const wait = MIN_SPIN_MS - (Date.now() - started);
-    if (wait > 0) await new Promise(done => setTimeout(done, wait));
-    if (updated) {
-      // The server restarts itself after a server-side change, so give it a moment
-      if (restart) await new Promise(done => setTimeout(done, 4000));
-      location.reload();
-      return;
-    }
-    if (note) flashNote(note[0], note[1]);
-    btn.disabled = false;
-    btn.classList.remove('spin');
-    checkingUpdate = false;
   }
 
   function applyTheme(theme) {
@@ -331,10 +247,6 @@
       const now = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
       setTheme(now === 'light' ? 'dark' : 'light');
     });
-
-    // 🔄: get the latest version now
-    // V2: 🔄 just reloads the page (GitHub Pages serves the newest files)
-    document.getElementById('refresh').addEventListener('click', () => location.reload());
 
     // Print: fill the A4 fridge sheet, then open the print dialog
     document.getElementById('printF').addEventListener('click', printFridgeSheet);

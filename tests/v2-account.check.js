@@ -100,6 +100,24 @@ function startStatic() {
     assert.equal(await alice.locator("#members li button").count(), 0, "no ❌ on yourself");
   });
 
+  await step("top right has only 📷 · 🖨️ · ⚙️", async () => {
+    const ids = await alice.locator("#top .pal button").evaluateAll(bs => bs.filter(b => !b.hidden).map(b => b.id));
+    assert.deepEqual(ids, ["scanBtn", "printF", "settingsBtn"]);
+  });
+
+  await step("light / dark switch lives in Settings", async () => {
+    const before = await alice.evaluate(() => document.documentElement.dataset.theme);
+    await alice.click("#settings #theme");
+    const after = await alice.evaluate(() => document.documentElement.dataset.theme);
+    assert.notEqual(after, before);
+    await alice.click("#settings #theme");
+  });
+
+  await step("check for updates lives in Settings, next to the version", async () => {
+    await alice.click("#settings #checkUpdate");
+    await until(alice, async () => assert.match(await alice.locator("#updateMsg").innerText(), /Up to date · v\d+/));
+  });
+
   await step("invite: shows a code, a link and a QR", async () => {
     await alice.click("#inviteBtn");
     await visible(alice, "#inviteCode");

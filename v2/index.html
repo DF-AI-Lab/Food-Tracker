@@ -19,7 +19,7 @@
   <div id="testBanner" class="testbanner" hidden>🧪 TEST COPY · not your real food</div>
   <div id="top" class="today">
     <span class="todaycol"><span id="today">📅 Today · <b>Loading...</b></span><span id="sync" class="sync"></span></span>
-    <span class="pal"><button id="refresh" title="Get the latest version" aria-label="Get the latest version">🔄</button><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="theme" title="Switch theme" aria-label="Switch theme">☀️</button><button id="settingsBtn" title="Settings" aria-label="Settings">⚙️</button></span>
+    <span class="pal"><button id="scanBtn" title="Read a sheet photo" aria-label="Read a sheet photo">📷</button><button id="printF" title="Print the fridge sheet" aria-label="Print the fridge sheet">🖨️</button><button id="settingsBtn" title="Settings" aria-label="Settings">⚙️</button></span>
   </div>
   <div class="note" id="updNote" hidden></div>
   <button id="newVersion" class="act" hidden>🆕 New version, tap to refresh</button>
@@ -258,6 +258,8 @@
     <div class="sheet ocard">
       <div class="wkhead"><h2 id="hhTitle"></h2><button class="undo" id="settingsClose">Close</button></div>
       <div class="note" id="settingsVer"></div>
+      <div class="row"><button class="undo" id="checkUpdate">🔄 Check for updates</button><span id="updateMsg" class="note"></span></div>
+      <div class="row"><span>Light / dark</span><button class="undo" id="theme" title="Switch theme" aria-label="Switch theme">☀️</button></div>
       <div class="tag">👥 Members</div>
       <ul id="members"></ul>
       <button class="act" id="inviteBtn">🎟️ Invite someone</button>
