@@ -8,13 +8,13 @@ const CDN = "https://www.gstatic.com/firebasejs/12.19.0/";
 const params = new URLSearchParams(location.search);
 const $ = id => document.getElementById(id);
 
-// Settings → 🔄 Check for updates (FT_checkUpdate is defined by pwa.js)
+// Settings → Check for updates (FT_checkUpdate is defined by pwa.js)
 $("checkUpdate").onclick = async () => {
   $("updateMsg").textContent = "Checking…";
   try {
     const r = await window.FT_checkUpdate();
     $("updateMsg").textContent = r === "new"
-      ? "🆕 New version found, tap the green button"
+      ? "New version found, tap the bar at the bottom"
       : `✓ Up to date · v${window.FT_VERSION.n}`;
   } catch (e) {
     $("updateMsg").textContent = "Couldn't check for updates";
@@ -170,12 +170,15 @@ async function start() {
 
     window.FT_HOUSEHOLD = h;
     $("hhTitle").textContent = h.name;
+    $("hhInit").textContent = window.LOOK.initials(h.name);
+    $("hhMeta").textContent = `Household · ${h.members.length} member${h.members.length === 1 ? "" : "s"}`;
+    $("memCount").textContent = "· " + h.members.length;
     $("hhNameRow").hidden = true;
     $("meNameRow").hidden = true;
     const v = window.FT_VERSION;
     $("settingsVer").textContent = v ? `App version v${v.n} · ${v.date}` : "";
     // Which Google account this phone uses (both of Darren's accounts share a name)
-    $("signedInAs").textContent = user.email ? `Signed in as ${user.email}` : "";
+    $("signedInAs").textContent = user.email || "";
     // When the household last backed up (shared, so it is read again each time)
     $("backupNote").textContent = window.FT.lastBackupLabel(window.DB.lastBackup());
     const list = $("members");
@@ -183,12 +186,24 @@ async function start() {
     for (const m of h.members) {
       const li = document.createElement("li");
       const mine = m.uid === user.uid;
-      li.append(mine ? `${m.name} (you)` : m.name);
+      const av = document.createElement("span");
+      av.className = "avatar";
+      av.textContent = window.LOOK.initials(m.name);
+      const nm = document.createElement("span");
+      nm.className = "grow mname";
+      nm.textContent = m.name;
+      if (mine) {
+        const you = document.createElement("span");
+        you.className = "you";
+        you.textContent = "You";
+        nm.append(" ", you);
+      }
+      li.append(av, nm);
       if (mine) {
         const edit = document.createElement("button");
         edit.id = "renameMe";
-        edit.className = "undo";
-        edit.textContent = "✏️";
+        edit.className = "ib";
+        edit.innerHTML = window.ICON("edit", 17);
         edit.setAttribute("aria-label", "Change my name");
         edit.onclick = () => {
           $("meNameEdit").value = m.name;
@@ -196,10 +211,10 @@ async function start() {
           $("meNameEdit").focus();
         };
         li.append(edit);
-      } else { // no ❌ on yourself
+      } else { // no remove button on yourself
         const x = document.createElement("button");
-        x.className = "undo remove";
-        x.textContent = "❌";
+        x.className = "ib remove";
+        x.innerHTML = window.ICON("close", 16, 2);
         x.setAttribute("aria-label", "Remove " + m.name);
         x.onclick = onSettings(async () => {
           if (!confirm(`Remove ${m.name}?`)) return;

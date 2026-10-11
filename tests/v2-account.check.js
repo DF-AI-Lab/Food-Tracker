@@ -108,11 +108,11 @@ function startStatic() {
   });
 
   await step("light / dark switch lives in Settings", async () => {
-    const before = await alice.evaluate(() => document.documentElement.dataset.theme);
-    await alice.click("#settings #theme");
-    const after = await alice.evaluate(() => document.documentElement.dataset.theme);
-    assert.notEqual(after, before);
-    await alice.click("#settings #theme");
+    // V2.5: Look · Dark | Light
+    await alice.click("#settings #themeLight");
+    assert.equal(await alice.evaluate(() => document.documentElement.dataset.theme), "light");
+    await alice.click("#settings #themeDark");
+    assert.equal(await alice.evaluate(() => document.documentElement.dataset.theme), "dark");
   });
 
   await step("check for updates lives in Settings, next to the version", async () => {
@@ -162,11 +162,13 @@ function startStatic() {
   });
 
   await step("settings says which Google account this phone uses", async () => {
-    assert.match(await alice.locator("#signedInAs").innerText(), /Signed in as alice@example\.com/);
+    // V2.5: "Signed in as" label, the email under it
+    assert.match(await alice.locator("#signedInAs").innerText(), /alice@example\.com/);
+    assert.match(await alice.locator("#settings").innerText(), /Signed in as/);
   });
 
-  await step("your own row says (you)", async () => {
-    assert.match(await alice.locator("#members li", { hasText: "Alice" }).innerText(), /\(you\)/);
+  await step("your own row has the You tag", async () => {
+    assert.match(await alice.locator("#members li", { hasText: "Alice" }).innerText(), /\bYou\b/);
   });
 
   await step("rename the household", async () => {

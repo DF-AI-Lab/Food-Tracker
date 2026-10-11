@@ -122,10 +122,7 @@ test("buttons and links are at least 44px tall", () => {
   assert.match(css, /--tap:\s*44px/);
 });
 
-test("the live app is not changed by the demo work", () => {
-  const live = fs.readFileSync(path.join(__dirname, "..", "v2", "index.html"), "utf8");
-  assert.ok(!live.includes("bottomNav"), "v2/ keeps its old look until the swap");
-});
+
 
 test("shopping action bar is symmetrical: Got all · ideas · Clear ticked (Darren 2026-10-11)", () => {
   const bar = /<div class="btns sbot">[\s\S]*?<\/div>/.exec(read("index.html"))[0];
