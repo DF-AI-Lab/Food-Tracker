@@ -6,7 +6,8 @@
   // Meal planner state
   let selDay = today;
   let selSlot = 'main';
-  const NEXT_SLOT = { main: 'side', side: 'veg' };
+  const NEXT_SLOT = { main: 'side', side: 'veg', veg: 'misc' };
+  const NEXT_LABEL = { main: 'Next: Sides', side: 'Next: Veg', veg: 'Next: Misc' };
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
   let openDay = today;    // day whose card is open (null = all closed); today is open on load
   let meals = [];         // meals history, saved in DB.meals
@@ -1636,7 +1637,7 @@
 
   // ---- Meals: week planner ----
 
-  const SLOT_LABEL = { main: 'Main', side: 'Side', veg: 'Veg' };
+  const SLOT_LABEL = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Misc' };
 
   function shortDay(iso) {
     return FT.formatDate(iso).split(' ')[0];
@@ -1769,8 +1770,8 @@
 
     document.getElementById('nextDay').hidden = inHad() || (addingTonight && asked.includes(today));
     const nextSlot = document.getElementById('nextSlot');
-    nextSlot.hidden = selSlot === 'veg';
-    nextSlot.textContent = selSlot === 'main' ? 'Next: Sides' : 'Next: Veg';
+    nextSlot.hidden = selSlot === 'misc';
+    nextSlot.textContent = NEXT_LABEL[selSlot] || 'Next: Sides';
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();

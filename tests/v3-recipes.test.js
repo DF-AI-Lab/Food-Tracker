@@ -134,7 +134,7 @@ test("planRecipe: plans the matched packs for the day, slot from the pack's kind
   const planned = FT.planRecipe(pie, packs, day(1));
   assert.deepEqual(planned.map(p => [p.id, p.plannedFor, p.slot]), [
     ["p1", day(1), "main"],
-    ["p4", day(1), "side"],   // misc has no meal slot -> side
+    ["p4", day(1), "misc"],   // misc has its own picker tab now
     ["p3", day(1), "veg"],
     ["p2", day(1), "side"]
   ]);
@@ -226,4 +226,41 @@ test("suggestFoods: leaves out foods already in the recipe (any case), max 10", 
 
 test("suggestFoods: each row has name and kind", () => {
   assert.deepEqual(FT.suggestFoods(saved, "bacon")[0], { name: "Bacon", kind: "main" });
+});
+
+// ---- Misc tab in the meal picker (Darren 2026-10-11) ----
+
+test("mealPick misc: misc foods, dated or not, soonest date first then undated by added", () => {
+  const packs = [
+    pack("m1", "Milk", "misc", day(4)),
+    pack("m2", "Eggs", "misc", null, { added: day(-3) }),
+    pack("m3", "Butter", "misc", day(1)),
+    pack("m4", "Ketchup", "misc", null, { added: day(-1) }),
+    pack("m5", "Milk", "misc", day(2)),
+    pack("x1", "Chicken", "main", day(1)),
+    pack("x2", "Cheese", "misc", day(1), { plannedFor: day(0), slot: "misc" })
+  ];
+  const rows = FT.mealPick(packs, "misc");
+  assert.deepEqual(rows.map(r => [r.name, r.count]), [["Butter", 1], ["Milk", 2], ["Eggs", 1], ["Ketchup", 1]]);
+  assert.equal(rows[1].pack.id, "m5"); // soonest Milk
+});
+
+test("mealPick: other slots still leave misc out", () => {
+  const packs = [pack("m1", "Milk", "misc", day(4)), pack("m2", "Eggs", "misc", null)];
+  for (const s of ["main", "side", "veg"]) assert.deepEqual(FT.mealPick(packs, s), []);
+});
+
+test("dayMeals: misc comes after main, side and veg", () => {
+  const d = day(0);
+  const packs = [
+    pack("a", "Milk", "misc", day(3), { plannedFor: d, slot: "misc" }),
+    pack("b", "Peas", "veg", null, { plannedFor: d, slot: "veg" }),
+    pack("c", "Chicken", "main", day(3), { plannedFor: d, slot: "main" })
+  ];
+  assert.deepEqual(FT.dayMeals(packs, d).map(p => p.slot), ["main", "veg", "misc"]);
+});
+
+test("planRecipe: a misc food is planned in the misc slot", () => {
+  const planned = FT.planRecipe({ name: "X", fresh: ["Milk"] }, [pack("m", "Milk", "misc", day(2))], TODAY);
+  assert.equal(planned[0].slot, "misc");
 });

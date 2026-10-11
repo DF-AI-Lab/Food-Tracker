@@ -654,7 +654,7 @@
   }
 
   // Meal planner
-  const SLOT_ORDER = { main: 0, side: 1, veg: 2 };
+  const SLOT_ORDER = { main: 0, side: 1, veg: 2, misc: 3 };
 
   // Mon..Sun of the week that contains today
   function weekDays(today) {
@@ -669,14 +669,25 @@
     return p.kind === "veg" || (p.kind === "side" && !p.date);
   }
 
+  // Misc: dated packs soonest first, then undated packs oldest first (dates may be null)
+  function miscOrder(a, b) {
+    if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return (a.added || "").localeCompare(b.added || "") || byId(a, b);
+  }
+
   function mealPick(packs, slot) {
+    const inSlot = slot === "misc" ? (p => p.kind === "misc")
+      : slot === "veg" ? isVegPack
+      : (p => p.kind === slot && !!p.date);
     const free = packs.filter(p =>
-      p.status === "in_fridge" && !p.plannedFor && p.kind !== "misc" && p.kind !== "takeaway" &&
-      (slot === "veg" ? isVegPack(p) : p.kind === slot && !!p.date)
+      p.status === "in_fridge" && !p.plannedFor && p.kind !== "takeaway" && inSlot(p)
     );
 
     const sortKey = p => (slot === "veg" ? p.added : p.date);
-    const byKey = (a, b) => sortKey(a).localeCompare(sortKey(b)) || byId(a, b);
+    const byKey = slot === "misc" ? miscOrder
+      : (a, b) => sortKey(a).localeCompare(sortKey(b)) || byId(a, b);
 
     const groups = new Map();
     for (const p of free.sort(byKey)) {
@@ -1292,7 +1303,7 @@
   function planRecipe(recipe, packs, dayIso) {
     const { have } = recipeCheck(recipe, packs, dayIso);
     return have.map(h => {
-      const slot = ["main", "side", "veg"].includes(h.pack.kind) ? h.pack.kind : "side";
+      const slot = ["main", "side", "veg", "misc"].includes(h.pack.kind) ? h.pack.kind : "side";
       return planPack(h.pack, dayIso, slot);
     });
   }
