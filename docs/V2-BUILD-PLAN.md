@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13), 8 sheet (v14–v15), 9 backups (v16–v17), 10 🎉 LIVE with real V1 data (2026-10-11). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → ~~7 📷 Photos → Claude~~ (moved to V3, 2026-10-11) → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13), 8 sheet (v14–v15), 9 backups (v16–v17), 10 🎉 LIVE with real V1 data (2026-10-11). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → ~~7 📷 Photos → Claude~~ (moved to V3, 2026-10-11) → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** = **V2.5** ([issue](https://github.com/DF-AI-Lab/Food-Tracker/issues/76), new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -130,14 +130,14 @@ Each step: tests first → build → try it → tick it off.
 - [x] Our own **📲 Install** button as a fallback (`v2/js/pwa.js`).
 - [x] New version → *"New version, tap to refresh"*. Tests: `tests/v2-pwa.test.js`, `npm run check:pwa`. ✅ 2026-10-10: installed on both phones (v7), opens offline. The "new version" note gets its first real try on the next merge.
 
-### 🎨 Look (after the gears work)
+### 🎨 Look → now **V2.5** ← NEXT, in a new chat: [🎨 V2.5: The Look](https://github.com/DF-AI-Lab/Food-Tracker/issues/76)
 
 The user found the V1 look too childish ("looks like a 5 year old did it"). Fix it here, once steps 0–6 work.
 **Update 2026-10-10:** on the phone, Darren said V2 "looks stunning". Ask before restyling; this step may shrink to small tweaks.
 
 - [ ] Ask the user for screenshots of apps whose look they like.
 - [ ] Make **2–3 clickable style mock-ups** (open on the phone). User picks one. No tests, no Haiku for mock-ups.
-- [ ] Restyle V2 to the picked style (mostly `css/`), then carry on with step 7.
+- [ ] Restyle V2 to the picked style (mostly `v2/css/`). V2 is live, so keep every check green.
 
 ### 7a. ✏️ Edit a pack (added 2026-10-10)
 
