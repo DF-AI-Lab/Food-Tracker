@@ -102,14 +102,13 @@ function startStatic() {
   });
 
   await step("no 'new version' note while nothing changed", async () => {
-    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
-    await page.waitForTimeout(1500);
+    assert.equal(await page.evaluate(() => window.FT_checkUpdate()), "none");
     assert.equal(await page.locator("#newVersion").isVisible(), false);
   });
 
   await step("a new version is published: the app says so", async () => {
     published = true;
-    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+    assert.equal(await page.evaluate(() => window.FT_checkUpdate()), "new", "Check for updates finds it");
     await page.locator("#newVersion").waitFor({ state: "visible", timeout: 15000 });
     assert.match(await page.locator("#newVersion").innerText(), /New version, tap to refresh/);
   });
