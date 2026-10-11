@@ -11,6 +11,7 @@
   let openDay = today;    // day whose card is open (null = all closed); today is open on load
   let meals = [];         // meals history, saved in DB.meals
   let askDay = null;      // past day in "What did you have?" (or cost) mode
+  let addingTonight = false; // after 5pm: tonight's card has its picker open again (+ Add)
   const pastState = {};   // past day -> 'ask' | 'use' | 'cost' | 'had'
   const hadPicked = {};   // past day -> foods picked in "had" mode
   let cleaning = false;   // guards dropExpiredPlans against re-entry
@@ -1735,6 +1736,7 @@
   // Tap a day header: open that day (closing any other), or close it if already open
   function toggleDay(day) {
     finishHad();
+    addingTonight = false;
     if (openDay === day) {
       openDay = null;
     } else {
@@ -1760,7 +1762,7 @@
     asked.forEach(day => dayListEl.appendChild(pastCard(day, picker)));
     FT.mealDays(today).filter(day => !asked.includes(day)).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
-    document.getElementById('nextDay').hidden = inHad();
+    document.getElementById('nextDay').hidden = inHad() || addingTonight;
     const nextSlot = document.getElementById('nextSlot');
     nextSlot.hidden = selSlot === 'veg';
     nextSlot.textContent = selSlot === 'main' ? 'Next: Sides' : 'Next: Veg';
@@ -1935,10 +1937,29 @@
       const text = document.createElement('span');
       text.className = 'q-sm';
       text.textContent = LOOK.askText(FT.dayMeals(packs, day));
-      const yes = button('had-yes mini', 'Yes', () => answerYes(day));
-      const no = button('had-no mini', 'No', () => answerNo(day));
-      row.append(text, yes, no);
+      const yes = button('had-yes mini', 'Yes', () => { addingTonight = false; answerYes(day); });
+      const no = button('had-no mini', 'No', () => { addingTonight = false; answerNo(day); });
+      row.append(text);
+      // Tonight (after 5pm) can still take more food: + Add opens the picker for today
+      if (day === today) {
+        const add = button('had-add mini', '', () => {
+          addingTonight = !addingTonight;
+          openDay = null; // only one picker: close any other open day
+          selDay = today;
+          selSlot = 'main';
+          pendingPlan = null;
+          renderMeals();
+        });
+        add.innerHTML = ICON(addingTonight ? 'close' : 'add', 14, 2.2) + (addingTonight ? 'Done' : 'Add');
+        add.setAttribute('aria-expanded', String(addingTonight));
+        row.append(add);
+      }
+      row.append(yes, no);
       body.appendChild(row);
+      if (day === today && addingTonight) {
+        body.appendChild(picker);
+        picker.hidden = false;
+      }
     } else if (state === 'use') {
       q('How much did you use?');
       const planned = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway');
