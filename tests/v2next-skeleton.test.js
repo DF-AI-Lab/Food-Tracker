@@ -128,3 +128,13 @@ test("shopping action bar is symmetrical: Got all · ideas · Clear ticked (Darr
   const bar = /<div class="btns sbot">[\s\S]*?<\/div>/.exec(read("index.html"))[0];
   assert.deepEqual([...bar.matchAll(/id="(\w+)"/g)].map(m => m[1]), ["gotAll", "ideaBtn", "clearGot"]);
 });
+
+test("shopping: 'Clear list' says what it clears, and both big actions ask first (Darren 2026-10-11)", () => {
+  const html = read("index.html");
+  assert.match(html, /id="clearAll"[^>]*>[\s\S]*?Clear list<\/button>/);
+  assert.match(html, /id="clrAsk"[^>]*>[\s\S]*?Clear the whole list\?[\s\S]*?id="clrYes"[\s\S]*?id="clrNo"/);
+  assert.match(html, /id="gotAsk"[^>]*>[\s\S]*?Mark everything as got\?[\s\S]*?id="gotYes"[\s\S]*?id="gotNo"/);
+  const app = read("js/app.js");
+  assert.match(app, /getElementById\('gotAll'\)\.addEventListener\('click', \(\) => setGotAsk\(true\)\)/, "Got all only asks");
+  assert.match(app, /getElementById\('gotYes'\)\.addEventListener\('click', gotAllShop\)/, "Yes does it");
+});

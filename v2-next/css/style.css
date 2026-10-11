@@ -551,3 +551,9 @@ body.has-addbar #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 80px)}
 /* Shopping: Clear all on the right; Undo sits above the action bar */
 .clr{justify-content:flex-end}
 body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)}
+
+/* Shopping: "Clear list" and "Got all" ask first (Darren 2026-10-11) */
+.ask{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:500;color:var(--text)}
+.undo.danger{color:var(--danger);border-color:var(--danger)}
+.sbot.gotask{grid-template-columns:1fr auto auto;align-items:center;font-size:14px;font-weight:500}
+.sbot.gotask .act{min-width:84px}
