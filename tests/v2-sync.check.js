@@ -40,7 +40,9 @@ function startStatic() {
   const errors = [];
 
   async function phone(who) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
+    // Desktop-style: no share menu, so a backup downloads
+    await ctx.addInitScript(() => { delete Navigator.prototype.share; delete Navigator.prototype.canShare; });
     // Firebase from gstatic is served from node_modules (same files, no internet needed)
     await ctx.route(/https:\/\/www\.gstatic\.com\/firebasejs\/[\d.]+\/(firebase-[a-z]+\.js)$/, (route) => {
       const name = route.request().url().split("/").pop();
@@ -234,6 +236,23 @@ function startStatic() {
     await addMain(A.page, "Eggs");
     await until(B.page, async () => assert.equal(await bellCount(B.page).innerText(), "1"));
     assert.match(await openBell(B.page), /Alice added Eggs/);
+    await B.page.click("#bellClose");
+  });
+
+  // ---------- step 9: backups are shared by the household ----------
+  await step("backup: alice backs up from Settings, both phones see when", async () => {
+    await A.page.click("#settingsBtn");
+    assert.match(await A.page.locator("#backupNote").innerText(), /Never backed up/);
+    const [dl] = await Promise.all([A.page.waitForEvent("download"), A.page.click("#backupBtn")]);
+    assert.match(dl.suggestedFilename(), /^food-backup-2026-10-07\.json$/);
+    await until(A.page, async () => assert.match(await A.page.locator("#backupNote").innerText(), /^Last backup: \w{3} \d+ \w{3}$/));
+    const label = await A.page.locator("#backupNote").innerText();
+    await A.page.click("#settingsClose");
+    await B.page.click("#settingsBtn");
+    await until(B.page, async () => assert.equal(await B.page.locator("#backupNote").innerText(), label));
+    await B.page.click("#settingsClose");
+    // bob's bell says alice backed up
+    await until(B.page, async () => assert.match(await openBell(B.page), /Alice backed up/));
     await B.page.click("#bellClose");
   });
 

@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13), 8 sheet (v14). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13), 8 sheet (v14–v15), 9 backups (v16). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → ~~7 📷 Photos → Claude~~ (moved to V3, 2026-10-11) → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -168,7 +168,9 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
   - Bell hidden while you're the only member. **You:** publish the new `firestore.rules` in the Firebase console (tightens `activity`: add only as yourself, never edited).
   - Tests: `tests/v2-activity.test.js`, `check:rules`, `check:sync` (two phones), `check:v2`.
 
-### 7. 📷 Photos → Claude (packets), in the app (changed 2026-10-10)
+### 7. 📷 Photos → Claude (packets), in the app (changed 2026-10-10) ➡️ MOVED TO V3 (Darren, 2026-10-11)
+
+**V2 keeps today's way:** take packet photos → Claude reads them with the skill → JSON → paste into **Quick fill** → confirm → added. Full-auto version (photos to Drive `Food Tracker/New` → *Ask Claude to check* → added back into the app) is in [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39). Notes below kept for V3.
 
 Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
 
@@ -189,13 +191,18 @@ Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
   - Built: 26 rows a column (was 17), 7-day strip (one thin line, v15) from the day after printing, scan shows *already done* (greyed, not applied). Fit is tight (~2mm spare): check a real print.
   - Tests: `tests/v2-sheet.test.js` (npm test), `tests/v2-sheet.check.js` (npm run check:v2).
 
-### 9. Backups ← NEXT
+### 9. Backups (changed 2026-10-11) ✅ v16, built 2026-10-11 (try Backup → Share → Drive on the phone)
 
-- [ ] Settings → **⬇️ Backup** (file) and **⬆️ Restore**.
-- [ ] PC: weekly automatic backup into Google Drive (uses the PC key file).
-- [ ] Warning *"No backup for 7+ days"*.
+**Changed (Darren, 2026-10-11):** no PC weekly backup in V2 (automatic Drive backups → V3). Instead: Backup + Restore in ⚙️, and a *"5 changes since your last backup. Back up now?"* Yes/No (No = ask again after 5 more). On the phone, Backup opens Share → pick Drive.
 
-### 10. Live on both phones
+- [x] Settings → **⬇️ Backup** (file) and **⬆️ Restore**.
+- [x] *"Back up now?"* reminder after 5 changes (both phones count; whoever backs up resets it).
+  - The backup time is a 🔔 entry (*"Alice backed up"*), so both phones share it with no extra listener. Restore asks *"Replace everything…?"* first.
+  - Tests: `tests/v2-backup.test.js`, `tests/v2-backup.check.js` (check:v2), backup step in `check:sync`.
+- ~~PC: weekly automatic backup into Google Drive~~ → V3.
+- ~~Warning "No backup for 7+ days"~~ → replaced by the 5-changes reminder.
+
+### 10. Live on both phones ← NEXT
 
 - [ ] **Copy all V1 data** (`FoodTrackerData/food.db`) into the real household: one-off PC script, tests first. Back up `food.db` first. Wipe `tryout`.
 - [ ] The 29 photos already read in V1 are covered by this copy. Don't re-read them or load their JSON (doubles).

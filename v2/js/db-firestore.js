@@ -52,6 +52,7 @@ export function makeCloudDB(F, db, householdId, uid, opts = {}) {
   const mirrors = new Map(LISTS.map(name => [name, new Map()]));
   const describe = opts.describe || null; // (list, before, after) -> {verb, name} | null
   let activityEntries = [];               // the newest 50 changes, for the 🔔 list
+  let localBackupAt = null;               // a backup made on this phone, until its 🔔 entry arrives
   const unsubs = [];
   const callbacks = [];
   const statusCallbacks = [];
@@ -293,6 +294,21 @@ export function makeCloudDB(F, db, householdId, uid, opts = {}) {
       async all() {
         return copy(activityEntries);
       }
+    },
+
+    // When the household last backed up (ms, or null): the newest "backed up" entry in the 🔔 list
+    lastBackup() {
+      let last = null;
+      for (const e of activityEntries) {
+        if (e.verb === "backed up" && (last === null || e.at > last)) last = e.at;
+      }
+      return last ?? localBackupAt;
+    },
+
+    // Note a backup for everyone in the household (as a 🔔 entry: "Alice backed up")
+    setLastBackup(ms) {
+      localBackupAt = ms;
+      failed(F.addDoc(col("activity"), { by: uid, verb: "backed up", name: "", at: F.serverTimestamp() }));
     },
 
     // Call cb when another phone changed the data
