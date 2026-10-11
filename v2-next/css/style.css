@@ -104,6 +104,9 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .utabs{display:flex;gap:18px;border-bottom:1px solid var(--border)}
 .utabs .sb{height:40px;min-width:var(--tap);padding:0;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer}
 .utabs .sb.on{border-bottom-color:var(--accent);color:var(--text);font-weight:600}
+#mtabs{overflow-x:auto;scrollbar-width:none;gap:12px}
+#mtabs::-webkit-scrollbar{display:none}
+#mtabs .sb{flex:none}
 .rowhead .utabs{border-bottom:0;gap:14px}
 .rowhead .utabs .sb{height:36px;font-size:13px;min-width:0}
 
@@ -211,6 +214,14 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .chip2 .x:focus-visible{outline:2px solid var(--accent)}
 .chip2.warn{border-color:var(--danger)}
 .chip2.warn .nm{color:var(--danger)}
+.chip2.meal-chip{cursor:pointer}
+.meal-chip .meal-tag{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
+.meal-chip .caret{font-size:11px;color:var(--muted)}
+.meal-ings{display:flex;flex-direction:column;gap:4px;padding:2px 16px 10px}
+.meal-ings[hidden]{display:none}
+.meal-ing{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14px}
+.meal-ing span{font-size:12px;color:var(--muted)}
+.meal-ing.warn b,.meal-ing.warn span{color:var(--danger)}
 .dbody{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
 .picker{display:flex;flex-direction:column;gap:10px}
 #pickFor{text-transform:none;letter-spacing:0;font-size:13px;font-weight:500}
@@ -615,5 +626,6 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .recipe-msg{margin:0;font-size:13px;color:var(--danger)}
 #recipeShop .rs-warn{margin:0;font-size:13px;color:var(--warn)}
 #recipeShop .rs-list{display:flex;flex-direction:column}
+#recipeShop .rs-lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:8px}
 #recipeShop .rs-row{display:flex;align-items:center;gap:10px;min-height:40px;font-size:15px}
 #recipeShop .rs-row input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
