@@ -102,25 +102,66 @@ function startStatic() {
     assert.match(await body.locator(".ing.other").innerText(), /x2/);
   });
 
-  await step("Plan: plans what's there, then offers the missing food, ticked", async () => {
+  await step("Plan: the day shows one meal chip, then offers missing food + cupboard things, ticked", async () => {
     await recipe().locator(".recipe-plan").click();
-    await until(async () => {
-      const today = await text("#dayList .day.today");
-      assert.match(today, /Chicken/);
-      assert.match(today, /Bacon/);
-    });
+    const chip = page.locator("#dayList .day.today .meal-chip");
+    await until(async () => assert.equal(await chip.count(), 1));
+    assert.match(await chip.innerText(), /Chicken pie/);
+    // the foods hide under the chip until it's tapped
+    assert.equal(await page.locator("#dayList .day.today .meal-ings").isVisible(), false);
     assert.ok(await page.locator("#recipeShop").isVisible());
     const boxes = page.locator("#recipeShop input[type=checkbox]");
-    assert.equal(await boxes.count(), 1);
-    assert.equal(await boxes.first().isChecked(), true);
+    assert.equal(await boxes.count(), 2);
+    assert.equal(await boxes.nth(0).isChecked(), true);
+    assert.equal(await boxes.nth(1).isChecked(), true);
     assert.match(await text("#recipeShop"), /Pastry/);
+    assert.match(await text("#recipeShop"), /White sauce packet x2/);
   });
 
-  await step("Add to shopping list puts Pastry on the list", async () => {
+  await step("tap the meal chip: its foods drop down", async () => {
+    await page.locator("#dayList .day.today .meal-chip").click();
+    const ings = page.locator("#dayList .day.today .meal-ings");
+    await until(async () => assert.ok(await ings.isVisible()));
+    assert.match(await ings.innerText(), /Chicken/);
+    assert.match(await ings.innerText(), /Bacon/);
+  });
+
+  await step("the recipe row says it's planned, not that its foods are missing", async () => {
+    await until(async () => assert.match(await recipe().locator(".recipe-sub").innerText(), /Planned/));
+    assert.doesNotMatch(await recipe().locator(".recipe-sub").innerText(), /Chicken|Bacon/);
+  });
+
+  await step("Add to shopping list puts Pastry and the sauce packets on the list", async () => {
     await page.click("#recipeShopAdd");
     await until(async () => assert.equal(await page.locator("#recipeShop").isVisible(), false));
     await page.click('[data-tab="shop"]');
     await until(async () => assert.match(await text("#shopList"), /Pastry/));
+    assert.match(await text("#shopList"), /White sauce packet x2/);
+  });
+
+  await step("✕ on the meal chip takes the whole meal off the day", async () => {
+    await page.click('[data-tab="meals"]');
+    await page.locator("#dayList .day.today .meal-chip .meal-x").click();
+    await until(async () => assert.equal(await page.locator("#dayList .day.today .meal-chip").count(), 0));
+    assert.doesNotMatch(await text("#dayList .day.today"), /Chicken|Bacon/);
+  });
+
+  await step("picker has a Meals tab first: tap a recipe and it's planned as one chip", async () => {
+    if (!(await page.locator("#mtabs").isVisible())) {
+      await page.locator("#dayList .day.today").getByText(/Plan/).first().click();
+    }
+    const tabs = await page.locator("#mtabs .sb").allInnerTexts();
+    assert.match(tabs[0], /Meals/);
+    await page.locator('#mtabs [data-s="meal"]').click();
+    const row = page.locator("#pickList .item", { hasText: "Chicken pie" });
+    await until(async () => assert.equal(await row.count(), 1));
+    assert.match(await row.innerText(), /Pastry/); // says what's missing
+    await row.click();
+    await until(async () => assert.equal(await page.locator("#dayList .day.today .meal-chip").count(), 1));
+    assert.ok(await page.locator("#recipeShop").isVisible());
+    await page.click("#recipeShopSkip");
+    await page.locator("#dayList .day.today .meal-chip .meal-x").click();
+    await until(async () => assert.equal(await page.locator("#dayList .day.today .meal-chip").count(), 0));
   });
 
   await step("Edit opens the form filled in; saving a new name updates the row", async () => {

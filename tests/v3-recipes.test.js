@@ -264,3 +264,60 @@ test("planRecipe: a misc food is planned in the misc slot", () => {
   const planned = FT.planRecipe({ name: "X", fresh: ["Milk"] }, [pack("m", "Milk", "misc", day(2))], TODAY);
   assert.equal(planned[0].slot, "misc");
 });
+
+// ---- a planned recipe is one meal on the day (Darren 2026-10-11, demo only) ----
+
+test("planRecipe: each planned pack remembers its meal (id + name)", () => {
+  const planned = FT.planRecipe(pie, [pack("p1", "Chicken", "main", day(3))], TODAY);
+  assert.equal(planned[0].mealId, "r1");
+  assert.equal(planned[0].mealName, "Chicken pie");
+});
+
+test("unplanPack: clears the meal too", () => {
+  const p = FT.unplanPack(pack("p1", "Chicken", "main", day(3), { plannedFor: TODAY, slot: "main", mealId: "r1", mealName: "Chicken pie" }));
+  assert.equal(p.plannedFor, null);
+  assert.equal(p.mealId, null);
+  assert.equal(p.mealName, null);
+});
+
+test("dayGroups: a meal's packs become one group (first), single foods stay as they are", () => {
+  const d = day(1);
+  const packs = [
+    pack("a", "Peas", "veg", null, { plannedFor: d, slot: "veg" }),
+    pack("b", "Chicken", "main", day(3), { plannedFor: d, slot: "main", mealId: "r1", mealName: "Chicken pie" }),
+    pack("c", "Bacon", "main", day(4), { plannedFor: d, slot: "main", mealId: "r1", mealName: "Chicken pie" }),
+    pack("e", "Mash", "side", null, { plannedFor: d, slot: "side" }),
+    pack("f", "Ham", "main", day(4), { plannedFor: day(2), slot: "main", mealId: "r1", mealName: "Chicken pie" })
+  ];
+  const g = FT.dayGroups(packs, d);
+  assert.equal(g.length, 3);
+  assert.equal(g[0].type, "meal");
+  assert.equal(g[0].mealId, "r1");
+  assert.equal(g[0].name, "Chicken pie");
+  assert.deepEqual(g[0].packs.map(p => p.id), ["b", "c"]);
+  assert.deepEqual(g.slice(1).map(x => [x.type, x.pack.id]), [["pack", "e"], ["pack", "a"]]);
+});
+
+test("dayGroups: takeaways and empty days still work", () => {
+  const d = day(0);
+  const ta = { ...FT.makeTakeaway(d), id: "t" };
+  assert.deepEqual(FT.dayGroups([ta], d).map(x => x.type), ["pack"]);
+  assert.deepEqual(FT.dayGroups([], d), []);
+});
+
+test("recipePlannedDay: the soonest day (today or later) the meal is planned, else null", () => {
+  const packs = [
+    pack("a", "Chicken", "main", day(3), { plannedFor: day(2), slot: "main", mealId: "r1" }),
+    pack("b", "Bacon", "main", day(3), { plannedFor: day(1), slot: "main", mealId: "r1" }),
+    pack("c", "Old", "main", day(3), { plannedFor: day(-1), slot: "main", mealId: "r1" }),
+    pack("d", "Other", "main", day(3), { plannedFor: day(0), slot: "main", mealId: "r2" })
+  ];
+  assert.equal(FT.recipePlannedDay(pie, packs, TODAY), day(1));
+  assert.equal(FT.recipePlannedDay({ id: "r9" }, packs, TODAY), null);
+});
+
+test("recipeShopNames: missing fresh foods, then cupboard things with their amount", () => {
+  const check = FT.recipeCheck(pie, [pack("p1", "Chicken", "main", day(3))], TODAY);
+  assert.deepEqual(FT.recipeShopNames(pie, check), ["Bacon", "Mushrooms", "Pastry", "White sauce packet x2"]);
+  assert.deepEqual(FT.recipeShopNames({ name: "X", fresh: [], other: [{ name: "Salt", qty: null }] }, { missing: [] }), ["Salt"]);
+});
