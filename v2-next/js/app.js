@@ -389,7 +389,10 @@
     document.getElementById('clearAll').addEventListener('click', () => setClearAsk(true));
     document.getElementById('clrNo').addEventListener('click', () => setClearAsk(false));
     document.getElementById('clrYes').addEventListener('click', clearAllShop);
-    document.getElementById('gotAll').addEventListener('click', gotAllShop);
+    // Got all asks first: "Mark everything as got? Yes / No"
+    document.getElementById('gotAll').addEventListener('click', () => setGotAsk(true));
+    document.getElementById('gotYes').addEventListener('click', gotAllShop);
+    document.getElementById('gotNo').addEventListener('click', () => setGotAsk(false));
     document.getElementById('clearGot').addEventListener('click', clearGotShop);
     document.getElementById('ideaBtn').addEventListener('click', () => {
       ideasOn = !ideasOn;
@@ -2534,7 +2537,13 @@
     await removeShopItems(shop.filter(i => i.got));
   }
 
+  function setGotAsk(asking) {
+    document.getElementById('gotAsk').hidden = !asking;
+    document.querySelector('.btns.sbot').hidden = asking;
+  }
+
   async function gotAllShop() {
+    setGotAsk(false);
     for (const item of shop) {
       if (item.got || item.del) continue;
       item.got = true;

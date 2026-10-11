@@ -201,7 +201,7 @@
     <!-- Shopping list (from the bottom bar) -->
     <div data-sub-pane="shop" style="display:none;">
       <div id="addShop" class="pane shop">
-        <div class="clr"><span class="tag" id="shopCount" hidden></span><button class="undo" id="clearAll">Clear all</button><span id="clrAsk" hidden>Sure? <button class="undo" id="clrYes">Yes, clear</button> <button class="undo" id="clrNo">No</button></span></div>
+        <div class="clr"><span class="tag" id="shopCount" hidden></span><button class="undo" id="clearAll"><i data-icon="trash" data-size="15"></i>Clear list</button><span id="clrAsk" class="ask" hidden><span>Clear the whole list?</span><button class="undo danger" id="clrYes">Yes, clear</button><button class="undo" id="clrNo">No</button></span></div>
         <form id="shopForm" class="sform"><input id="shopIn" placeholder="Add an item…" autocomplete="off" aria-label="Add an item"><button class="act sq" type="submit" aria-label="Add"><i data-icon="add" data-size="20"></i></button></form>
         <div class="quick">
           <div class="rowhead"><div class="lbl">Bought before</div>
@@ -212,6 +212,7 @@
         <div class="scroll" id="shopList"></div>
         <div id="ideaBox" class="ideas card" hidden></div>
         <div class="btns sbot"><button class="act" id="gotAll">Got all</button><button class="act ghost sq idea" id="ideaBtn" aria-label="Ideas"><i data-icon="idea" data-size="18"></i></button><button class="act ghost" id="clearGot">Clear ticked</button></div>
+        <div class="sbot gotask" id="gotAsk" hidden><span>Mark everything as got?</span><button class="act" id="gotYes">Yes</button><button class="act ghost" id="gotNo">No</button></div>
       </div>
     </div>
   </div>
