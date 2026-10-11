@@ -96,6 +96,20 @@ async function start() {
     try {
       const h = await myHousehold(F, db, user.uid);
       if (!h) return showJoin();
+      // Opened from an invite while already in another household: ask, then switch
+      const code = codeFromUrl(location.href);
+      if (code && !started) {
+        let target = null;
+        try {
+          const inv = await F.getDoc(F.doc(db, "invites", code));
+          if (inv.exists()) target = inv.data().householdId;
+        } catch (e) { /* unknown code: just open the current household */ }
+        if (target && target !== h.id &&
+            confirm(`You're in "${h.name}".\n\nLeave it and join the household that invited you?`)) {
+          await joinHousehold(F, db, user, code);
+          return enter(user);
+        }
+      }
       // The app is already running: a different person or household needs a clean start
       if (started) {
         if (started.uid !== user.uid || started.householdId !== h.id) return location.reload();
@@ -160,6 +174,8 @@ async function start() {
     $("meNameRow").hidden = true;
     const v = window.FT_VERSION;
     $("settingsVer").textContent = v ? `App version v${v.n} · ${v.date}` : "";
+    // Which Google account this phone uses (both of Darren's accounts share a name)
+    $("signedInAs").textContent = user.email ? `Signed in as ${user.email}` : "";
     const list = $("members");
     list.innerHTML = "";
     for (const m of h.members) {

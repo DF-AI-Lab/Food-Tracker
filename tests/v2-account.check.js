@@ -159,6 +159,10 @@ function startStatic() {
     assert.equal(await bobRow.locator("button.remove").count(), 1);
   });
 
+  await step("settings says which Google account this phone uses", async () => {
+    assert.match(await alice.locator("#signedInAs").innerText(), /Signed in as alice@example\.com/);
+  });
+
   await step("your own row says (you)", async () => {
     assert.match(await alice.locator("#members li", { hasText: "Alice" }).innerText(), /\(you\)/);
   });
@@ -190,6 +194,26 @@ function startStatic() {
     await bob.reload();
     await visible(bob, "#gate");
     await visible(bob, "#makeHH");
+  });
+
+  // A phone already in its own household opens an invite link: it must ask, then pair
+  const dave = await phone("dave");
+  await step("phone already in a household opens an invite: asks, then joins", async () => {
+    await dave.click("#signIn");
+    await visible(dave, "#makeHH");
+    await dave.click("#makeHH");
+    await hidden(dave, "#gate");
+    await alice.click("#settingsClose");
+    await alice.click("#settingsBtn");
+    await alice.click("#inviteBtn");
+    await visible(alice, "#inviteCode");
+    const code2 = (await alice.locator("#inviteCode").innerText()).trim();
+    await dave.goto(`${BASE}?emu=1&as=dave&today=2026-10-07&join=${code2}`);
+    await until(dave, async () => assert.ok(dialogs.some(m => m.startsWith("dave:") && /Leave/i.test(m)), "asked to leave"));
+    await alice.click("#settingsClose");
+    await alice.click("#settingsBtn");
+    await until(alice, async () => assert.match(await alice.locator("#members").innerText(), /Dave/));
+    await until(dave, async () => assert.ok(!dave.url().includes("join=")));
   });
 
   await step("sign out goes back to the sign-in screen", async () => {
