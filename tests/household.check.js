@@ -111,3 +111,27 @@ test("user with no name is shown by a fallback", async () => {
   const h = await H.myHousehold(F, as({ uid: "x" }), "x");
   assert.equal(h.members[0].name, "Someone");
 });
+
+// ---------- renaming (2026-10-11) ----------
+
+test("a member can rename the household; blank names are refused", async () => {
+  const id = await H.createHousehold(F, as(alice), alice, "Home");
+  await H.renameHousehold(F, as(alice), id, "  Fawcett Fridge  ");
+  assert.equal((await H.myHousehold(F, as(alice), alice.uid)).name, "Fawcett Fridge");
+  await assert.rejects(H.renameHousehold(F, as(alice), id, "   "), /Needs a name/);
+});
+
+test("a stranger cannot rename someone else's household", async () => {
+  const id = await H.createHousehold(F, as(alice), alice, "Home");
+  await assert.rejects(H.renameHousehold(F, as(eve), id, "Mine"));
+});
+
+test("you can change the name others see for you", async () => {
+  const id = await H.createHousehold(F, as(alice), alice, "Home");
+  const inv = await H.createInvite(F, as(alice), id);
+  await H.joinHousehold(F, as(bob), bob, inv.code);
+  await H.renameMe(F, as(bob), id, "bob", " Bob's 2nd phone ");
+  const h = await H.myHousehold(F, as(alice), alice.uid);
+  assert.deepEqual(h.members.map(m => m.name).sort(), ["Alice", "Bob's 2nd phone"]);
+  await assert.rejects(H.renameMe(F, as(bob), id, "bob", ""), /Needs a name/);
+});
