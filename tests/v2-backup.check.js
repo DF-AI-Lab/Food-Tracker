@@ -134,6 +134,37 @@ function startStatic() {
     assert.equal(await ask.isVisible(), false, "a restore counts as backed up");
   });
 
+  await step("phone: Share gets a .txt file (Android won't share .json)", async () => {
+    await page.evaluate(() => {
+      window.__shared = null;
+      Navigator.prototype.canShare = function (d) { return !!(d && d.files && d.files.every(f => f.type === "text/plain")); };
+      Navigator.prototype.share = async function (d) { window.__shared = { name: d.files[0].name, type: d.files[0].type, text: await d.files[0].text() }; };
+    });
+    await page.evaluate(() => document.getElementById("backupBtn").click()); // Settings is hidden in local mode
+    await until(async () => assert.ok(await page.evaluate(() => window.__shared)));
+    const shared = await page.evaluate(() => window.__shared);
+    assert.equal(shared.name, "food-backup-2026-10-07.txt");
+    assert.equal(shared.type, "text/plain");
+    assert.equal(JSON.parse(shared.text).app, "food-tracker-v2");
+  });
+
+  await step("phone: if Share fails, the file downloads instead (no error box)", async () => {
+    let dialog = null;
+    page.once("dialog", d => { dialog = d.message(); d.accept(); });
+    await page.evaluate(() => {
+      Navigator.prototype.canShare = () => true;
+      Navigator.prototype.share = async () => { throw new DOMException("Permission denied", "NotAllowedError"); };
+    });
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.evaluate(() => document.getElementById("backupBtn").click())]);
+    assert.equal(dl.suggestedFilename(), "food-backup-2026-10-07.json");
+    await page.waitForTimeout(300);
+    assert.equal(dialog, null);
+  });
+
+  await step("restore takes the .txt backup too", async () => {
+    assert.match(await page.locator("#restoreFile").getAttribute("accept"), /\.txt/);
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   fs.rmSync(file, { force: true });
