@@ -138,7 +138,7 @@ function startStatic() {
     await page.evaluate(() => {
       window.__shared = null;
       Navigator.prototype.canShare = function (d) { return !!(d && d.files && d.files.every(f => f.type === "text/plain")); };
-      Navigator.prototype.share = async function (d) { window.__shared = { name: d.files[0].name, type: d.files[0].type, text: await d.files[0].text() }; };
+      Navigator.prototype.share = async function (d) { window.__shared = { name: d.files[0].name, type: d.files[0].type, text: await d.files[0].text(), keys: Object.keys(d) }; };
     });
     await page.evaluate(() => document.getElementById("backupBtn").click()); // Settings is hidden in local mode
     await until(async () => assert.ok(await page.evaluate(() => window.__shared)));
@@ -146,6 +146,8 @@ function startStatic() {
     assert.equal(shared.name, "food-backup-2026-10-07.txt");
     assert.equal(shared.type, "text/plain");
     assert.equal(JSON.parse(shared.text).app, "food-tracker-v2");
+    // only the file: a title or text makes Drive save a Google Doc called that, not the file
+    assert.deepEqual(shared.keys, ["files"]);
   });
 
   await step("phone: if Share fails, the file downloads instead (no error box)", async () => {
