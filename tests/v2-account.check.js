@@ -39,6 +39,7 @@ function startStatic() {
   const server = await startStatic();
   const browser = await chromium.launch();
   const errors = [];
+  const dialogs = [];
 
   // One browser profile per person (like separate phones)
   async function phone(who, extra = "") {
@@ -50,7 +51,7 @@ function startStatic() {
     });
     const page = await ctx.newPage();
     page.on("pageerror", e => errors.push(`${who}: ${e.message}`));
-    page.on("dialog", d => d.accept());
+    page.on("dialog", d => { dialogs.push(`${who}: ${d.message()}`); d.accept(); });
     await page.goto(`${BASE}?emu=1&as=${who}&today=2026-10-07${extra}`);
     return page;
   }
@@ -82,6 +83,7 @@ function startStatic() {
     await alice.fill("#hhName", "Home");
     await alice.click("#makeHH");
     await hidden(alice, "#gate");
+    assert.ok(dialogs.some(m => m.startsWith("alice:") && /Join/i.test(m)), "asked are you sure, pointing to Join");
     assert.match(await alice.locator("#today").innerText(), /Wed 7 Oct/);
   });
 
@@ -97,7 +99,7 @@ function startStatic() {
     assert.match(await alice.locator("#hhTitle").innerText(), /Home/);
     await until(alice, async () => assert.equal(await alice.locator("#members li").count(), 1));
     assert.match(await alice.locator("#members li").first().innerText(), /Alice/);
-    assert.equal(await alice.locator("#members li button").count(), 0, "no ❌ on yourself");
+    assert.equal(await alice.locator("#members li button.remove").count(), 0, "no ❌ on yourself");
   });
 
   await step("top right has only 📷 · 🖨️ · ⚙️", async () => {
@@ -133,6 +135,7 @@ function startStatic() {
     await bob.click("#signIn");
     await visible(bob, "#joinBtn");
     assert.equal(await bob.inputValue("#joinCode"), code, "code filled in from the link");
+    assert.equal(await bob.locator("#makeHH").isVisible(), false, "an invite link only offers Join");
     await bob.click("#joinBtn");
     await hidden(bob, "#gate");
     assert.ok(!bob.url().includes("join="), "code removed from the address bar");
@@ -153,11 +156,33 @@ function startStatic() {
     await alice.click("#settingsBtn");
     await until(alice, async () => assert.equal(await alice.locator("#members li").count(), 2));
     const bobRow = alice.locator("#members li", { hasText: "Bob" });
-    assert.equal(await bobRow.locator("button").count(), 1);
+    assert.equal(await bobRow.locator("button.remove").count(), 1);
+  });
+
+  await step("your own row says (you)", async () => {
+    assert.match(await alice.locator("#members li", { hasText: "Alice" }).innerText(), /\(you\)/);
+  });
+
+  await step("rename the household", async () => {
+    await alice.click("#renameHH");
+    await alice.fill("#hhNameEdit", "Fawcett Fridge");
+    await alice.click("#hhNameSave");
+    await until(alice, async () => assert.match(await alice.locator("#hhTitle").innerText(), /Fawcett Fridge/));
+  });
+
+  await step("rename yourself: the other phone sees the new name", async () => {
+    await bob.click("#settingsBtn");
+    await bob.click("#renameMe");
+    await bob.fill("#meNameEdit", "Bob's 2nd phone");
+    await bob.click("#meNameSave");
+    await bob.click("#settingsClose");
+    await alice.click("#settingsClose");
+    await alice.click("#settingsBtn");
+    await until(alice, async () => assert.match(await alice.locator("#members").innerText(), /Bob's 2nd phone/));
   });
 
   await step("❌ removes a member", async () => {
-    await alice.locator("#members li", { hasText: "Bob" }).locator("button").click();
+    await alice.locator("#members li", { hasText: "Bob" }).locator("button.remove").click();
     await until(alice, async () => assert.equal(await alice.locator("#members li").count(), 1));
   });
 
