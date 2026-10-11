@@ -381,6 +381,10 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 .ocard{width:100%;max-width:420px;margin:0 auto}
 .overlay input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
 .overlay .act{width:100%}
+/* Edit a pack (#editForm): labelled fields, Save / Cancel side by side */
+.overlay select{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
+.edit-field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+#editForm .btns button{flex:1 1 40%}
 #joinPart{display:flex;flex-direction:column;gap:8px}
 #members{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 #members li{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:8px 10px;font-weight:700}

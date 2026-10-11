@@ -141,8 +141,8 @@ The user found the V1 look too childish ("looks like a 5 year old did it"). Fix 
 
 ### 7a. ✏️ Edit a pack (added 2026-10-10)
 
-- [ ] Tap a pack → **✏️ Edit** → change **name** (fix spelling), **sub** (e.g. *Asda*), **kind / category**, **date**, date type, **price**. Save syncs to both phones.
-- [ ] Undo works on an edit, like other taps.
+- [x] Tap a pack → **✏️ Edit** → change **name** (fix spelling), **sub** (e.g. *Asda*), **kind / category**, **date**, date type, **price**. Save syncs to both phones.
+- [x] Undo works on an edit, like other taps. (v9. Tests: `tests/v2-edit.test.js`, 7a steps in `check:v2` and `check:sync`.) ⏳ Try on the phone.
 
 ### 7b. 🍽️ Confirm tonight's meal, tonight (added 2026-10-10)
 

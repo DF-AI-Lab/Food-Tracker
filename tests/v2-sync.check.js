@@ -190,6 +190,17 @@ function startStatic() {
     await until(A.page, async () => assert.equal(await fridgeCount(A.page), before));
   });
 
+  // ---------- step 7a: an edit shows on the other phone ----------
+  await step("alice fixes a name: bob sees it", async () => {
+    await showFridge(A.page);
+    await A.page.locator("#mains .pack", { hasText: "Gammon" }).click();
+    await A.page.click("#actEdit");
+    await A.page.fill("#editName", "Gammon steak");
+    await A.page.click("#editSave");
+    await showFridge(B.page);
+    await until(B.page, async () => assert.match(await B.page.locator("#mains").innerText(), /Gammon steak/));
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   await browser.close();
