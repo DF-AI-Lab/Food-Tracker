@@ -71,10 +71,8 @@
     };
     const column = secs => secs.map(section).join('');
 
-    const blankRows = (n, cells) => Array.from({ length: n }, () => `<tr>${cells}</tr>`).join('');
-    const added = blankRows(7, '<td>&nbsp;</td><td class="d">__/__</td>');
-    const meals = sheet.meals.map(m =>
-      `<tr><td class="dn">${esc(m.day)}</td><td>${m.text ? esc(m.text) : '&nbsp;'}</td></tr>`).join('');
+    // The next 7 days, one box each, for writing meals in by hand
+    const days = sheet.days.map(d => `<span class="day">${esc(d)}</span>`).join('');
 
     const hidden = sheet.total - sheet.shown;
     const footer = `${sheet.total} items${hidden > 0 ? ` (${hidden} more in app)` : ''} · U = Used · P = Part used · B = Binned · N = Need more`;
@@ -82,15 +80,12 @@
     return `<div class="ps-page">
   <i class="ps-mk ps-tl"></i><i class="ps-mk ps-tr"></i><i class="ps-mk ps-bl"></i><i class="ps-mk ps-br"></i>
   <header class="ps-head">
-    <div><h1>🥶 Fridge sheet</h1><div class="ps-sub">Week ${esc(sheet.range)} · printed ${esc(FT.formatDate(today))}, ${hhmm}</div></div>
+    <div><h1>🥶 Fridge sheet</h1><div class="ps-sub">printed ${esc(FT.formatDate(today))}, ${hhmm}</div></div>
     <div class="ps-code">SHEET ${esc(stamp.code)}</div>
   </header>
   <div class="ps-key">Mark with an ✕: U = Used · P = Part used · B = Binned · N = Need more (adds to shopping list)</div>
   <div class="ps-top"><div>${column(sheet.left)}</div><div>${column(sheet.right)}</div></div>
-  <div class="ps-bottom">
-    <div class="ps-meals"><h2>🍽️ MEALS ${esc(sheet.range)}</h2><table>${meals}</table></div>
-    <div class="ps-added"><h2>✍️ ADDED<span class="ps-hint">add in the app too</span></h2><table class="blank">${added}</table></div>
-  </div>
+  <div class="ps-days">${days}</div>
   <div class="ps-foot">${esc(footer)}</div>
 </div>`;
   }
@@ -512,7 +507,7 @@
     const changes = FT.sheetChanges(sheet.rows || [], result.marks, packs);
     scanChanges = {
       sheet,
-      changes: changes.map(c => ({ ...c, choice: c.mark === 'ask' ? null : c.mark }))
+      changes: changes.map(c => ({ ...c, choice: c.done || c.mark === 'ask' ? null : c.mark }))
     };
     document.getElementById('scanPick').hidden = true;
     document.getElementById('scanChanges').hidden = false;
@@ -533,7 +528,8 @@
 
   function renderScanChanges() {
     const { changes } = scanChanges;
-    document.getElementById('scanHead').textContent = `📷 Changes found · ${changes.length}`;
+    const real = changes.filter(c => !c.done); // "already done" rows are shown but not counted
+    document.getElementById('scanHead').textContent = `📷 Changes found · ${real.length}`;
     const list = document.getElementById('scanRows');
     list.innerHTML = '';
     if (!changes.length) {
@@ -544,6 +540,13 @@
     }
     for (const c of changes) {
       const row = document.createElement('div');
+      if (c.done) {
+        row.className = 'chg done';
+        row.dataset.no = c.no;
+        row.innerHTML = `<span><span class="no">${esc(c.no)}</span><b>${esc(c.name)}</b></span><span class="note">already done</span>`;
+        list.appendChild(row);
+        continue;
+      }
       const unresolved = c.mark === 'ask' && c.choice === null;
       row.className = 'chg' + (unresolved ? ' ask' : '');
       row.dataset.no = c.no;
@@ -560,8 +563,8 @@
         list.appendChild(note);
       }
     }
-    const chosen = changes.filter(c => ['u', 'p', 'b'].includes(c.choice) || c.need).length;
-    const ready = changes.every(c => !(c.mark === 'ask' && c.choice === null));
+    const chosen = real.filter(c => ['u', 'p', 'b'].includes(c.choice) || c.need).length;
+    const ready = real.every(c => !(c.mark === 'ask' && c.choice === null));
     const apply = document.getElementById('scanApply');
     apply.textContent = `✅ Apply all (${chosen})`;
     apply.disabled = !ready;
@@ -570,7 +573,7 @@
   // Apply the chosen marks: Used, Part used or Binned, same as the fridge pop-up buttons
   async function applyScan() {
     if (!scanChanges) return;
-    const todo = scanChanges.changes.filter(c => ['u', 'p', 'b'].includes(c.choice) || c.need);
+    const todo = scanChanges.changes.filter(c => !c.done && (['u', 'p', 'b'].includes(c.choice) || c.need));
     closeScan();
     const writes = [];
     for (const c of todo) {

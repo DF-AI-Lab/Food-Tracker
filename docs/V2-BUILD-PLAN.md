@@ -67,7 +67,7 @@ households/{householdId}         { name, members: [uid…], invite: { code, expi
 
 ## Order from here (agreed 2026-10-10)
 
-Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
+Done: 0 → 6, top-bar tidy (v8), 7a Edit (v9), household fixes (v10–v11), 7b tonight's meal (v12), 7c 🔔 bell (v13), 8 sheet (v14). Then: ✅ **quick job (v8, 2026-10-11): tidy the top bar into ⚙️ Settings**: 🔄 becomes *Check for updates* next to the version ("✓ Up to date · vN" or the 🆕 note), plus ☀️ light/dark. **Top right: 📷 · 🖨️ · ⚙️** (🔔 joins in 7c) (Darren, 2026-10-10; 📷 = sheet scan now, packet photos too in step 7) → **7a ✏️ Edit** → **7b 🍽️ Confirm tonight's meal** → **7c 🔔 Notifications** → **8 🖨️ Print sheet + scan** → **9 💾 Backups** → **7 📷 Photos → Claude** → **10 📱 Go live** (copy all V1 data in = full working V2) → **🎨 Look** last (new chat, Darren's artifact ideas).
 After V2: use it for real for a while, keep adding ideas to [💡 V3 ideas](https://github.com/DF-AI-Lab/Food-Tracker/issues/39), then V3.
 
 ## Build steps (in order)
@@ -180,14 +180,16 @@ Replaces the old "Drive → PC skill → inbox" route. No PC, no Drive.
   - Rough cost (Oct 2026 prices): ~1¢ a photo on Sonnet 5.5 → 100 photos ≈ $0.70–$1/month. Sonnet 5 same price; Sonnet 4.6 1.5× dearer; Opus 5.5 ~2×. Shrink photos on the phone first (~1600px).
 - [ ] **Packets only in V2.** Receipts (names + prices, no dates) are V3: needs solving how to match them to packets first.
 
-### 8. Fridge sheet ← NEXT
+### 8. Fridge sheet ✅ v14, built 2026-10-11 (do a test print + scan)
 
-- [ ] **Print** from the PC browser. **New layout (Darren, 2026-10-10):**
+- [x] **Print** from the PC browser. **New layout (Darren, 2026-10-10):**
   - Remove the **meals** and the **added** sections, so as many items + dates as possible fit.
   - Near the bottom: a strip of the **next 7 days** after printing, e.g. *Mon 12 · Tue 13 · … · Sun 18*.
-- [ ] **📷 Scan** with the phone camera in the app, no AI. Skips packs already changed.
+- [x] **📷 Scan** with the phone camera in the app, no AI. Skips packs already changed.
+  - Built: 26 rows a column (was 17), 7-day strip from the day after printing, scan shows *already done* (greyed, not applied). Fit is tight (~2mm spare): check a real print.
+  - Tests: `tests/v2-sheet.test.js` (npm test), `tests/v2-sheet.check.js` (npm run check:v2).
 
-### 9. Backups
+### 9. Backups ← NEXT
 
 - [ ] Settings → **⬇️ Backup** (file) and **⬆️ Restore**.
 - [ ] PC: weekly automatic backup into Google Drive (uses the PC key file).

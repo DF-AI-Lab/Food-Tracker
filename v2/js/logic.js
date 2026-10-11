@@ -880,7 +880,7 @@
     return a.added.localeCompare(b.added) || byId(a, b);
   }
 
-  function printSheet(packs, today, { rows = 17 } = {}) {
+  function printSheet(packs, today, { rows = 26 } = {}) {
     const inFridge = (packs || []).filter(p => p.status === "in_fridge" && p.kind !== "takeaway");
     const soonPacks = useSoon(inFridge, today);
     const soonIds = new Set(soonPacks.map(p => p.id));
@@ -939,22 +939,14 @@
     const shown = no;
     const total = inFridge.length;
 
-    // Meals: today plus 6 days
-    const days = mealDays(today);
-    const meals = days.map(day => {
-      const names = dayMeals(packs, day).map(p => (p.kind === "takeaway" ? "🥡 Takeaway" : p.name));
-      return { day: formatDate(day), text: names.join(" + ") };
-    });
+    // The 7 days after today, like "Mon 12"
+    const days = [];
+    for (let i = 1; i <= 7; i++) {
+      const d = addDays(today, i);
+      days.push(formatDate(d).split(" ").slice(0, 2).join(" "));
+    }
 
-    // Range: first to last meal day
-    const first = days[0];
-    const last = days[days.length - 1];
-    const sameMonth = first.slice(0, 7) === last.slice(0, 7);
-    const range = sameMonth
-      ? `${Number(first.slice(8, 10))}–${Number(last.slice(8, 10))} ${MONTHS_SHORT[Number(last.slice(5, 7)) - 1]}`
-      : `${dayMonth(first)} – ${dayMonth(last)}`;
-
-    return { left, right, meals, range, total, shown };
+    return { left, right, days, total, shown };
   }
 
   // Photo of the printed sheet: which mark wins for one row.
@@ -968,17 +960,23 @@
     return null;
   }
 
-  // Changes found on a sheet photo: marked rows whose pack is still in the fridge
+  // Changes found on a sheet photo: every marked row. Food already used / binned / frozen /
+  // deleted on a phone since printing comes back as done (nothing to apply).
   function sheetChanges(rows, marks, packs) {
     const byId = new Map((packs || []).map(p => [p.id, p]));
     const out = [];
     for (const row of rows || []) {
       const pack = byId.get(row.id);
-      if (!pack || pack.status !== "in_fridge") continue;
       const m = (marks || {})[row.no];
       const mark = resolveMark(m);
       const need = !!(m && m.n);
       if (!mark && !need) continue;
+      const gone = !pack || pack.status !== "in_fridge";
+      const partAlready = !gone && pack.partUsed && mark === "p" && !need;
+      if (gone || partAlready) {
+        out.push({ no: row.no, id: row.id, name: row.name, mark, need, done: true, note: "already done" });
+        continue;
+      }
       let note = "";
       if (mark === "ask") note = "U and B both marked · pick one";
       else if (m.u && m.p && !m.b) note = "U and P both marked → Used";
