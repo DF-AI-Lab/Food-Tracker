@@ -2129,7 +2129,7 @@
       let shared = false;
       if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
         try {
-          await navigator.share({ files: [shareFile], title: 'Food Tracker backup' });
+          await navigator.share({ files: [shareFile] });
           shared = true;
         } catch (e) {
           // Cancelled: not backed up. Any other problem: download it instead (below)
