@@ -401,3 +401,6 @@ button.act.part{background:var(--soonbg);color:var(--soon)}
 /* Join: the code box gets the room, the button sits under it */
 #joinPart .sform{flex-direction:column;align-items:stretch}
 #joinCode{width:100%;min-width:0;font-size:18px;letter-spacing:2px;text-transform:uppercase}
+/* Settings name boxes: full width to type in, Save underneath (the button was squashing them) */
+#hhNameRow,#meNameRow{flex-direction:column;align-items:stretch}
+#hhNameEdit,#meNameEdit,#joinCode{box-sizing:border-box;width:100%;font-size:16px}
