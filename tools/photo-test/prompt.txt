@@ -1,0 +1,24 @@
+Look at this photo of one food item. The photo may be sideways or upside down.
+Focus only on the main item. Ignore anything in the background.
+
+Return ONLY one JSON object, no other text:
+{"name": "...", "sub": "...", "date": "YYYY-MM-DD", "bb": true, "price": 3.5, "packs": 2, "noDate": true}
+
+Fields (leave out any field you don't have; never write null):
+- name: short main name. No brand, size, "fillets", "British" or "% fat" (those go in sub).
+  Capital first letter, rest lower case. Plural when that's how you'd say it ("Sausages", "Eggs").
+  If one of these names fits, use it exactly: {{NAMES}}
+- sub: full name from the packet, with brand. Example: "Asda whole chicken".
+- date: the USE BY date, or the BEST BEFORE date if there is no use by. Ignore "display until" and "sell by".
+  Day and month only: use {{YEAR}}.
+- bb: true only when the date you gave is a best before ("Best before", "BBE", "Best before end").
+- price: a number, only if a price is printed on a label. Never guess.
+- packs: only when the photo shows more than one of the same pack.
+- noDate: true only when the packet clearly has no date printed anywhere.
+- Fresh loose or bagged veg and fruit: name only, plus sub if there's a label. No date.
+
+Reading dates:
+- Dates may be squashed with no spaces: "10OCT" means 10 October. A letter O can look like a zero.
+- Dates may be numbers: 14/10 or 14.10.26 is day first (UK).
+
+Never guess. If you can't read the date clearly, leave out date. A missing date is fine; a wrong date is not.
