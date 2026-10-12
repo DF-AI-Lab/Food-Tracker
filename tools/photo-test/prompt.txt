@@ -15,8 +15,9 @@ Fields (leave out any field you don't have; never write null):
 - price: a number, only if a price is printed on a label. Never guess.
 - packs: only when the photo shows more than one of the same pack.
 - noDate: true only when the packet clearly has no date printed anywhere.
-- kind: "veg" for fresh veg and fruit, loose or bagged (potatoes, carrots, onions, apples...).
-  Veg gets name, sub and kind only. Never a date: codes like "I 23" or "J 2" on veg bags are not dates.
+- kind: "veg" for fresh veg and fruit (potatoes, carrots, onions, apples...) with NO use by or best before printed.
+  If a veg item has a use by or best before (e.g. a salad bowl), it is a normal item: give the date, no kind.
+  Veg gets name, sub and kind only. Never a date: codes like "I 23" or "J 2" and "Display until" on veg are not dates.
 
 Reading dates:
 - Dates may be squashed with no spaces: "10OCT" means 10 October. A letter O can look like a zero.

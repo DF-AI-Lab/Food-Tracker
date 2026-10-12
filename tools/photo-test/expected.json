@@ -103,5 +103,30 @@
     "name": "Sausage rolls",
     "sub": "Asda 6 pork sausage rolls",
     "date": "2026-10-20"
+  },
+  "p21.jpg": {
+    "name": "Kiwi",
+    "sub": "Asda Exceptional golden kiwi 4 pack",
+    "kind": "veg"
+  },
+  "p22.jpg": {
+    "name": "Scotch eggs",
+    "sub": "Asda 2 Cumberland scotch eggs",
+    "date": "2026-10-16"
+  },
+  "p23.jpg": {
+    "name": "Chicken",
+    "sub": "Asda extra tasty small chicken",
+    "date": "2026-10-16"
+  },
+  "p24.jpg": {
+    "name": "Chicken",
+    "sub": "Asda extra tasty small chicken",
+    "date": "2026-10-16"
+  },
+  "p25.jpg": {
+    "name": "Carrots",
+    "sub": "Asda British carrots",
+    "kind": "veg"
   }
 }
