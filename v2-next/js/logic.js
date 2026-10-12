@@ -7,6 +7,27 @@
     misc: ["Milk", "Eggs", "Margarine", "Butter"]
   };
   const KINDS = ["main", "side", "veg", "misc"];
+  // Everyday UK fresh foods, offered even when never bought (after STARTERS in foodCandidates)
+  const COMMON_FOODS = {
+    "Beef": "main", "Steak": "main", "Turkey": "main", "Pork chops": "main", "Pork belly": "main",
+    "Lamb": "main", "Duck": "main", "Salmon": "main", "Cod": "main", "Haddock": "main",
+    "Fish fingers": "main", "Prawns": "main", "Tuna": "main", "Chorizo": "main", "Ham": "main",
+    "Bacon": "main", "Meatballs": "main", "Tofu": "main",
+    "Pastry": "side", "Yorkshire puddings": "side", "Stuffing": "side", "Chips": "side", "Mash": "side",
+    "Rice": "side", "Pasta": "side", "Naan bread": "side", "Garlic bread": "side", "Coleslaw": "side",
+    "Couscous": "side", "Noodles": "side", "Pitta bread": "side", "Burger buns": "side",
+    "Sweet potatoes": "side", "Potato wedges": "side", "Hash browns": "side", "Crusty bread": "side",
+    "Mushrooms": "veg", "Spinach": "veg", "Courgette": "veg", "Sweetcorn": "veg", "Peas": "veg",
+    "Green beans": "veg", "Garlic": "veg", "Tomatoes": "veg", "Lettuce": "veg", "Cucumber": "veg",
+    "Aubergine": "veg", "Celery": "veg", "Butternut squash": "veg", "Cauliflower": "veg", "Kale": "veg",
+    "Red onions": "veg", "Spring onions": "veg", "Parsnips": "veg", "Beetroot": "veg", "Asparagus": "veg",
+    "Lemons": "veg", "Bean sprouts": "veg",
+    "Gravy granules": "misc", "Tortilla wraps": "misc", "Cheese": "misc", "Grated cheese": "misc",
+    "Cream": "misc", "Double cream": "misc", "Yoghurt": "misc", "Sour cream": "misc",
+    "Creme fraiche": "misc", "Mayonnaise": "misc", "Ketchup": "misc", "Halloumi": "misc",
+    "Hummus": "misc", "Mozzarella": "misc", "Parmesan": "misc", "Feta": "misc", "Passata": "misc",
+    "Baked beans": "misc", "Pesto": "misc", "Salsa": "misc", "Soy sauce": "misc"
+  };
 
   // Date utilities
   // Ids are strings in V2 (cloud ids), numbers in V1: compare both the same way
@@ -222,6 +243,12 @@
         seen.add(key);
         cands.push({ name, key, kind, count: 0 });
       }
+    }
+    for (const name of Object.keys(COMMON_FOODS)) {
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cands.push({ name, key, kind: COMMON_FOODS[name], count: 0 });
     }
     for (const c of cands) c.count = counts[c.key] || 0;
     return cands;
@@ -706,7 +733,7 @@
   }
 
   function unplanPack(pack) {
-    return { ...pack, plannedFor: null, slot: null, mealId: null, mealName: null };
+    return { ...pack, plannedFor: null, slot: null, mealId: null, mealName: null, mealPlanId: null };
   }
 
   // Days a pack is out of date on a planned day (0 if fine or undated)
@@ -726,26 +753,6 @@
       .filter(p => p.plannedFor === dayIso &&
         (p.status === "in_fridge" || (p.kind === "takeaway" && p.status === "plan")))
       .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
-  }
-
-  // A day's plan as groups: planned recipes (one meal each, first), then single foods in dayMeals order
-  function dayGroups(packs, dayIso) {
-    const meals = [];
-    const byMeal = new Map();
-    const singles = [];
-    for (const p of dayMeals(packs, dayIso)) {
-      if (p.mealId) {
-        if (!byMeal.has(p.mealId)) {
-          const g = { type: "meal", mealId: p.mealId, name: p.mealName, packs: [] };
-          byMeal.set(p.mealId, g);
-          meals.push(g);
-        }
-        byMeal.get(p.mealId).packs.push(p);
-      } else {
-        singles.push({ type: "pack", pack: p });
-      }
-    }
-    return [...meals, ...singles];
   }
 
   // Meal ideas: food combos eaten at home (2+ foods), most had first, then latest.
@@ -1173,7 +1180,7 @@
 
   // V2 step 9: backups. The file is plain JSON with every list in it.
   const BACKUP_APP = "food-tracker-v2";
-  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes"];
+  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans"];
   const NOT_BACKUP = "This isn't a Food Tracker backup file.";
   const BACKUP_EVERY = 5;
 
@@ -1254,94 +1261,285 @@
     return `Last backup: ${dayLabel(ms)}, ${hhmm}`;
   }
 
-  // Recipes (V3): a name, fresh foods (checked against the fridge) and other things (never in the fridge)
-  // Tidy what was typed. null when there is no name or nothing in it.
-  function makeRecipe(input) {
+  // Meals (V3): a name, fresh foods (checked against the fridge; each can be "some") and other items
+  // (cupboard bits, never in the fridge). Saved in the "recipes" list.
+  // Tidy what was typed: single spaces, trimmed, capital first letter. "" when blank.
+  function tidyName(s) {
+    const t = String(s ?? "").replace(/\s+/g, " ").trim();
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+  }
+
+  // Case-insensitive key for a name
+  function keyOf(s) {
+    return String(s ?? "").trim().toLowerCase();
+  }
+
+  // A fresh food as { name, some } (a plain name is an old saved food: not "some")
+  function normFresh(f) {
+    if (f && typeof f === "object") return { name: String(f.name ?? "").trim(), some: !!f.some };
+    return { name: String(f ?? "").trim(), some: false };
+  }
+
+  // Any saved meal in the current shape (old ones kept fresh as plain names). null for none.
+  function normMeal(r) {
+    if (!r) return null;
+    return {
+      id: r.id,
+      name: String(r.name ?? "").trim(),
+      fresh: (r.fresh || []).map(normFresh).filter(f => f.name),
+      other: (r.other || [])
+        .map(o => ({ name: String(o?.name ?? "").trim(), qty: String(o?.qty ?? "").trim() || null }))
+        .filter(o => o.name)
+    };
+  }
+
+  // Check and tidy a meal being saved: { meal } or { error } for the message to show
+  function makeMeal(input, meals) {
     const src = input || {};
-    const name = String(src.name ?? "").trim();
-    if (!name) return null;
+    const name = tidyName(src.name);
+    if (!name) return { error: "Give the meal a name." };
 
     const fresh = [];
     const seen = new Set();
-    for (const f of src.fresh || []) {
-      const t = String(f ?? "").trim();
-      const key = t.toLowerCase();
-      if (!t || seen.has(key)) continue;
-      seen.add(key);
-      fresh.push(t);
+    for (const raw of src.fresh || []) {
+      const f = normFresh(raw);
+      const n = tidyName(f.name);
+      if (!n || seen.has(keyOf(n))) continue;
+      seen.add(keyOf(n));
+      fresh.push({ name: n, some: f.some });
     }
 
     const other = [];
     for (const o of src.other || []) {
-      const n = String(o?.name ?? "").trim();
+      const n = tidyName(o?.name);
       if (!n) continue;
-      const q = String(o.qty ?? "").trim();
-      other.push({ name: n, qty: q || null });
+      other.push({ name: n, qty: String(o.qty ?? "").trim() || null });
     }
 
-    if (!fresh.length && !other.length) return null;
-    const r = {};
-    if (src.id !== undefined && src.id !== null && src.id !== "") r.id = src.id;
-    r.name = name;
-    r.fresh = fresh;
-    r.other = other;
-    return r;
+    if (!fresh.length && !other.length) return { error: "Add at least one food." };
+
+    const hasId = src.id !== undefined && src.id !== null && src.id !== "";
+    const dup = (meals || []).find(m =>
+      !(hasId && String(m.id) === String(src.id)) && keyOf(tidyName(m.name)) === keyOf(name));
+    if (dup) return { error: `You already have ${tidyName(dup.name)}.` };
+
+    const meal = {};
+    if (hasId) meal.id = src.id;
+    meal.name = name;
+    meal.fresh = fresh;
+    meal.other = other;
+    return { meal };
   }
 
-  // The free fridge pack for each fresh food (soonest date first, undated last, then id)
-  function recipeCheck(recipe, packs, dayIso) {
-    const have = [];
+  // The name to offer as "+ Add new": null when blank or already among the suggestions (any case)
+  function newFoodName(typed, suggestions) {
+    const t = tidyName(typed);
+    if (!t) return null;
+    const taken = (suggestions || []).some(s => keyOf(s?.name ?? s) === keyOf(t));
+    return taken ? null : t;
+  }
+
+  // Shelf slot for a planned pack: its kind when it is a meal slot, else side
+  function slotFor(kind) {
+    return ["main", "side", "veg", "misc"].includes(kind) ? kind : "side";
+  }
+
+  // Free = in the fridge, not planned, not a takeaway
+  function isFree(p) {
+    return p.status === "in_fridge" && !p.plannedFor && p.kind !== "takeaway";
+  }
+
+  // Foods (names, in order) matched to the soonest free pack each, one pack per food.
+  // Returns { picks: [{ name, pack }], missing: [names with no free pack] }. Input not changed.
+  function pickFoods(names, packs) {
+    const used = new Set();
+    const picks = [];
     const missing = [];
-    for (const food of recipe.fresh || []) {
-      const key = String(food).trim().toLowerCase();
-      const free = (packs || []).filter(p =>
-        p.status === "in_fridge" && !p.plannedFor && p.kind !== "takeaway" &&
-        String(p.name ?? "").trim().toLowerCase() === key);
+    for (const name of names) {
+      const key = keyOf(name);
+      const free = packs
+        .filter(p => isFree(p) && !used.has(p.id) && keyOf(p.name) === key)
+        .sort((a, b) => {
+          if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
+          if (a.date) return -1;
+          if (b.date) return 1;
+          return byId(a, b);
+        });
       if (!free.length) {
-        missing.push(food);
+        missing.push(name);
         continue;
       }
-      free.sort((a, b) => {
-        if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
-        if (a.date) return -1;
-        if (b.date) return 1;
-        return byId(a, b);
-      });
-      const pack = free[0];
-      have.push({ name: pack.name, pack, out: outByDay(pack, dayIso) });
+      used.add(free[0].id);
+      picks.push({ name, pack: free[0] });
     }
+    return { picks, missing };
+  }
+
+  // New planned pack objects for a meal on a day: the soonest free pack per fresh food, not skipped
+  function planMeal(meal, packs, dayIso, planId, skip = []) {
+    const m = normMeal(meal) || { fresh: [] };
+    const skipKeys = new Set((skip || []).map(keyOf));
+    const names = m.fresh.map(f => f.name).filter(n => !skipKeys.has(keyOf(n)));
+    const { picks } = pickFoods(names, packs || []);
+    return picks.map(({ pack }) => ({
+      ...pack, plannedFor: dayIso, slot: slotFor(pack.kind), mealPlanId: planId
+    }));
+  }
+
+  // Keep a meal plan in step with its meal and the fridge: unplan what is no longer wanted (or
+  // doubled), and plan the wanted foods that have a free pack now (e.g. bought since)
+  function syncMealPlan(plan, meal, packs, today) {
+    const m = normMeal(meal);
+    if (!plan || plan.day < today || !m) return { plan: [], unplan: [] };
+    const skipKeys = new Set((plan.skip || []).map(keyOf));
+    const wanted = m.fresh.map(f => f.name).filter(n => !skipKeys.has(keyOf(n)));
+    const wantedKeys = new Set(wanted.map(keyOf));
+
+    const current = (packs || []).filter(p => p.mealPlanId === plan.id && p.status === "in_fridge");
+    const kept = new Set();
+    const unplan = [];
+    for (const p of current) {
+      const key = keyOf(p.name);
+      if (!wantedKeys.has(key) || kept.has(key)) unplan.push(unplanPack(p));
+      else kept.add(key);
+    }
+
+    const missing = wanted.filter(n => !kept.has(keyOf(n)));
+    const planned = planMeal({ fresh: missing.map(name => ({ name })) }, packs, plan.day, plan.id);
+    return { plan: planned, unplan };
+  }
+
+  // What a meal plan's day shows: each fresh food with its pack (or none), skipped and out-of-date
+  // flags, the foods still missing, and the other items. null when the meal is gone.
+  function mealPlanView(plan, meal, packs) {
+    const m = normMeal(meal);
+    if (!m) return null;
+    const skipKeys = new Set((plan.skip || []).map(keyOf));
+    const foods = m.fresh.map(f => {
+      const pack = (packs || []).find(p =>
+        p.mealPlanId === plan.id && p.status === "in_fridge" && keyOf(p.name) === keyOf(f.name)) || null;
+      return {
+        name: f.name,
+        some: f.some,
+        pack,
+        skipped: skipKeys.has(keyOf(f.name)),
+        out: pack ? outByDay(pack, plan.day) : 0
+      };
+    });
+    const missing = foods.filter(f => !f.pack && !f.skipped).map(f => f.name);
+    return {
+      id: m.id,
+      plan,
+      name: m.name,
+      foods,
+      missing,
+      other: m.other,
+      warn: missing.length > 0 || foods.some(f => f.out > 0)
+    };
+  }
+
+  // Names to buy for a meal: missing fresh foods, then other items with their amount
+  function mealShopNames(view) {
+    return [...view.missing, ...view.other.map(o => o.qty ? o.name + " " + o.qty : o.name)];
+  }
+
+  // Meal groups for a day (one per meal plan whose meal exists, in plan order), then single foods
+  // that are not part of one of those groups
+  function dayGroups(packs, mealPlans, meals, dayIso) {
+    let plans = mealPlans;
+    let mealList = meals;
+    let day = dayIso;
+    // Older screens call dayGroups(packs, day): no meal plans yet, so single foods only
+    if (typeof mealPlans === "string") {
+      day = mealPlans;
+      plans = [];
+      mealList = [];
+    }
+    const groups = [];
+    const planIds = new Set();
+    for (const plan of (plans || []).filter(pl => pl.day === day)) {
+      const meal = (mealList || []).find(m => String(m.id) === String(plan.mealId));
+      if (!meal) continue;
+      planIds.add(plan.id);
+      groups.push({ type: "meal", plan, view: mealPlanView(plan, meal, packs) });
+    }
+    const singles = dayMeals(packs, day)
+      .filter(p => !(p.mealPlanId != null && planIds.has(p.mealPlanId)))
+      .map(p => ({ type: "pack", pack: p }));
+    return [...groups, ...singles];
+  }
+
+  // A meal's status on My meals: planned days from today on, else the fresh foods with no free pack
+  function mealStatus(meal, mealPlans, packs, today) {
+    const planned = [...new Set((mealPlans || [])
+      .filter(pl => String(pl.mealId) === String(meal.id) && pl.day >= today)
+      .map(pl => pl.day))].sort();
+    if (planned.length) return { planned, need: [] };
+    const m = normMeal(meal) || { fresh: [] };
+    const { missing } = pickFoods(m.fresh.map(f => f.name), packs || []);
+    return { planned: [], need: missing };
+  }
+
+  // Pack ids of the day's "some" foods (they start as part used on "How much did you use?")
+  function partDefaults(packs, mealPlans, meals, dayIso) {
+    const out = new Set();
+    for (const p of packs || []) {
+      if (p.plannedFor !== dayIso || p.mealPlanId == null) continue;
+      const plan = (mealPlans || []).find(pl => String(pl.id) === String(p.mealPlanId));
+      if (!plan) continue;
+      const meal = normMeal((meals || []).find(m => String(m.id) === String(plan.mealId)));
+      if (!meal) continue;
+      if (meal.fresh.some(f => f.some && keyOf(f.name) === keyOf(p.name))) out.add(p.id);
+    }
+    return out;
+  }
+
+  // Meal plans more than 3 days old: these drop off
+  function expiredMealPlans(mealPlans, today) {
+    return (mealPlans || []).filter(pl => daysLeft(pl.day, today) < -3);
+  }
+
+  // Compatibility for the current screens (app.js) until the meals UI step: same names, new logic
+  function makeRecipe(input) {
+    return makeMeal(input, []).meal || null;
+  }
+
+  // Plan id given to packs planned by the old recipe screen (no meal plan list yet)
+  function legacyPlanId(recipe, dayIso) {
+    return "recipe:" + recipe.id + ":" + dayIso;
+  }
+
+  function recipeCheck(recipe, packs, dayIso) {
+    const m = normMeal(recipe) || { fresh: [], other: [] };
+    const { picks, missing } = pickFoods(m.fresh.map(f => f.name), packs || []);
+    const have = picks.map(({ pack }) => ({ name: pack.name, pack, out: outByDay(pack, dayIso) }));
     return {
       have,
       missing,
-      other: [...(recipe.other || [])],
+      other: m.other,
       outNames: have.filter(h => h.out > 0).map(h => h.name),
       ready: missing.length === 0
     };
   }
 
-  // Soonest day (today or later) a waiting plan for this recipe is set, else null
   function recipePlannedDay(recipe, packs, today) {
+    const prefix = legacyPlanId(recipe, "");
     let best = null;
     for (const p of packs || []) {
-      if (p.status !== "in_fridge" || !p.plannedFor || p.mealId !== recipe.id) continue;
+      if (p.status !== "in_fridge" || !p.plannedFor || !String(p.mealPlanId ?? "").startsWith(prefix)) continue;
       if (p.plannedFor < today) continue;
       if (best === null || p.plannedFor < best) best = p.plannedFor;
     }
     return best;
   }
 
-  // New planned pack objects for the day: one per fresh food found in the fridge (input not changed)
   function planRecipe(recipe, packs, dayIso) {
-    const { have } = recipeCheck(recipe, packs, dayIso);
-    return have.map(h => {
-      const slot = ["main", "side", "veg", "misc"].includes(h.pack.kind) ? h.pack.kind : "side";
-      return { ...planPack(h.pack, dayIso, slot), mealId: recipe.id, mealName: recipe.name };
-    });
+    return planMeal(recipe, packs, dayIso, legacyPlanId(recipe, dayIso));
   }
 
-  // Names to buy for a recipe: missing fresh foods, then cupboard things with their amount
   function recipeShopNames(recipe, check) {
-    return [...check.missing, ...(recipe.other || []).map(o => o.qty ? o.name + " " + o.qty : o.name)];
+    const m = normMeal(recipe) || { other: [] };
+    return mealShopNames({ missing: check.missing, other: m.other });
   }
 
   // Names (first spelling, no repeats) not already to get on the shopping list
@@ -1407,6 +1605,17 @@
     dayMeals,
     dayGroups,
     mealIdeas,
+    tidyName,
+    normMeal,
+    makeMeal,
+    newFoodName,
+    planMeal,
+    syncMealPlan,
+    mealPlanView,
+    mealShopNames,
+    mealStatus,
+    partDefaults,
+    expiredMealPlans,
     makeRecipe,
     recipeCheck,
     planRecipe,
