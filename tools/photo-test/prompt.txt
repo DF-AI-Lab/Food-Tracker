@@ -7,10 +7,14 @@ Return ONLY one JSON object, no other text:
 Fields (leave out any field you don't have; never write null):
 - name: short main name. No brand, size, "fillets", "British" or "% fat" (those go in sub).
   Capital first letter, rest lower case. Plural when that's how you'd say it ("Sausages", "Eggs").
-  If one of these names fits, use it exactly: {{NAMES}}
+  Names already in the app: {{NAMES}}
+  Use one of those only if it is exactly the same food. A similar food is NOT the same:
+  a product made from or with a listed food is a different food (chicken nuggets are not Chicken,
+  garlic bread is not Bread). Then make a new short name.
 - sub: full name from the packet, with brand. Example: "Asda whole chicken".
 - date: the USE BY date, or the BEST BEFORE date if there is no use by. Ignore "display until" and "sell by".
-  Day and month only: use {{YEAR}}.
+  Day and month only: use {{YEAR}}. If the year is printed, use the printed year.
+  A date printed with no label (no "use by" or "best before" words) still counts: give it, with no bb.
 - bb: true only when the date you gave is a best before ("Best before", "BBE", "Best before end").
 - price: a number, only if a price is printed on a label. Never guess.
 - packs: only when the photo shows more than one of the same pack.
