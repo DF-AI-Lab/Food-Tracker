@@ -128,5 +128,31 @@
     "name": "Carrots",
     "sub": "Asda British carrots",
     "kind": "veg"
+  },
+  "p26.jpg": {
+    "name": "Salad",
+    "sub": "Peppery baby leaf salad",
+    "date": "2026-10-13"
+  },
+  "p27.jpg": {
+    "name": "Orange juice",
+    "sub": "Asda smooth orange juice from concentrate 1L",
+    "date": "2026-12-09",
+    "bb": true
+  },
+  "p28.jpg": {
+    "name": "Mushrooms",
+    "sub": "Closed cup mushrooms 400g",
+    "kind": "veg"
+  },
+  "p29.jpg": {
+    "name": "Chicken skewers",
+    "sub": "10 chicken satay skewers",
+    "date": "2026-10-26"
+  },
+  "p30.jpg": {
+    "name": "Apples",
+    "sub": "Golden Delicious apples",
+    "kind": "veg"
   }
 }
