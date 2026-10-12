@@ -154,5 +154,31 @@
     "name": "Apples",
     "sub": "Golden Delicious apples",
     "kind": "veg"
+  },
+  "p31.jpg": {
+    "name": "Yoghurt",
+    "sub": "Muller Corner vanilla chocolate balls & banana chocolate flakes",
+    "date": "2026-11-11"
+  },
+  "p32.jpg": {
+    "name": "Ribs",
+    "sub": "Slow cooked smoky BBQ pork rack of ribs",
+    "date": "2026-11-01"
+  },
+  "p33.jpg": {
+    "name": "Scotch eggs",
+    "sub": "M&S British classic scotch eggs",
+    "date": "2026-10-17"
+  },
+  "p34.jpg": {
+    "name": "Scotch eggs",
+    "sub": "M&S British classic scotch eggs",
+    "date": "2026-10-17"
+  },
+  "p35.jpg": {
+    "name": "Eggs",
+    "sub": "Asda free range 6 medium eggs",
+    "date": "2026-10-21",
+    "bb": true
   }
 }
