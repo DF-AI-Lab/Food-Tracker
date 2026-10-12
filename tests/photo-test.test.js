@@ -145,3 +145,26 @@ test("test photos and results are git-ignored", () => {
     }
   }
 });
+
+// ---- veg: kind "veg", never a date (the app counts from the day it goes in) ----
+
+test("parseReply keeps kind veg and does not flag it", () => {
+  const r = parseReply('{"name":"Carrots","kind":"veg"}');
+  assert.equal(r.kind, "veg");
+  assert.equal(r.date, null);
+  assert.equal(r.needsCheck, false);
+});
+
+test("parseReply drops a date on a veg item", () => {
+  assert.equal(parseReply('{"name":"Carrots","kind":"veg","date":"2026-10-23"}').date, null);
+});
+
+test("parseReply ignores an unknown kind", () => {
+  assert.equal(parseReply('{"name":"Ham","kind":"meat","date":"2026-10-15"}').kind, null);
+});
+
+test("scoreOne: veg must come back as veg", () => {
+  assert.equal(scoreOne({ name: "Carrots", kind: "veg" }, { name: "Carrots", kind: "veg", date: null }).kind, true);
+  assert.equal(scoreOne({ name: "Carrots", kind: "veg" }, { name: "Carrots", date: null }).kind, false);
+  assert.equal(scoreOne({ name: "Ham", date: "2026-10-15" }, { name: "Ham", date: "2026-10-15" }).kind, true);
+});
