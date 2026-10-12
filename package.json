@@ -13,8 +13,10 @@
     "check:v2next": "V2DIR=v2-next npm run check:v2 && V2DIR=v2-next npm run check:pwa && node tests/v3-meals.check.js"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@firebase/rules-unit-testing": "5.0.2",
     "firebase": "12.19.0",
-    "firebase-tools": "15.33.0"
+    "firebase-tools": "15.33.0",
+    "sharp": "^0.35.5"
   }
 }
