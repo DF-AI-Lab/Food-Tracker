@@ -59,7 +59,7 @@ test("restore plan: put back every saved item, remove what wasn't in the backup"
   assert.deepEqual(plan.shop.remove, []);
   assert.deepEqual(plan.meals.remove, ["m9"]);
   assert.deepEqual(plan.ratings.put, data.ratings);
-  assert.deepEqual(Object.keys(plan).sort(), ["meals", "packs", "ratings", "sheets", "shop"]);
+  assert.deepEqual(Object.keys(plan).sort(), ["mealPlans", "meals", "packs", "ratings", "recipes", "sheets", "shop"]); // V3: meals (recipes) + meal plans backed up too
 });
 
 // ---------- the "back up now?" reminder ----------
