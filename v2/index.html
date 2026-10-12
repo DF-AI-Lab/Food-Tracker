@@ -106,22 +106,65 @@
   <!-- Meals Tab -->
   <div data-tab-pane="meals" style="display:none;">
     <div id="dayList" class="timeline"></div>
-    <div id="mealIdeas" class="ideas">
-      <div class="sechead"><h3 class="sec">Meal ideas</h3><span class="sub">Most had first · tap + to add to the open day</span></div>
-      <div class="il card"></div>
+    <div id="mealShop" class="card rform" hidden>
+      <h3 class="sec" id="mealShopTitle"></h3>
+      <div class="rs-list" id="mealShopList"></div>
+      <div class="btns">
+        <button class="act" id="mealShopAdd" type="button">Add to shopping list</button>
+        <button class="act ghost" id="mealShopSkip" type="button">Not now</button>
+      </div>
+    </div>
+    <div id="mealForm" class="card rform" hidden>
+      <h3 class="sec" id="mealFormTitle">New meal</h3>
+      <label class="rf-lab" for="mealName">Meal name</label>
+      <input type="text" id="mealName" placeholder="e.g. Chicken pie" autocomplete="off" autocapitalize="sentences" spellcheck="true" aria-label="Meal name">
+      <div class="rf-sec">
+        <span class="rf-lab">Fresh foods (checked against the fridge)</span>
+        <div class="fresh-list chips-list"></div>
+        <input type="text" id="freshIn" placeholder="Add a food…" autocomplete="off" autocapitalize="sentences" spellcheck="true" enterkeyhint="done" aria-label="Add a fresh food">
+        <div id="freshSuggest" class="sugs"></div>
+      </div>
+      <div class="rf-sec">
+        <span class="rf-lab">Other things, not in the fridge</span>
+        <div class="other-list"></div>
+        <div class="rf-row">
+          <input type="text" id="otherName" placeholder="e.g. White sauce packet" autocomplete="off" autocapitalize="sentences" spellcheck="true" aria-label="Other thing">
+          <input type="text" id="otherQty" placeholder="x2" autocomplete="off" aria-label="Amount">
+          <button class="act ghost" id="otherAdd" type="button">Add</button>
+        </div>
+      </div>
+      <p class="recipe-msg" id="mealErr" hidden></p>
+      <div class="btns">
+        <button class="act" id="mealSave" type="button">Save meal</button>
+        <button class="act ghost" id="mealCancel" type="button">Cancel</button>
+      </div>
+      <button class="act ghost meal-delete" id="mealDelete" type="button" hidden>Delete meal</button>
+      <div id="mealDelConfirm" class="meal-delconfirm" hidden>
+        <p class="note">Delete this meal? It comes off any day it is planned for.</p>
+        <div class="btns">
+          <button class="act alt" id="mealDelYes" type="button">Delete</button>
+          <button class="act ghost" id="mealDelKeep" type="button">Keep it</button>
+        </div>
+      </div>
     </div>
     <!-- One picker, moved into the open day card by app.js; hidden when no day is open -->
     <div id="picker" class="picker" hidden>
       <div class="mtabs utabs" id="mtabs">
+        <button class="sb" data-s="meal">Meals</button>
         <button class="sb on" data-s="main">Mains</button>
         <button class="sb" data-s="side">Sides</button>
         <button class="sb" data-s="veg">Veg</button>
+        <button class="sb" data-s="misc">Misc</button>
       </div>
       <div class="tag" id="pickFor"></div>
       <div class="warnbar" id="warnBar" hidden></div>
       <div id="pickList"></div>
       <button class="act ghost" id="nextSlot">Sides</button>
       <button class="act" id="nextDay">Next day</button>
+    </div>
+    <div id="myMeals" class="ideas">
+      <div class="sechead"><h3 class="sec">My meals</h3><button class="act ghost" id="newMeal" type="button">New meal</button></div>
+      <div class="ml card"></div>
     </div>
   </div>
 
@@ -146,7 +189,7 @@
           </div>
           <div id="usuals" class="qchips"></div>
           <div class="sform">
-            <input type="text" id="name" placeholder="Or type a food…" autocomplete="off" enterkeyhint="done" aria-label="Food name">
+            <input type="text" id="name" placeholder="Or type a food…" autocomplete="off" autocapitalize="sentences" spellcheck="true" enterkeyhint="done" aria-label="Food name">
             <button type="button" class="act ghost sq" id="mic" aria-label="Speak"><i data-icon="mic" data-size="20"></i></button>
           </div>
           <div class="note" id="micNote"></div>
@@ -202,7 +245,7 @@
     <div data-sub-pane="shop" style="display:none;">
       <div id="addShop" class="pane shop">
         <div class="clr"><span class="tag" id="shopCount" hidden></span><button class="undo" id="clearAll"><i data-icon="trash" data-size="15"></i>Clear list</button><span id="clrAsk" class="ask" hidden><span>Clear the whole list?</span><button class="undo danger" id="clrYes">Yes, clear</button><button class="undo" id="clrNo">No</button></span></div>
-        <form id="shopForm" class="sform"><input id="shopIn" placeholder="Add an item…" autocomplete="off" aria-label="Add an item"><button class="act sq" type="submit" aria-label="Add"><i data-icon="add" data-size="20"></i></button></form>
+        <form id="shopForm" class="sform"><input id="shopIn" placeholder="Add an item…" autocomplete="off" autocapitalize="sentences" spellcheck="true" aria-label="Add an item"><button class="act sq" type="submit" aria-label="Add"><i data-icon="add" data-size="20"></i></button></form>
         <div class="quick">
           <div class="rowhead"><div class="lbl">Bought before</div>
             <div class="qtabs utabs" id="qtabs"><button class="sb on" data-q="main">Mains</button><button class="sb" data-q="side">Sides</button><button class="sb" data-q="veg">Veg</button><button class="sb" data-q="other">Other</button></div>
@@ -234,7 +277,7 @@
     <button data-nav="fridge" data-tab="fridge" class="nb on cur"><i data-icon="fridge" data-size="22"></i><span>Fridge</span></button>
     <button data-nav="meals" data-tab="meals" class="nb"><i data-icon="meals" data-size="22"></i><span>Meals</span></button>
     <span class="plusslot"><button data-nav="add" data-tab="add" class="nb plus" aria-label="Add food"><i data-icon="add" data-size="24" data-width="2.2"></i></button></span>
-    <button data-nav="shop" class="nb"><i data-icon="shop" data-size="22"></i><span>Shop</span></button>
+    <button data-nav="shop" data-tab="shop" class="nb"><i data-icon="shop" data-size="22"></i><span>Shop</span></button>
     <button data-nav="used" class="nb"><i data-icon="used" data-size="22"></i><span>Used</span></button>
   </nav>
 

@@ -7,6 +7,27 @@
     misc: ["Milk", "Eggs", "Margarine", "Butter"]
   };
   const KINDS = ["main", "side", "veg", "misc"];
+  // Everyday UK fresh foods, offered even when never bought (after STARTERS in foodCandidates)
+  const COMMON_FOODS = {
+    "Beef": "main", "Steak": "main", "Turkey": "main", "Pork chops": "main", "Pork belly": "main",
+    "Lamb": "main", "Duck": "main", "Salmon": "main", "Cod": "main", "Haddock": "main",
+    "Fish fingers": "main", "Prawns": "main", "Tuna": "main", "Chorizo": "main", "Ham": "main",
+    "Bacon": "main", "Meatballs": "main", "Tofu": "main",
+    "Pastry": "side", "Yorkshire puddings": "side", "Stuffing": "side", "Chips": "side", "Mash": "side",
+    "Rice": "side", "Pasta": "side", "Naan bread": "side", "Garlic bread": "side", "Coleslaw": "side",
+    "Couscous": "side", "Noodles": "side", "Pitta bread": "side", "Burger buns": "side",
+    "Sweet potatoes": "side", "Potato wedges": "side", "Hash browns": "side", "Crusty bread": "side",
+    "Mushrooms": "veg", "Spinach": "veg", "Courgette": "veg", "Sweetcorn": "veg", "Peas": "veg",
+    "Green beans": "veg", "Garlic": "veg", "Tomatoes": "veg", "Lettuce": "veg", "Cucumber": "veg",
+    "Aubergine": "veg", "Celery": "veg", "Butternut squash": "veg", "Cauliflower": "veg", "Kale": "veg",
+    "Red onions": "veg", "Spring onions": "veg", "Parsnips": "veg", "Beetroot": "veg", "Asparagus": "veg",
+    "Lemons": "veg", "Bean sprouts": "veg",
+    "Gravy granules": "misc", "Tortilla wraps": "misc", "Cheese": "misc", "Grated cheese": "misc",
+    "Cream": "misc", "Double cream": "misc", "Yoghurt": "misc", "Sour cream": "misc",
+    "Creme fraiche": "misc", "Mayonnaise": "misc", "Ketchup": "misc", "Halloumi": "misc",
+    "Hummus": "misc", "Mozzarella": "misc", "Parmesan": "misc", "Feta": "misc", "Passata": "misc",
+    "Baked beans": "misc", "Pesto": "misc", "Salsa": "misc", "Soy sauce": "misc"
+  };
 
   // Date utilities
   // Ids are strings in V2 (cloud ids), numbers in V1: compare both the same way
@@ -200,38 +221,92 @@
     return starter || null;
   }
 
-  // Add-screen search: foods (from packs, then starters) whose name contains the text.
-  // Names starting with the text come first, then most-added, then alphabetical. Max 10.
-  function searchFoods(allPacks, query) {
-    const q = String(query ?? "").trim().toLowerCase();
-    if (!q) return [];
-    const live = (allPacks || []).filter(p => p.status !== "deleted");
+  // Every food the Add search can offer: non-deleted pack names (deduped case-insensitively,
+  // first spelling kept, kind remembered) then the starter foods. Each has a lower-case key.
+  function foodCandidates(allPacks) {
     const counts = {};
-    const cands = []; // { name, kind, count }, deduped case-insensitively, first spelling kept
+    const cands = []; // { name, key, kind, count }
     const seen = new Set();
-    for (const p of live) {
+    for (const p of (allPacks || []).filter(p => p.status !== "deleted")) {
       const name = String(p.name ?? "").trim();
       const key = name.toLowerCase();
       if (!key) continue;
       counts[key] = (counts[key] || 0) + 1;
       if (seen.has(key)) continue;
       seen.add(key);
-      cands.push({ name, key, kind: rememberedKind(allPacks, name) });
+      cands.push({ name, key, kind: rememberedKind(allPacks, name), count: 0 });
     }
     for (const kind of KINDS) {
       for (const name of STARTERS[kind] || []) {
         const key = name.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
-        cands.push({ name, key, kind });
+        cands.push({ name, key, kind, count: 0 });
       }
     }
-    return cands
+    for (const name of Object.keys(COMMON_FOODS)) {
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cands.push({ name, key, kind: COMMON_FOODS[name], count: 0 });
+    }
+    for (const c of cands) c.count = counts[c.key] || 0;
+    return cands;
+  }
+
+  // Add-screen search: foods (from packs, then starters) whose name contains the text.
+  // Names starting with the text come first, then most-added, then alphabetical. Max 10.
+  function searchFoods(allPacks, query) {
+    const q = String(query ?? "").trim().toLowerCase();
+    if (!q) return [];
+    return foodCandidates(allPacks)
       .filter(c => c.key.includes(q))
-      .map(c => ({ ...c, count: counts[c.key] || 0, starts: c.key.startsWith(q) }))
+      .map(c => ({ ...c, starts: c.key.startsWith(q) }))
       .sort((a, b) => (b.starts - a.starts) || (b.count - a.count) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
       .slice(0, 10)
       .map(c => ({ name: c.name, kind: c.kind }));
+  }
+
+  // Edit distance between two strings (insert, delete, replace each cost 1)
+  function editDistance(a, b) {
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  // Chips while typing a fresh food: searchFoods first, then spelling-slip matches (closest first,
+  // then name). Blank text = nothing; under 3 letters = no slip matches. Names in `exclude` (any case)
+  // are left out. Max 10.
+  function suggestFoods(allPacks, query, exclude = []) {
+    const q = String(query ?? "").trim().toLowerCase();
+    if (!q) return [];
+    const out = searchFoods(allPacks, query);
+    const have = new Set(out.map(o => o.name.toLowerCase()));
+    if (q.length >= 3) {
+      const limit = q.length >= 6 ? 2 : 1;
+      const slips = [];
+      for (const c of foodCandidates(allPacks)) {
+        if (have.has(c.key)) continue;
+        const n = q.length;
+        let best = Infinity;
+        for (const L of [n - 1, n, n + 1]) {
+          if (L < 1) continue;
+          best = Math.min(best, editDistance(q, c.key.slice(0, L)));
+        }
+        best = Math.min(best, editDistance(q, c.key));
+        if (best <= limit) slips.push({ name: c.name, key: c.key, kind: c.kind, dist: best });
+      }
+      slips.sort((a, b) => (a.dist - b.dist) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+      for (const s of slips) out.push({ name: s.name, kind: s.kind });
+    }
+    const skip = new Set(exclude.map(e => String(e ?? "").trim().toLowerCase()));
+    return out.filter(o => !skip.has(o.name.toLowerCase())).slice(0, 10);
   }
 
   // How many packs of this food were ever added (not counting deleted ones)
@@ -606,7 +681,7 @@
   }
 
   // Meal planner
-  const SLOT_ORDER = { main: 0, side: 1, veg: 2 };
+  const SLOT_ORDER = { main: 0, side: 1, veg: 2, misc: 3 };
 
   // Mon..Sun of the week that contains today
   function weekDays(today) {
@@ -621,14 +696,25 @@
     return p.kind === "veg" || (p.kind === "side" && !p.date);
   }
 
+  // Misc: dated packs soonest first, then undated packs oldest first (dates may be null)
+  function miscOrder(a, b) {
+    if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return (a.added || "").localeCompare(b.added || "") || byId(a, b);
+  }
+
   function mealPick(packs, slot) {
+    const inSlot = slot === "misc" ? (p => p.kind === "misc")
+      : slot === "veg" ? isVegPack
+      : (p => p.kind === slot && !!p.date);
     const free = packs.filter(p =>
-      p.status === "in_fridge" && !p.plannedFor && p.kind !== "misc" && p.kind !== "takeaway" &&
-      (slot === "veg" ? isVegPack(p) : p.kind === slot && !!p.date)
+      p.status === "in_fridge" && !p.plannedFor && p.kind !== "takeaway" && inSlot(p)
     );
 
     const sortKey = p => (slot === "veg" ? p.added : p.date);
-    const byKey = (a, b) => sortKey(a).localeCompare(sortKey(b)) || byId(a, b);
+    const byKey = slot === "misc" ? miscOrder
+      : (a, b) => sortKey(a).localeCompare(sortKey(b)) || byId(a, b);
 
     const groups = new Map();
     for (const p of free.sort(byKey)) {
@@ -647,7 +733,7 @@
   }
 
   function unplanPack(pack) {
-    return { ...pack, plannedFor: null, slot: null };
+    return { ...pack, plannedFor: null, slot: null, mealId: null, mealName: null, mealPlanId: null };
   }
 
   // Days a pack is out of date on a planned day (0 if fine or undated)
@@ -1094,7 +1180,7 @@
 
   // V2 step 9: backups. The file is plain JSON with every list in it.
   const BACKUP_APP = "food-tracker-v2";
-  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings"];
+  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans"];
   const NOT_BACKUP = "This isn't a Food Tracker backup file.";
   const BACKUP_EVERY = 5;
 
@@ -1175,6 +1261,253 @@
     return `Last backup: ${dayLabel(ms)}, ${hhmm}`;
   }
 
+  // Meals (V3): a name, fresh foods (checked against the fridge; each can be "some") and other items
+  // (cupboard bits, never in the fridge). Saved in the "recipes" list.
+  // Tidy what was typed: single spaces, trimmed, capital first letter. "" when blank.
+  function tidyName(s) {
+    const t = String(s ?? "").replace(/\s+/g, " ").trim();
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+  }
+
+  // Case-insensitive key for a name
+  function keyOf(s) {
+    return String(s ?? "").trim().toLowerCase();
+  }
+
+  // A fresh food as { name, some } (a plain name is an old saved food: not "some")
+  function normFresh(f) {
+    if (f && typeof f === "object") return { name: String(f.name ?? "").trim(), some: !!f.some };
+    return { name: String(f ?? "").trim(), some: false };
+  }
+
+  // Any saved meal in the current shape (old ones kept fresh as plain names). null for none.
+  function normMeal(r) {
+    if (!r) return null;
+    return {
+      id: r.id,
+      name: String(r.name ?? "").trim(),
+      fresh: (r.fresh || []).map(normFresh).filter(f => f.name),
+      other: (r.other || [])
+        .map(o => ({ name: String(o?.name ?? "").trim(), qty: String(o?.qty ?? "").trim() || null }))
+        .filter(o => o.name)
+    };
+  }
+
+  // Check and tidy a meal being saved: { meal } or { error } for the message to show
+  function makeMeal(input, meals) {
+    const src = input || {};
+    const name = tidyName(src.name);
+    if (!name) return { error: "Give the meal a name." };
+
+    const fresh = [];
+    const seen = new Set();
+    for (const raw of src.fresh || []) {
+      const f = normFresh(raw);
+      const n = tidyName(f.name);
+      if (!n || seen.has(keyOf(n))) continue;
+      seen.add(keyOf(n));
+      fresh.push({ name: n, some: f.some });
+    }
+
+    const other = [];
+    for (const o of src.other || []) {
+      const n = tidyName(o?.name);
+      if (!n) continue;
+      other.push({ name: n, qty: String(o.qty ?? "").trim() || null });
+    }
+
+    if (!fresh.length && !other.length) return { error: "Add at least one food." };
+
+    const hasId = src.id !== undefined && src.id !== null && src.id !== "";
+    const dup = (meals || []).find(m =>
+      !(hasId && String(m.id) === String(src.id)) && keyOf(tidyName(m.name)) === keyOf(name));
+    if (dup) return { error: `You already have ${tidyName(dup.name)}.` };
+
+    const meal = {};
+    if (hasId) meal.id = src.id;
+    meal.name = name;
+    meal.fresh = fresh;
+    meal.other = other;
+    return { meal };
+  }
+
+  // The name to offer as "+ Add new": null when blank or already among the suggestions (any case)
+  function newFoodName(typed, suggestions) {
+    const t = tidyName(typed);
+    if (!t) return null;
+    const taken = (suggestions || []).some(s => keyOf(s?.name ?? s) === keyOf(t));
+    return taken ? null : t;
+  }
+
+  // Shelf slot for a planned pack: its kind when it is a meal slot, else side
+  function slotFor(kind) {
+    return ["main", "side", "veg", "misc"].includes(kind) ? kind : "side";
+  }
+
+  // Free = in the fridge, not planned, not a takeaway
+  function isFree(p) {
+    return p.status === "in_fridge" && !p.plannedFor && p.kind !== "takeaway";
+  }
+
+  // Foods (names, in order) matched to the soonest free pack each, one pack per food.
+  // Returns { picks: [{ name, pack }], missing: [names with no free pack] }. Input not changed.
+  function pickFoods(names, packs) {
+    const used = new Set();
+    const picks = [];
+    const missing = [];
+    for (const name of names) {
+      const key = keyOf(name);
+      const free = packs
+        .filter(p => isFree(p) && !used.has(p.id) && keyOf(p.name) === key)
+        .sort((a, b) => {
+          if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
+          if (a.date) return -1;
+          if (b.date) return 1;
+          return byId(a, b);
+        });
+      if (!free.length) {
+        missing.push(name);
+        continue;
+      }
+      used.add(free[0].id);
+      picks.push({ name, pack: free[0] });
+    }
+    return { picks, missing };
+  }
+
+  // New planned pack objects for a meal on a day: the soonest free pack per fresh food, not skipped
+  function planMeal(meal, packs, dayIso, planId, skip = []) {
+    const m = normMeal(meal) || { fresh: [] };
+    const skipKeys = new Set((skip || []).map(keyOf));
+    const names = m.fresh.map(f => f.name).filter(n => !skipKeys.has(keyOf(n)));
+    const { picks } = pickFoods(names, packs || []);
+    return picks.map(({ pack }) => ({
+      ...pack, plannedFor: dayIso, slot: slotFor(pack.kind), mealPlanId: planId
+    }));
+  }
+
+  // Keep a meal plan in step with its meal and the fridge: unplan what is no longer wanted (or
+  // doubled), and plan the wanted foods that have a free pack now (e.g. bought since)
+  function syncMealPlan(plan, meal, packs, today) {
+    const m = normMeal(meal);
+    if (!plan || plan.day < today || !m) return { plan: [], unplan: [] };
+    const skipKeys = new Set((plan.skip || []).map(keyOf));
+    const wanted = m.fresh.map(f => f.name).filter(n => !skipKeys.has(keyOf(n)));
+    const wantedKeys = new Set(wanted.map(keyOf));
+
+    const current = (packs || []).filter(p => p.mealPlanId === plan.id && p.status === "in_fridge");
+    const kept = new Set();
+    const unplan = [];
+    for (const p of current) {
+      const key = keyOf(p.name);
+      if (!wantedKeys.has(key) || kept.has(key)) unplan.push(unplanPack(p));
+      else kept.add(key);
+    }
+
+    const missing = wanted.filter(n => !kept.has(keyOf(n)));
+    const planned = planMeal({ fresh: missing.map(name => ({ name })) }, packs, plan.day, plan.id);
+    return { plan: planned, unplan };
+  }
+
+  // What a meal plan's day shows: each fresh food with its pack (or none), skipped and out-of-date
+  // flags, the foods still missing, and the other items. null when the meal is gone.
+  function mealPlanView(plan, meal, packs) {
+    const m = normMeal(meal);
+    if (!m) return null;
+    const skipKeys = new Set((plan.skip || []).map(keyOf));
+    const foods = m.fresh.map(f => {
+      const pack = (packs || []).find(p =>
+        p.mealPlanId === plan.id && p.status === "in_fridge" && keyOf(p.name) === keyOf(f.name)) || null;
+      return {
+        name: f.name,
+        some: f.some,
+        pack,
+        skipped: skipKeys.has(keyOf(f.name)),
+        out: pack ? outByDay(pack, plan.day) : 0
+      };
+    });
+    const missing = foods.filter(f => !f.pack && !f.skipped).map(f => f.name);
+    return {
+      id: m.id,
+      plan,
+      name: m.name,
+      foods,
+      missing,
+      other: m.other,
+      warn: missing.length > 0 || foods.some(f => f.out > 0)
+    };
+  }
+
+  // Names to buy for a meal: missing fresh foods, then other items with their amount
+  function mealShopNames(view) {
+    return [...view.missing, ...view.other.map(o => o.qty ? o.name + " " + o.qty : o.name)];
+  }
+
+  // Meal groups for a day (one per meal plan whose meal exists, in plan order), then single foods
+  // that are not part of one of those groups
+  function dayGroups(packs, mealPlans, meals, dayIso) {
+    const day = dayIso;
+    const groups = [];
+    const planIds = new Set();
+    for (const plan of (mealPlans || []).filter(pl => pl.day === day)) {
+      const meal = (meals || []).find(m => String(m.id) === String(plan.mealId));
+      if (!meal) continue;
+      planIds.add(plan.id);
+      groups.push({ type: "meal", plan, view: mealPlanView(plan, meal, packs) });
+    }
+    const singles = dayMeals(packs, day)
+      .filter(p => !(p.mealPlanId != null && planIds.has(p.mealPlanId)))
+      .map(p => ({ type: "pack", pack: p }));
+    return [...groups, ...singles];
+  }
+
+  // A meal's status on My meals: planned days from today on, else the fresh foods with no free pack
+  function mealStatus(meal, mealPlans, packs, today) {
+    const planned = [...new Set((mealPlans || [])
+      .filter(pl => String(pl.mealId) === String(meal.id) && pl.day >= today)
+      .map(pl => pl.day))].sort();
+    if (planned.length) return { planned, need: [] };
+    const m = normMeal(meal) || { fresh: [] };
+    const { missing } = pickFoods(m.fresh.map(f => f.name), packs || []);
+    return { planned: [], need: missing };
+  }
+
+  // Pack ids of the day's "some" foods (they start as part used on "How much did you use?")
+  function partDefaults(packs, mealPlans, meals, dayIso) {
+    const out = new Set();
+    for (const p of packs || []) {
+      if (p.plannedFor !== dayIso || p.mealPlanId == null) continue;
+      const plan = (mealPlans || []).find(pl => String(pl.id) === String(p.mealPlanId));
+      if (!plan) continue;
+      const meal = normMeal((meals || []).find(m => String(m.id) === String(plan.mealId)));
+      if (!meal) continue;
+      if (meal.fresh.some(f => f.some && keyOf(f.name) === keyOf(p.name))) out.add(p.id);
+    }
+    return out;
+  }
+
+  // Meal plans more than 3 days old: these drop off
+  function expiredMealPlans(mealPlans, today) {
+    return (mealPlans || []).filter(pl => daysLeft(pl.day, today) < -3);
+  }
+
+  // Names (first spelling, no repeats) not already to get on the shopping list
+  function recipeShopList(names, shopItems) {
+    const onList = new Set((shopItems || [])
+      .filter(i => !i.got && !i.del)
+      .map(i => String(i.name ?? "").trim().toLowerCase()));
+    const seen = new Set();
+    const out = [];
+    for (const n of names || []) {
+      const t = String(n ?? "").trim();
+      const key = t.toLowerCase();
+      if (!t || seen.has(key) || onList.has(key)) continue;
+      seen.add(key);
+      out.push(t);
+    }
+    return out;
+  }
+
   // Export
   const FT = {
     addDays,
@@ -1207,6 +1540,7 @@
     rememberedNoDate,
     rememberedKind,
     searchFoods,
+    suggestFoods,
     boughtCount,
     quickFillRow,
     parseQuickFill,
@@ -1218,7 +1552,20 @@
     outByDay,
     makeTakeaway,
     dayMeals,
+    dayGroups,
     mealIdeas,
+    tidyName,
+    normMeal,
+    makeMeal,
+    newFoodName,
+    planMeal,
+    syncMealPlan,
+    mealPlanView,
+    mealShopNames,
+    mealStatus,
+    partDefaults,
+    expiredMealPlans,
+    recipeShopList,
     shopOrder,
     expiredShopDeletes,
     timesBought,
