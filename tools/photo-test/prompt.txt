@@ -2,7 +2,7 @@ Look at this photo of one food item. The photo may be sideways or upside down.
 Focus only on the main item. Ignore anything in the background.
 
 Return ONLY one JSON object, no other text:
-{"name": "...", "sub": "...", "date": "YYYY-MM-DD", "bb": true, "price": 3.5, "packs": 2, "noDate": true}
+{"name": "...", "sub": "...", "date": "YYYY-MM-DD", "bb": true, "price": 3.5, "packs": 2, "kind": "veg", "noDate": true}
 
 Fields (leave out any field you don't have; never write null):
 - name: short main name. No brand, size, "fillets", "British" or "% fat" (those go in sub).
@@ -15,7 +15,8 @@ Fields (leave out any field you don't have; never write null):
 - price: a number, only if a price is printed on a label. Never guess.
 - packs: only when the photo shows more than one of the same pack.
 - noDate: true only when the packet clearly has no date printed anywhere.
-- Fresh loose or bagged veg and fruit: name only, plus sub if there's a label. No date.
+- kind: "veg" for fresh veg and fruit, loose or bagged (potatoes, carrots, onions, apples...).
+  Veg gets name, sub and kind only. Never a date: codes like "I 23" or "J 2" on veg bags are not dates.
 
 Reading dates:
 - Dates may be squashed with no spaces: "10OCT" means 10 October. A letter O can look like a zero.

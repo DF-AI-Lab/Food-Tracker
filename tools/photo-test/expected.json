@@ -28,8 +28,8 @@
   "p06.jpg": {
     "name": "Potatoes",
     "sub": "Asda British Maris Piper potatoes",
-    "noDate": true,
-    "packs": 2
+    "packs": 2,
+    "kind": "veg"
   },
   "p07.jpg": {
     "name": "Sausages",
@@ -60,22 +60,22 @@
   "p12.jpg": {
     "name": "Potatoes",
     "sub": "Asda British Maris Piper potatoes",
-    "noDate": true,
-    "packs": 2
+    "packs": 2,
+    "kind": "veg"
   },
   "p13.jpg": {
     "name": "Potatoes",
     "sub": "Asda British 4 baking potatoes",
-    "noDate": true
+    "kind": "veg"
   },
   "p14.jpg": {
     "name": "Carrots",
     "sub": "Asda British carrots",
-    "noDate": true
+    "kind": "veg"
   },
   "p15.jpg": {
     "name": "Sweet potatoes",
     "sub": "Asda sweet potatoes",
-    "noDate": true
+    "kind": "veg"
   }
 }

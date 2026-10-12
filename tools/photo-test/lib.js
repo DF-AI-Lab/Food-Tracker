@@ -35,11 +35,14 @@ function parseReply(text) {
   } catch {
     return { error: "Couldn't read reply", needsCheck: true, date: null };
   }
-  const date = realDate(o.date);
-  const noDate = o.noDate === true;
+  const kind = ["main", "side", "veg", "misc"].includes(norm(o.kind)) ? norm(o.kind) : null;
+  // Veg never has a date: the app counts from the day it goes in the fridge
+  const date = kind === "veg" ? null : realDate(o.date);
+  const noDate = o.noDate === true || kind === "veg";
   return {
     name: clean(o.name),
     sub: clean(o.sub),
+    kind,
     date,
     bb: o.bb === true,
     price: typeof o.price === "number" && Number.isFinite(o.price) ? o.price : null,
@@ -62,6 +65,7 @@ function scoreOne(expected, got) {
   return {
     date,
     name: got.name != null && norm(got.name) === norm(expected.name),
+    kind: expected.kind === undefined ? true : got.kind === expected.kind,
     bb: Boolean(expected.bb) === Boolean(got.bb),
     price: expected.price === undefined ? true : got.price === expected.price,
   };
@@ -80,6 +84,7 @@ function scoreRun(expected, results) {
     blank: count((r) => r.date === "blank"),
     wrong: count((r) => r.date === "wrong"),
     nameRight: count((r) => r.name),
+    kindRight: count((r) => r.kind),
     bbRight: count((r) => r.bb),
     priceRight: count((r) => r.price),
     rows,
