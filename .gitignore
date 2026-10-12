@@ -16,3 +16,7 @@ node_modules/
 
 # Emulator logs
 *-debug.log
+
+# Photo test rig: photos and results stay local
+tools/photo-test/photos/
+tools/photo-test/out/
