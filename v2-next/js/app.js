@@ -6,12 +6,13 @@
   // Meal planner state
   let selDay = today;
   let selSlot = 'main';
-  const NEXT_SLOT = { main: 'side', side: 'veg', veg: 'misc' };
-  const NEXT_LABEL = { main: 'Next: Sides', side: 'Next: Veg', veg: 'Next: Misc' };
+  const NEXT_SLOT = { meal: 'main', main: 'side', side: 'veg', veg: 'misc' };
+  const NEXT_LABEL = { meal: 'Next: Mains', main: 'Next: Sides', side: 'Next: Veg', veg: 'Next: Misc' };
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
   let openDay = today;    // day whose card is open (null = all closed); today is open on load
   let meals = [];         // meals history, saved in DB.meals
-  let recipes = [];       // recipes, saved in DB.recipes
+  let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
+  let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
   let askDay = null;      // past day in "What did you have?" (or cost) mode
   let addingTonight = false; // after 5pm: tonight's card has its picker open again (+ Add)
   const pastState = {};   // past day -> 'ask' | 'use' | 'cost' | 'had'
@@ -159,7 +160,8 @@
     // Shopping list and idea ratings
     shop = await DB.shop.all();
     meals = await DB.meals.all();
-    recipes = await DB.recipes.all();
+    recipes = (await DB.recipes.all()).map(FT.normMeal);
+    mealPlans = await DB.mealPlans.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     // Shop items deleted before yesterday are removed for good
     const expiredShop = FT.expiredShopDeletes(shop, today);
@@ -170,6 +172,9 @@
       // try again next time the app starts
     }
     bellEntries = await DB.activity.all();
+    // Meal plans from days long gone drop off; the rest are brought up to date with the fridge
+    dropExpiredMealPlans();
+    syncPlans();
     setupTheme();
     setupEventListeners();
     renderAll();
@@ -188,7 +193,8 @@
     packs = await DB.all();
     shop = await DB.shop.all();
     meals = await DB.meals.all();
-    recipes = await DB.recipes.all();
+    recipes = (await DB.recipes.all()).map(FT.normMeal);
+    mealPlans = await DB.mealPlans.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     bellEntries = await DB.activity.all();
   }
@@ -372,7 +378,7 @@
       const days = FT.mealDays(today);
       selDay = days[(days.indexOf(selDay) + 1) % 7];
       openDay = selDay;
-      selSlot = 'main';
+      selSlot = defaultSlot();
       pendingPlan = null;
       renderMeals();
     });
@@ -390,7 +396,7 @@
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
-    setupRecipes();
+    setupMeals();
     document.getElementById('clearAll').addEventListener('click', () => setClearAsk(true));
     document.getElementById('clrNo').addEventListener('click', () => setClearAsk(false));
     document.getElementById('clrYes').addEventListener('click', clearAllShop);
@@ -777,7 +783,7 @@
     }
 
     const newPacks = chosen.flatMap(item => FT.makePacks({
-      name: item.name, kind: item.kind, date: item.date, noDate: item.noDate,
+      name: FT.tidyName(item.name), kind: item.kind, date: item.date, noDate: item.noDate,
       dateType: item.dateType, count: item.count, toFreezer: item.toFreezer,
       sub: item.sub, price: item.price
     }, today));
@@ -791,6 +797,7 @@
       }
       packs.push(...newPacks);
       lastAction = { type: 'add', ids };
+      syncPlans();
 
       msg.textContent = `✓ added ${newPacks.length} packs`;
       showUndoBar();
@@ -815,6 +822,8 @@
     if (tab === 'fridge') {
       switchView('fridge');
     } else if (tab === 'add') {
+      // The Add tab opens "One item" (the Shop sub-view is opened by openShopList, after this)
+      switchSub('fridge');
       refreshUsuals();
     } else if (tab === 'meals') {
       renderMeals();
@@ -1075,7 +1084,7 @@
   }
 
   async function addPacks() {
-    const name = document.getElementById('name').value;
+    const name = FT.tidyName(document.getElementById('name').value);
     const kind = currentKind();
     const noDate = document.getElementById('noDate').checked;
     const count = parseInt(document.getElementById('count').textContent) || 1;
@@ -1112,6 +1121,7 @@
       setAddMsg('Error saving to database', true);
       return;
     }
+    syncPlans();
 
     setAddMsg(`✓ added ${count} × ${newPacks[0].name}`);
     showUndoBar();
@@ -1548,6 +1558,7 @@
         await DB.put(updated);
         Object.assign(item.pack, updated);
         lastAction = { type: 'update', packId: item.pack.id, before: item.pack };
+        syncPlans();
         showUndoBar();
         renderAll();
       });
@@ -1748,7 +1759,7 @@
     } else {
       openDay = day;
       selDay = day;
-      selSlot = 'main';
+      selSlot = defaultSlot();
       pendingPlan = null;
     }
     renderMeals();
@@ -1756,6 +1767,7 @@
 
   function renderMeals() {
     dropExpiredPlans();
+    dropExpiredMealPlans();
     const pane = document.querySelector('[data-tab-pane="meals"]');
     const picker = document.getElementById('picker');
     const dayListEl = document.getElementById('dayList');
@@ -1770,462 +1782,432 @@
 
     document.getElementById('nextDay').hidden = inHad() || (addingTonight && asked.includes(today));
     const nextSlot = document.getElementById('nextSlot');
-    nextSlot.hidden = selSlot === 'misc' || selSlot === 'meal';
+    nextSlot.hidden = selSlot === 'misc';
     nextSlot.textContent = NEXT_LABEL[selSlot] || 'Next: Sides';
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
     document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
     renderWarnBar();
     renderPickList();
-    renderRecipes();
-    renderMealIdeas();
+    renderMyMeals();
   }
 
-  // ---- Meal ideas: combos eaten before, under the days ----
+  // ---- Meals (V3): a meal is a name, fresh foods (checked against the fridge) and other items ----
 
-  // Day that a green + plans into: the open day if it is today or later, else today
-  function ideaDay() {
-    return openDay && openDay >= today ? openDay : today;
+  let mealFormId = null;          // the meal the form is editing (null = a new one)
+  let mealDraft = { fresh: [], other: [] };
+  const openPlans = new Set();    // meal chips open on their day (plan ids)
+
+  // The picker opens on the Meals tab when there is a meal to plan, else on Mains
+  function defaultSlot() {
+    return recipes.length ? 'meal' : 'main';
   }
 
-  // Soonest free fridge pack for a food name; undated packs last
-  function soonestFree(name) {
-    const key = name.toLowerCase();
-    const byDate = (a, b) => (!a.date) - (!b.date) || (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id));
-    return packs
-      .filter(p => p.status === 'in_fridge' && !p.plannedFor && p.name.toLowerCase() === key)
-      .sort(byDate)[0] || null;
+  function mealById(id) {
+    return recipes.find(m => String(m.id) === String(id)) || null;
   }
 
-  async function planIdea(idea) {
-    const day = ideaDay();
-    try {
-      for (const item of idea.items) {
-        const pack = soonestFree(item.name);
-        if (pack) await savePack(FT.planPack(pack, day, item.slot));
+  // "A", "A and B", "A, B and C"
+  function joinWords(list) {
+    if (list.length < 2) return list.join('');
+    return list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+  }
+
+  // Take a meal plan off its day: its foods go back in the fridge and the plan goes. The lists
+  // change at once; the returned array holds the database writes.
+  function dropPlan(plan) {
+    const writes = packs
+      .filter(p => String(p.mealPlanId) === String(plan.id) && p.status === 'in_fridge')
+      .map(p => setPack(FT.unplanPack(p)));
+    mealPlans = mealPlans.filter(pl => String(pl.id) !== String(plan.id));
+    openPlans.delete(plan.id);
+    writes.push(DB.mealPlans.remove(plan.id));
+    return writes;
+  }
+
+  // A day finished: its meal plans come off
+  function dropPlansOn(day) {
+    return mealPlans.filter(pl => pl.day === day).flatMap(dropPlan);
+  }
+
+  // Meal plans more than 3 days old drop off, with their foods
+  function dropExpiredMealPlans() {
+    const expired = FT.expiredMealPlans(mealPlans, today);
+    if (expired.length) persistAll(expired.flatMap(dropPlan));
+  }
+
+  // Keep every meal plan from today on in step with its meal and the fridge. A plan whose meal
+  // is gone comes off. Call after a pack joins the fridge, a meal is saved, or a food is skipped.
+  function syncPlans() {
+    const writes = [];
+    for (const plan of [...mealPlans]) {
+      const meal = mealById(plan.mealId);
+      if (!meal) {
+        writes.push(...dropPlan(plan));
+        continue;
       }
-    } catch (e) {
-      // a save failed: the screen below shows what was saved
+      if (plan.day < today) continue;
+      const r = FT.syncMealPlan(plan, meal, packs, today);
+      r.unplan.forEach(p => writes.push(setPack(p)));
+      r.plan.forEach(p => writes.push(setPack(p)));
     }
+    return persistAll(writes);
+  }
+
+  // Skip a food for this meal only, or put it back
+  function toggleSkip(plan, name) {
+    const key = name.trim().toLowerCase();
+    const skip = plan.skip || [];
+    const off = skip.some(s => String(s).trim().toLowerCase() === key);
+    const updated = {
+      ...plan,
+      skip: off ? skip.filter(s => String(s).trim().toLowerCase() !== key) : [...skip, name]
+    };
+    mealPlans = mealPlans.map(pl => (String(pl.id) === String(plan.id) ? updated : pl));
+    const saved = persistAll([DB.mealPlans.put(updated)]);
+    syncPlans();
     renderMeals();
     renderAll();
+    return saved;
   }
 
-  // Grey +: put the missing foods on the shopping list
-  async function shopIdea(idea, button) {
-    for (const name of idea.missing) await autoAdd(name, 'for a meal');
-    const sub = document.querySelector('#mealIdeas .sub');
-    sub.textContent = 'Added to shopping list';
-    setTimeout(() => { sub.textContent = 'Most had first · tap + to add to the open day'; }, 2500);
+  // Plan a meal on a day: one plan, and its foods from the fridge. Missing foods and other items
+  // are offered for the shopping list.
+  async function planMealFor(day, meal) {
+    const plan = { day, mealId: meal.id, skip: [] };
+    try {
+      plan.id = await DB.mealPlans.add(plan);
+    } catch (e) {
+      renderMeals();
+      return;
+    }
+    mealPlans.push(plan);
+    // Planning tonight after 5pm keeps today's picker open, as with a single food
+    if (day === today) addingTonight = true;
+    await persistAll(FT.planMeal(meal, packs, day, plan.id).map(p => setPack(p)));
+    renderMeals();
+    renderAll();
+    const view = FT.mealPlanView(plan, meal, packs);
+    if (FT.mealShopNames(view).length) showMealShop(meal, day, view);
   }
 
-  function renderMealIdeas() {
-    const box = document.getElementById('mealIdeas');
-    const list = box.querySelector('.il');
-    const ideas = FT.mealIdeas(meals, packs);
-    list.innerHTML = '';
-    box.hidden = ideas.length === 0;
-    for (const idea of ideas) {
-      const row = document.createElement('div');
-      row.className = 'idea';
+  // "What did you have?": the meal's foods are eaten now, marked used as picking each one would
+  function hadMeal(meal) {
+    return Promise.all(FT.planMeal(meal, packs, askDay, null).map(p => hadPick(p)));
+  }
 
-      const t = document.createElement('div');
-      t.className = 't';
-      const b = document.createElement('b');
-      b.textContent = idea.name;
-      const span = document.createElement('span');
-      const had = `Had ${idea.count}×`;
-      if (idea.missing.length) {
-        span.className = 'miss';
-        span.textContent = `${had} · need ${idea.missing.join(', ')}`;
-      } else {
-        span.textContent = `${had} · all in fridge`;
-      }
-      t.append(b, span);
-
-      const plus = document.createElement('button');
-      plus.className = 'plus' + (idea.missing.length ? ' off' : '');
-      plus.type = 'button';
-      plus.innerHTML = ICON('add', 18, 2.2);
-      plus.setAttribute('aria-label', idea.missing.length ? 'Put ' + idea.missing.join(', ') + ' on the shopping list' : 'Plan ' + idea.name);
-      plus.addEventListener('click', () => (idea.missing.length ? shopIdea(idea, plus) : planIdea(idea)));
-
-      row.append(t, plus);
+  // The shopping offer after a meal is planned: missing foods ticked, then the cupboard items
+  function showMealShop(meal, day, view) {
+    document.getElementById('mealShopTitle').textContent = `${meal.name} on ${shortDay(day)}: add to shopping list?`;
+    const list = document.getElementById('mealShopList');
+    list.textContent = '';
+    const addRow = name => {
+      const row = document.createElement('label');
+      row.className = 'rs-row';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = name;
+      box.checked = true;
+      const text = document.createElement('span');
+      text.textContent = name;
+      row.append(box, text);
       list.appendChild(row);
+    };
+    view.missing.forEach(addRow);
+    if (view.other.length) {
+      const label = document.createElement('p');
+      label.className = 'tag cupboard-lbl';
+      label.textContent = 'Check the cupboard';
+      list.appendChild(label);
+      FT.mealShopNames({ missing: [], other: view.other }).forEach(addRow);
+    }
+    const box = document.getElementById('mealShop');
+    box.hidden = false;
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Add the ticked names to the shopping list (ones already on it are left out)
+  async function addMealShop() {
+    const ticked = [...document.querySelectorAll('#mealShopList input:checked')].map(b => b.value);
+    document.getElementById('mealShop').hidden = true;
+    for (const name of FT.recipeShopList(ticked, shop)) await autoAdd(name, 'for a meal');
+  }
+
+  // Take a meal off its day (its chip's ✕)
+  async function removeMealPlan(plan) {
+    const writes = dropPlan(plan);
+    if (openDay === plan.day && FT.dayMeals(packs, plan.day).length === 0) openDay = null;
+    renderMeals();
+    renderAll();
+    await persistAll(writes);
+  }
+
+  // ---- My meals: the list at the bottom of the Meals page, and the meal form ----
+
+  // Plan status words for a meal (My meals rows and the picker)
+  function mealStatusText(meal) {
+    const st = FT.mealStatus(meal, mealPlans, packs, today);
+    if (st.planned.length) return { text: 'Planned ' + joinWords(st.planned.map(shortDay)), miss: false };
+    if (st.need.length) return { text: 'Need ' + joinWords(st.need), miss: true };
+    return { text: 'All in fridge', miss: false };
+  }
+
+  function renderMyMeals() {
+    const list = document.querySelector('#myMeals .ml');
+    list.textContent = '';
+    const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+    if (!sorted.length) {
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = 'No meals yet. Tap New meal.';
+      list.appendChild(note);
+      return;
+    }
+    for (const m of sorted) {
+      const st = mealStatusText(m);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'meal-row';
+      const name = document.createElement('span');
+      name.className = 'mr-name';
+      name.textContent = m.name;
+      const sub = document.createElement('span');
+      sub.className = 'meal-sub' + (st.miss ? ' miss' : '');
+      sub.textContent = st.text;
+      btn.append(name, sub);
+      btn.addEventListener('click', () => openMealForm(m));
+      list.appendChild(btn);
     }
   }
 
-  // ---- Recipes (V3): a name, fresh foods checked against the fridge, other things ----
-
-  let openRecipeId = null;   // the recipe whose ingredients are showing (one at a time)
-  let editingRecipeId = null; // the recipe the form is editing (null = a new one)
-  let recipeDraft = { fresh: [], other: [] };
-
-  function setupRecipes() {
-    document.getElementById('newRecipe').addEventListener('click', () => openRecipeForm(null));
-    document.getElementById('recipeCancel').addEventListener('click', closeRecipeForm);
-    document.getElementById('recipeSave').addEventListener('click', saveRecipe);
-    document.getElementById('freshAdd').addEventListener('click', addDraftFresh);
+  function setupMeals() {
+    document.getElementById('newMeal').addEventListener('click', () => openMealForm(null));
+    document.getElementById('mealSave').addEventListener('click', saveMealForm);
+    document.getElementById('mealCancel').addEventListener('click', closeMealForm);
+    document.getElementById('mealDelete').addEventListener('click', () => {
+      document.getElementById('mealDelConfirm').hidden = false;
+    });
+    document.getElementById('mealDelKeep').addEventListener('click', () => {
+      document.getElementById('mealDelConfirm').hidden = true;
+    });
+    document.getElementById('mealDelYes').addEventListener('click', deleteMeal);
     document.getElementById('freshIn').addEventListener('input', showFreshSuggest);
     document.getElementById('freshIn').addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); addDraftFresh(); }
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const first = document.querySelector('#freshSuggest .sug');
+      if (first) first.click();
     });
-    document.getElementById('otherAdd').addEventListener('click', addDraftOther);
-    document.getElementById('recipeShopAdd').addEventListener('click', addRecipeShop);
-    document.getElementById('recipeShopSkip').addEventListener('click', () => {
-      document.getElementById('recipeShop').hidden = true;
+    document.getElementById('otherAdd').addEventListener('click', addOtherItem);
+    document.getElementById('mealShopAdd').addEventListener('click', addMealShop);
+    document.getElementById('mealShopSkip').addEventListener('click', () => {
+      document.getElementById('mealShop').hidden = true;
     });
   }
 
-  function recipeFormMsg(text) {
-    const el = document.getElementById('recipeMsg');
+  function setMealErr(text) {
+    const el = document.getElementById('mealErr');
     el.textContent = text;
     el.hidden = !text;
   }
 
-  // Open the form for a new recipe (r = null) or to edit one
-  function openRecipeForm(r, freshNames = []) {
-    editingRecipeId = r ? r.id : null;
-    recipeDraft = r
-      ? { fresh: [...r.fresh], other: r.other.map(o => ({ ...o })) }
-      : { fresh: [], other: [] };
-    if (!r) {
-      // A new recipe may start with foods (from a planned day): unique names, first spelling kept
-      for (const n of freshNames) {
-        const t = String(n ?? '').trim();
-        if (t && !recipeDraft.fresh.some(f => f.toLowerCase() === t.toLowerCase())) recipeDraft.fresh.push(t);
-      }
+  // Open the form for a new meal (meal = null, starting with freshNames) or to edit one
+  function openMealForm(meal, freshNames = []) {
+    mealFormId = meal ? meal.id : null;
+    mealDraft = { fresh: [], other: [] };
+    if (meal) {
+      mealDraft.fresh = meal.fresh.map(f => ({ ...f }));
+      mealDraft.other = meal.other.map(o => ({ ...o }));
+    } else {
+      freshNames.forEach(n => draftAddFresh(n));
     }
-    document.getElementById('recipeName').value = r ? r.name : '';
+    document.getElementById('mealFormTitle').textContent = meal ? 'Edit meal' : 'New meal';
+    document.getElementById('mealName').value = meal ? meal.name : '';
+    document.getElementById('mealDelete').hidden = !meal;
+    document.getElementById('mealDelConfirm').hidden = true;
     document.getElementById('freshIn').value = '';
+    document.getElementById('freshSuggest').textContent = '';
     document.getElementById('otherName').value = '';
     document.getElementById('otherQty').value = '';
-    clearFreshSuggest();
-    recipeFormMsg('');
-    document.getElementById('recipeForm').hidden = false;
-    renderDraft();
-    document.getElementById('recipeName').focus();
+    setMealErr('');
+    renderMealDraft();
+    const form = document.getElementById('mealForm');
+    form.hidden = false;
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function closeRecipeForm() {
-    editingRecipeId = null;
-    recipeDraft = { fresh: [], other: [] };
-    clearFreshSuggest();
-    document.getElementById('recipeForm').hidden = true;
+  function closeMealForm() {
+    mealFormId = null;
+    mealDraft = { fresh: [], other: [] };
+    document.getElementById('mealForm').hidden = true;
+    document.getElementById('freshSuggest').textContent = '';
   }
 
-  // "Meal?" on a planned day: a new recipe starting with that day's planned foods (not takeaways)
-  function openMealRecipe(day) {
-    const names = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway').map(p => p.name);
-    openRecipeForm(null, names);
-    document.getElementById('recipeForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Add a fresh food to the draft (tidied, no repeats in any case). False if not added.
+  function draftAddFresh(name) {
+    const n = FT.tidyName(name);
+    if (!n || mealDraft.fresh.some(f => f.name.toLowerCase() === n.toLowerCase())) return false;
+    mealDraft.fresh.push({ name: n, some: false });
+    return true;
   }
 
-  function addFreshName(name) {
-    const input = document.getElementById('freshIn');
-    input.value = '';
-    clearFreshSuggest();
-    if (name && !recipeDraft.fresh.some(f => f.toLowerCase() === name.toLowerCase())) recipeDraft.fresh.push(name);
-    renderDraft();
-    input.focus();
-  }
-
-  function addDraftFresh() {
-    addFreshName(document.getElementById('freshIn').value.trim());
-  }
-
-  // Tap chips under the fresh food box while typing (foods already in the recipe are left out)
-  function showFreshSuggest() {
-    const box = document.getElementById('freshSuggest');
-    const value = document.getElementById('freshIn').value;
-    box.replaceChildren();
-    if (!value.trim()) return;
-    FT.suggestFoods(packs, value, recipeDraft.fresh).forEach(s => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'sug qc';
-      b.textContent = '+ ' + s.name;
-      b.addEventListener('click', () => addFreshName(s.name));
-      box.appendChild(b);
-    });
-  }
-
-  function clearFreshSuggest() {
-    document.getElementById('freshSuggest').replaceChildren();
-  }
-
-  function addDraftOther() {
-    const nameIn = document.getElementById('otherName');
-    const qtyIn = document.getElementById('otherQty');
-    const name = nameIn.value.trim();
-    if (name) recipeDraft.other.push({ name, qty: qtyIn.value.trim() || null });
-    nameIn.value = '';
-    qtyIn.value = '';
-    renderDraft();
-    nameIn.focus();
-  }
-
-  // Draw the fresh chips and other rows from recipeDraft (names as typed; text set with textContent)
-  function renderDraft() {
-    const form = document.getElementById('recipeForm');
-    const freshBox = form.querySelector('.fresh-list');
-    const otherBox = form.querySelector('.other-list');
-    freshBox.replaceChildren();
-    recipeDraft.fresh.forEach((name, i) => {
+  // Draw the draft's fresh foods and other items (names set with textContent)
+  function renderMealDraft() {
+    const form = document.getElementById('mealForm');
+    const freshList = form.querySelector('.fresh-list');
+    freshList.textContent = '';
+    mealDraft.fresh.forEach((f, i) => {
       const chip = document.createElement('span');
-      chip.className = 'chip2 fresh-item';
-      const inner = document.createElement('span');
+      chip.className = 'fresh-item';
       const nm = document.createElement('span');
-      nm.className = 'nm';
-      nm.textContent = name;
-      inner.appendChild(nm);
+      nm.className = 'fnm';
+      nm.textContent = f.name;
+      const some = document.createElement('button');
+      some.type = 'button';
+      some.className = 'some';
+      some.textContent = 'some';
+      some.title = 'Only some of this is used in the meal';
+      some.setAttribute('aria-pressed', String(f.some));
+      some.addEventListener('click', () => {
+        mealDraft.fresh[i].some = !mealDraft.fresh[i].some;
+        renderMealDraft();
+      });
       const rm = document.createElement('button');
-      rm.className = 'x rm';
       rm.type = 'button';
-      rm.textContent = '×';
-      rm.setAttribute('aria-label', 'Remove ' + name);
-      rm.addEventListener('click', () => { recipeDraft.fresh.splice(i, 1); renderDraft(); });
-      chip.append(inner, rm);
-      freshBox.appendChild(chip);
+      rm.className = 'rm';
+      rm.innerHTML = ICON('close', 12, 2.4);
+      rm.setAttribute('aria-label', 'Remove ' + f.name);
+      rm.addEventListener('click', () => {
+        mealDraft.fresh.splice(i, 1);
+        renderMealDraft();
+      });
+      chip.append(nm, some, rm);
+      freshList.appendChild(chip);
     });
-    otherBox.replaceChildren();
-    recipeDraft.other.forEach((o, i) => {
+    const otherList = form.querySelector('.other-list');
+    otherList.textContent = '';
+    mealDraft.other.forEach((o, i) => {
       const row = document.createElement('div');
       row.className = 'other-item';
       const nm = document.createElement('span');
       nm.className = 'nm';
-      nm.textContent = o.name;
-      const qty = document.createElement('span');
-      qty.className = 'qty';
-      qty.textContent = o.qty || '';
+      nm.textContent = o.qty ? o.name + ' ' + o.qty : o.name;
       const rm = document.createElement('button');
-      rm.className = 'rm';
       rm.type = 'button';
-      rm.textContent = '×';
+      rm.className = 'rm';
+      rm.innerHTML = ICON('close', 12, 2.4);
       rm.setAttribute('aria-label', 'Remove ' + o.name);
-      rm.addEventListener('click', () => { recipeDraft.other.splice(i, 1); renderDraft(); });
-      row.append(nm, qty, rm);
-      otherBox.appendChild(row);
-    });
-  }
-
-  async function saveRecipe() {
-    const r = FT.makeRecipe({
-      id: editingRecipeId,
-      name: document.getElementById('recipeName').value,
-      fresh: recipeDraft.fresh,
-      other: recipeDraft.other
-    });
-    if (!r) {
-      recipeFormMsg('Give the recipe a name, and at least one food or thing.');
-      return;
-    }
-    try {
-      if (r.id !== undefined) {
-        await DB.recipes.put(r);
-        recipes = recipes.map(x => (x.id === r.id ? r : x));
-      } else {
-        r.id = await DB.recipes.add(r);
-        recipes.push(r);
-      }
-    } catch (e) {
-      recipeFormMsg("Couldn't save the recipe. Try again.");
-      return;
-    }
-    closeRecipeForm();
-    openRecipeId = null;
-    renderRecipes();
-  }
-
-  // "a, b and c" for a list of names
-  function listNames(names) {
-    if (names.length <= 1) return names.join('');
-    return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
-  }
-
-  // "today", a weekday within the week ("Sun"), or the full date
-  function plannedWhen(day) {
-    if (day === today) return 'today';
-    const days = Math.round((Date.parse(day) - Date.parse(today)) / 864e5);
-    return days <= 6 ? shortDay(day) : FT.formatDate(day);
-  }
-
-  // What a recipe needs for the day: fridge foods found, missing names, out-of-date names
-  function recipeCheckNow(r) {
-    return FT.recipeCheck(r, packs, ideaDay());
-  }
-
-  function renderRecipes() {
-    const card = document.querySelector('#recipes .rl');
-    card.replaceChildren();
-    const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
-    if (!sorted.length) {
-      const empty = document.createElement('p');
-      empty.className = 'rl-empty';
-      empty.textContent = 'No recipes yet. Tap New recipe to add one.';
-      card.appendChild(empty);
-      return;
-    }
-    const day = ideaDay();
-    for (const r of sorted) {
-      const check = recipeCheckNow(r);
-      const open = openRecipeId === r.id;
-      const row = document.createElement('div');
-      row.className = 'recipe';
-
-      const head = document.createElement('div');
-      head.className = 'recipe-head';
-      const name = document.createElement('button');
-      name.className = 'recipe-name';
-      name.type = 'button';
-      name.textContent = r.name;
-      name.setAttribute('aria-expanded', String(open));
-      name.addEventListener('click', () => {
-        openRecipeId = openRecipeId === r.id ? null : r.id;
-        renderRecipes();
+      rm.addEventListener('click', () => {
+        mealDraft.other.splice(i, 1);
+        renderMealDraft();
       });
-      const sub = document.createElement('span');
-      sub.className = 'recipe-sub';
-      const plannedDay = FT.recipePlannedDay(r, packs, today);
-      if (plannedDay) {
-        sub.textContent = 'Planned ' + plannedWhen(plannedDay);
-      } else if (check.missing.length) {
-        sub.classList.add('miss');
-        sub.textContent = 'Need ' + listNames(check.missing);
-      } else {
-        sub.textContent = 'All in fridge';
-      }
-      head.append(name, sub);
-      row.appendChild(head);
+      row.append(nm, rm);
+      otherList.appendChild(row);
+    });
+  }
 
-      if (open) {
-        const body = document.createElement('div');
-        body.className = 'recipe-body';
-        for (const h of check.have) {
-          const line = document.createElement('div');
-          line.className = 'ing have' + (h.out > 0 ? ' out' : '');
-          const b = document.createElement('b');
-          b.textContent = h.name;
-          const span = document.createElement('span');
-          span.textContent = h.out > 0
-            ? `${h.out} day${h.out === 1 ? '' : 's'} out of date by then`
-            : 'in fridge';
-          line.append(b, span);
-          body.appendChild(line);
-        }
-        for (const food of check.missing) {
-          const line = document.createElement('div');
-          line.className = 'ing missing';
-          const b = document.createElement('b');
-          b.textContent = food;
-          const span = document.createElement('span');
-          span.textContent = 'need';
-          line.append(b, span);
-          body.appendChild(line);
-        }
-        for (const o of check.other) {
-          const line = document.createElement('div');
-          line.className = 'ing other';
-          const b = document.createElement('b');
-          b.textContent = o.name;
-          const span = document.createElement('span');
-          span.textContent = o.qty || '';
-          line.append(b, span);
-          body.appendChild(line);
-        }
+  function sugButton(name, label, isNew) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sug' + (isNew ? ' new' : '');
+    b.textContent = label;
+    b.addEventListener('click', () => addFreshFromTyping(name));
+    return b;
+  }
 
-        const acts = document.createElement('div');
-        acts.className = 'recipe-acts';
-        const plan = document.createElement('button');
-        plan.className = 'act recipe-plan';
-        plan.type = 'button';
-        plan.textContent = 'Plan for ' + FT.formatDate(day);
-        plan.addEventListener('click', () => planRecipeNow(r));
-        const edit = document.createElement('button');
-        edit.className = 'act ghost recipe-edit';
-        edit.type = 'button';
-        edit.textContent = 'Edit';
-        edit.addEventListener('click', () => openRecipeForm(r));
-        const del = document.createElement('button');
-        del.className = 'act ghost recipe-del';
-        del.type = 'button';
-        del.textContent = 'Delete';
-        del.addEventListener('click', () => deleteRecipe(r));
-        acts.append(plan, edit, del);
-        body.appendChild(acts);
-        row.appendChild(body);
-      }
-      card.appendChild(row);
+  // Chips under the fresh food box while typing: suggestions, then "+ Add new" if it is a new name
+  function showFreshSuggest() {
+    const box = document.getElementById('freshSuggest');
+    box.textContent = '';
+    const typed = document.getElementById('freshIn').value;
+    if (!typed.trim()) return;
+    const sugs = FT.suggestFoods(packs, typed, mealDraft.fresh.map(f => f.name));
+    sugs.forEach(s => box.appendChild(sugButton(s.name, '+ ' + s.name, false)));
+    const fresh = FT.newFoodName(typed, sugs);
+    if (fresh && !mealDraft.fresh.some(f => f.name.toLowerCase() === fresh.toLowerCase())) {
+      box.appendChild(sugButton(fresh, '+ Add new: ' + fresh, true));
     }
   }
 
-  // Plan what is in the fridge for the day; then offer the missing foods for the shopping list
-  async function planRecipeNow(r, day = ideaDay()) {
-    const check = FT.recipeCheck(r, packs, day);
-    const planned = FT.planRecipe(r, packs, day);
-    try {
-      for (const p of planned) await savePack(p);
-    } catch (e) {
-      // a save failed: the screen below shows what was saved
+  // Tapping a chip adds that food (not as "some"), clears the box and goes back to typing
+  function addFreshFromTyping(name) {
+    draftAddFresh(name);
+    const input = document.getElementById('freshIn');
+    input.value = '';
+    document.getElementById('freshSuggest').textContent = '';
+    renderMealDraft();
+    input.focus();
+  }
+
+  function addOtherItem() {
+    const nameIn = document.getElementById('otherName');
+    const qtyIn = document.getElementById('otherQty');
+    const name = FT.tidyName(nameIn.value);
+    if (!name) return;
+    mealDraft.other.push({ name, qty: qtyIn.value.trim() || null });
+    nameIn.value = '';
+    qtyIn.value = '';
+    renderMealDraft();
+    nameIn.focus();
+  }
+
+  async function saveMealForm() {
+    const res = FT.makeMeal({
+      id: mealFormId,
+      name: document.getElementById('mealName').value,
+      fresh: mealDraft.fresh,
+      other: mealDraft.other
+    }, recipes);
+    if (res.error) {
+      setMealErr(res.error);
+      return;
     }
-    openRecipeId = null;
+    const meal = res.meal;
+    try {
+      if (mealFormId != null) {
+        await DB.recipes.put(meal);
+        recipes = recipes.map(m => (String(m.id) === String(meal.id) ? meal : m));
+      } else {
+        meal.id = await DB.recipes.add(meal);
+        recipes = [...recipes, meal];
+        selSlot = 'meal'; // a new meal is the first thing to plan: the picker shows the Meals tab
+      }
+    } catch (e) {
+      setMealErr("Couldn't save the meal. Try again.");
+      return;
+    }
+    closeMealForm();
+    syncPlans();
     renderMeals();
     renderAll();
-    showRecipeShop(r, check);
   }
 
-  // Missing fresh foods first, then cupboard things (with their amount), each ticked
-  function showRecipeShop(r, check) {
-    const panel = document.getElementById('recipeShop');
-    const list = panel.querySelector('.rs-list');
-    const warn = document.getElementById('recipeWarn');
-    const names = FT.recipeShopNames(r, check);
-    list.replaceChildren();
-    names.forEach((name, i) => {
-      if (i === check.missing.length && i > 0) {
-        const lab = document.createElement('div');
-        lab.className = 'rs-lab';
-        lab.textContent = 'Check the cupboard';
-        list.appendChild(lab);
-      }
-      const label = document.createElement('label');
-      label.className = 'rs-row';
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.checked = true;
-      box.value = name;
-      const text = document.createElement('span');
-      text.textContent = name;
-      label.append(box, text);
-      list.appendChild(label);
-    });
-    warn.textContent = check.outNames.length
-      ? 'Out of date by then: ' + listNames(check.outNames)
-      : '';
-    warn.hidden = !check.outNames.length;
-    panel.hidden = names.length === 0;
+  // Delete (after the confirm): the meal's plans come off their days, then the meal goes
+  async function deleteMeal() {
+    const meal = mealById(mealFormId);
+    closeMealForm();
+    if (!meal) return;
+    const writes = mealPlans.filter(pl => String(pl.mealId) === String(meal.id)).flatMap(dropPlan);
+    recipes = recipes.filter(m => String(m.id) !== String(meal.id));
+    writes.push(DB.recipes.remove(meal.id));
+    renderMeals();
+    renderAll();
+    await persistAll(writes);
   }
 
-  // Ticked names go on the shopping list (not those already to get)
-  async function addRecipeShop() {
-    const ticked = [...document.querySelectorAll('#recipeShop .rs-row input:checked')].map(b => b.value);
-    for (const name of FT.recipeShopList(ticked, shop)) await autoAdd(name, 'for a meal');
-    document.getElementById('recipeShop').hidden = true;
+  // Single planned foods on a day (not takeaways), when the day has no meal: the names that
+  // "Save as meal" starts from. Null when there are none or a meal is planned.
+  function saveMealNames(day) {
+    const groups = FT.dayGroups(packs, mealPlans, recipes, day);
+    if (groups.some(g => g.type === 'meal')) return null;
+    const names = groups.filter(g => g.type === 'pack' && g.pack.kind !== 'takeaway').map(g => g.pack.name);
+    return names.length ? names : null;
   }
 
-  async function deleteRecipe(r) {
-    if (!confirm('Delete ' + r.name + '?')) return;
-    try {
-      await DB.recipes.remove(r.id);
-    } catch (e) {
-      alert("Couldn't delete the recipe.");
-      return;
-    }
-    recipes = recipes.filter(x => x.id !== r.id);
-    if (openRecipeId === r.id) openRecipeId = null;
-    renderRecipes();
+  // "Save as meal" on a day: a new meal starting with that day's foods
+  function openMealFromDay(day) {
+    openMealForm(null, saveMealNames(day) || []);
   }
 
-  // A day in the next 7 days: header, and the picker when it is the open day
   function dayCard(day, picker) {
     const isToday = day === today;
     const isOpen = day === openDay && !inHad();
@@ -2245,20 +2227,19 @@
       head.appendChild(tl);
     }
 
-    const meals = FT.dayMeals(packs, day);
     const mealBlocks = appendDayChips(head, day);
-    if (meals.length === 0) {
+    if (FT.dayGroups(packs, mealPlans, recipes, day).length === 0) {
       const hint = document.createElement('span');
       hint.className = 'hint';
       hint.innerHTML = ICON('add', 14, 2.2) + 'Plan';
       head.appendChild(hint);
     }
-    if (meals.some(p => p.kind !== 'takeaway')) {
+    if (saveMealNames(day)) {
       const meal = document.createElement('button');
       meal.type = 'button';
       meal.className = 'day-meal';
-      meal.textContent = 'Meal?';
-      meal.addEventListener('click', e => { e.stopPropagation(); openMealRecipe(day); });
+      meal.textContent = 'Save as meal';
+      meal.addEventListener('click', e => { e.stopPropagation(); openMealFromDay(day); });
       head.appendChild(meal);
     }
     head.addEventListener('click', () => toggleDay(day));
@@ -2328,8 +2309,8 @@
       const yes = button('had-yes mini', 'Yes', () => { addingTonight = false; answerYes(day); });
       const no = button('had-no mini', 'No', () => { addingTonight = false; answerNo(day); });
       row.append(text);
-      if (FT.dayMeals(packs, day).some(p => p.kind !== 'takeaway')) {
-        row.append(button('mini day-meal', 'Meal?', () => openMealRecipe(day)));
+      if (saveMealNames(day)) {
+        row.append(button('mini day-meal', 'Save as meal', () => openMealFromDay(day)));
       }
       // Tonight (after 5pm) can still take more food: + Add opens the picker for today
       if (day === today) {
@@ -2337,7 +2318,7 @@
           addingTonight = !addingTonight;
           openDay = null; // only one picker: close any other open day
           selDay = today;
-          selSlot = 'main';
+          selSlot = defaultSlot();
           pendingPlan = null;
           renderMeals();
         });
@@ -2354,6 +2335,7 @@
     } else if (state === 'use') {
       q('How much did you use?');
       const planned = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway');
+      const partIds = FT.partDefaults(packs, mealPlans, recipes, day);
       planned.forEach(pack => {
         const row = document.createElement('div');
         row.className = 'use-row';
@@ -2362,13 +2344,14 @@
         name.textContent = pack.name;
         const seg = document.createElement('div');
         seg.className = 'seg';
+        const startPart = partIds.has(pack.id);
         const all = document.createElement('button');
         all.type = 'button';
-        all.className = 'all on';
+        all.className = startPart ? 'all' : 'all on';
         all.textContent = 'All used';
         const part = document.createElement('button');
         part.type = 'button';
-        part.className = 'part';
+        part.className = startPart ? 'part on' : 'part';
         part.textContent = 'Part used';
         all.addEventListener('click', () => { all.classList.add('on'); part.classList.remove('on'); });
         part.addEventListener('click', () => { part.classList.add('on'); all.classList.remove('on'); });
@@ -2411,15 +2394,14 @@
     return card;
   }
 
-  // Planned foods on a day as chips: one meal chip per recipe, single foods as before.
-  // Returns the meal foods blocks, to go under the card head.
+  // Planned foods on a day as chips: one chip per meal plan, single foods as before. Returns the
+  // blocks of foods for the open meals, to go under the card head.
   function appendDayChips(head, day) {
     const blocks = [];
-    for (const g of FT.dayGroups(packs, day)) {
+    for (const g of FT.dayGroups(packs, mealPlans, recipes, day)) {
       if (g.type === 'meal') {
-        const m = mealGroup(g, day);
-        head.appendChild(m.chip);
-        blocks.push(m.ings);
+        head.appendChild(mealPlanChip(g, day));
+        if (openPlans.has(g.plan.id)) blocks.push(mealIngs(g.view, day));
       } else {
         head.appendChild(mealChip(g.pack, day));
       }
@@ -2427,90 +2409,117 @@
     return blocks;
   }
 
-  // Meal cards open here, by day + recipe; kept across re-renders
-  const openMeals = new Set();
+  // A meal on a day: one chip. Tap it to open its foods; ✕ takes the whole meal off the day.
+  function mealPlanChip(g, day) {
+    const { view, plan } = g;
+    const isOpen = openPlans.has(plan.id);
+    const chip = document.createElement('span');
+    chip.className = 'chip meal-chip' + (view.warn ? ' warn' : '');
 
-  // A recipe's planned foods as one chip (tap: its foods drop down; ✕: the whole meal comes off)
-  function mealGroup(g, day) {
-    const key = day + '|' + g.mealId;
-    const late = g.packs.some(p => FT.outByDay(p, day) > 0);
-
-    const chip = document.createElement('div');
-    chip.className = 'chip2 meal-chip' + (late ? ' warn' : '');
-    chip.setAttribute('role', 'button');
-    chip.tabIndex = 0;
-    const label = document.createElement('span');
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'meal-open';
+    open.setAttribute('aria-expanded', String(isOpen));
     const tag = document.createElement('span');
     tag.className = 'meal-tag';
     tag.textContent = 'MEAL';
     const nm = document.createElement('span');
     nm.className = 'nm';
-    nm.textContent = g.name;
+    nm.textContent = view.name;
+    open.append(tag, nm);
+    if (view.warn) {
+      const warn = document.createElement('span');
+      warn.className = 'meal-warn';
+      warn.textContent = '!';
+      warn.title = 'Missing food, or out of date by then';
+      warn.setAttribute('aria-label', 'Missing food, or out of date by then');
+      open.appendChild(warn);
+    }
     const caret = document.createElement('span');
     caret.className = 'caret';
-    caret.textContent = '▾';
-    label.append(tag, nm, caret);
-    if (late) label.title = 'Out of date by then';
+    caret.textContent = isOpen ? '▴' : '▾';
+    open.appendChild(caret);
+    open.addEventListener('click', e => {
+      e.stopPropagation();
+      if (isOpen) openPlans.delete(plan.id);
+      else openPlans.add(plan.id);
+      renderMeals();
+    });
 
     const x = document.createElement('button');
-    x.className = 'x meal-x';
     x.type = 'button';
+    x.className = 'meal-x';
     x.innerHTML = ICON('close', 12, 2.4);
-    x.setAttribute('aria-label', 'Remove ' + g.name);
+    x.setAttribute('aria-label', 'Take ' + view.name + ' off ' + shortDay(day));
     x.addEventListener('click', e => {
       e.stopPropagation();
-      removeMealGroup(g, day);
+      removeMealPlan(plan);
     });
-    chip.append(label, x);
-
-    const ings = document.createElement('div');
-    ings.className = 'meal-ings';
-    for (const p of g.packs) {
-      const row = document.createElement('div');
-      row.className = 'meal-ing' + (FT.outByDay(p, day) > 0 ? ' warn' : '');
-      const b = document.createElement('b');
-      b.textContent = p.name;
-      const when = document.createElement('span');
-      when.textContent = p.date ? LOOK.whenText(p.date, today) : FT.ageLabel(p.added, today);
-      row.append(b, when);
-      ings.appendChild(row);
-    }
-
-    const isOpen = openMeals.has(key);
-    ings.hidden = !isOpen;
-    chip.setAttribute('aria-expanded', String(isOpen));
-    const toggle = () => {
-      const open = !openMeals.has(key);
-      if (open) openMeals.add(key); else openMeals.delete(key);
-      ings.hidden = !open;
-      chip.setAttribute('aria-expanded', String(open));
-    };
-    chip.addEventListener('click', e => {
-      e.stopPropagation();
-      toggle();
-    });
-    chip.addEventListener('keydown', e => {
-      if (e.target !== chip) return; // the ✕ keeps its own keys
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        e.stopPropagation();
-        toggle();
-      }
-    });
-    return { chip, ings };
+    chip.append(open, x);
+    return chip;
   }
 
-  // Take every food of a planned recipe off its day
-  async function removeMealGroup(g, day) {
-    try {
-      for (const p of g.packs) await savePack(FT.unplanPack(p));
-    } catch (e) {
-      // some foods not removed: the day shows what is left
+  // The foods of an open meal: each with its pack date, "need" when no pack is in the fridge,
+  // "skipped this time" when skipped (✕ skips, ↺ puts back), then the cupboard items
+  function mealIngs(view, day) {
+    const box = document.createElement('div');
+    box.className = 'meal-ings';
+    for (const f of view.foods) {
+      const row = document.createElement('div');
+      let status;
+      if (f.skipped) {
+        row.className = 'ing skipped';
+        status = 'skipped this time';
+      } else if (!f.pack) {
+        row.className = 'ing need';
+        status = 'need';
+      } else {
+        row.className = 'ing' + (f.out > 0 ? ' warn' : '');
+        if (f.out > 0) status = 'out by ' + shortDay(day);
+        else status = f.pack.date ? LOOK.whenText(f.pack.date, today) : FT.ageLabel(f.pack.added, today);
+      }
+      const name = document.createElement('span');
+      name.className = 'iname';
+      name.textContent = f.name;
+      row.appendChild(name);
+      if (f.some) {
+        const some = document.createElement('span');
+        some.className = 'some-tag';
+        some.textContent = 'some';
+        row.appendChild(some);
+      }
+      const st = document.createElement('span');
+      st.className = 'ist';
+      st.textContent = status;
+      const skip = document.createElement('button');
+      skip.type = 'button';
+      skip.className = 'skip';
+      if (f.skipped) {
+        skip.textContent = '↺';
+        skip.setAttribute('aria-label', 'Use ' + f.name + ' again');
+      } else {
+        skip.innerHTML = ICON('close', 12, 2.4);
+        skip.setAttribute('aria-label', 'Skip ' + f.name + ' this time');
+      }
+      skip.addEventListener('click', () => toggleSkip(view.plan, f.name));
+      row.append(st, skip);
+      box.appendChild(row);
     }
-    // An emptied day closes its picker (tap Plan to open it again)
-    if (openDay === day && FT.dayMeals(packs, day).length === 0) openDay = null;
-    renderMeals();
-    renderAll();
+    if (view.other.length) {
+      const label = document.createElement('p');
+      label.className = 'tag cupboard-lbl';
+      label.textContent = 'Check the cupboard';
+      box.appendChild(label);
+      for (const o of view.other) {
+        const row = document.createElement('div');
+        row.className = 'cupboard';
+        const text = document.createElement('span');
+        text.textContent = o.qty ? o.name + ' ' + o.qty : o.name;
+        row.appendChild(text);
+        box.appendChild(row);
+      }
+    }
+    return box;
   }
 
   function mealChip(item, day) {
@@ -2576,7 +2585,7 @@
     listEl.innerHTML = '';
 
     if (selSlot === 'meal') {
-      renderRecipePick(listEl);
+      renderMealPick(listEl);
       return;
     }
 
@@ -2612,28 +2621,29 @@
     }
   }
 
-  // Meals tab: one row per recipe; tap to plan it for the open day
-  function renderRecipePick(listEl) {
+  // Meals tab of the picker: one row per meal, tap to plan it for the open day. "+ New meal" last.
+  function renderMealPick(listEl) {
     const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
-    for (const r of sorted) {
-      const check = FT.recipeCheck(r, packs, selDay);
+    for (const m of sorted) {
+      const st = mealStatusText(m);
+      const need = st.miss;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'item' + (check.missing.length ? ' st-soon' : '');
+      btn.className = 'item' + (need ? ' st-soon' : '');
       const name = document.createElement('span');
-      name.textContent = r.name;
+      name.textContent = m.name;
       const right = document.createElement('span');
-      right.textContent = check.missing.length ? 'Need ' + listNames(check.missing) : 'All in fridge';
+      right.textContent = st.text;
       btn.append(name, right);
-      btn.addEventListener('click', () => planRecipeNow(r, selDay));
+      btn.addEventListener('click', () => (inHad() ? hadMeal(m) : planMealFor(selDay, m)));
       listEl.appendChild(btn);
     }
-    if (!sorted.length) {
-      const note = document.createElement('div');
-      note.className = 'note';
-      note.textContent = 'No recipes yet. Tap New recipe on this page to add one.';
-      listEl.appendChild(note);
-    }
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'item ta';
+    add.textContent = '+ New meal';
+    add.addEventListener('click', () => openMealForm(null));
+    listEl.appendChild(add);
   }
 
   // Past card, "Yes": a takeaway goes to the cost question, anything else to how much was used
@@ -2647,12 +2657,13 @@
   // Past card, "No": the plans come off the day, and the picker asks what was eaten instead
   function answerNo(day) {
     finishHad();
-    const writes = FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p))));
+    const writes = dropPlansOn(day);
+    writes.push(...FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p)))));
     askDay = day;
     pastState[day] = 'had';
     hadPicked[day] = [];
     selDay = day;
-    selSlot = 'main';
+    selSlot = defaultSlot();
     pendingPlan = null;
     renderMeals();
     renderAll();
@@ -2673,6 +2684,7 @@
       }
     }
     delete pastState[day];
+    writes.push(...dropPlansOn(day));
     writes.push(saveMeal(FT.mealRecord(day, planned)));
     renderMeals();
     renderAll();
@@ -2682,7 +2694,8 @@
   // Takeaway cost: the takeaway goes, any other plans on the day come off, and the meal is kept
   function finishCost(day, cost) {
     const picked = hadPicked[day] || [];
-    const writes = FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p))));
+    const writes = dropPlansOn(day);
+    writes.push(...FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p)))));
     writes.push(saveMeal(FT.mealRecord(day, picked, { takeaway: true, cost })));
     delete pastState[day];
     delete hadPicked[day];
@@ -2708,7 +2721,7 @@
     finishHad();
     selDay = today;
     openDay = today;
-    selSlot = 'main';
+    selSlot = defaultSlot();
     pendingPlan = null;
     renderMeals();
   }
@@ -2760,7 +2773,7 @@
     const days = FT.mealDays(today);
     selDay = days[(days.indexOf(day) + 1) % 7];
     openDay = selDay;
-    selSlot = 'main';
+    selSlot = defaultSlot();
     pendingPlan = null;
     renderMeals();
   }
@@ -2912,6 +2925,7 @@
         sheets: await DB.sheets.all(),
         ratings: await DB.ratings.all(),
         recipes: await DB.recipes.all(),
+        mealPlans: await DB.mealPlans.all(),
       };
       const backup = FT.backupFile(data, today, new Date().toISOString());
       // Android's Share menu won't take .json files, so a phone shares the same text as .txt
@@ -2964,9 +2978,10 @@
         sheets: await DB.sheets.all(),
         ratings: await DB.ratings.all(),
         recipes: await DB.recipes.all(),
+        mealPlans: await DB.mealPlans.all(),
       };
       const plan = FT.restorePlan(current, r.data);
-      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings, recipes: DB.recipes };
+      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings, recipes: DB.recipes, mealPlans: DB.mealPlans };
       for (const list of Object.keys(plan)) {
         for (const item of plan[list].put) await stores[list].put(item);
         for (const id of plan[list].remove) await stores[list].remove(id);
@@ -2986,10 +3001,6 @@
   // ---- Shopping list ----
 
   const TAB_NAME = { main: 'Mains', side: 'Sides', veg: 'Veg', other: 'Other' };
-
-  function capitalise(text) {
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  }
 
   // Is this name on the list (to get: not got, not deleted)?
   function onShopList(name) {
@@ -3043,7 +3054,7 @@
   async function addTypedShopItem(e) {
     e.preventDefault();
     const input = document.getElementById('shopIn');
-    const name = capitalise(input.value.trim());
+    const name = FT.tidyName(input.value);
     if (!name) return;
     input.value = '';
     if (!onShopList(name)) await addShopItem(name);

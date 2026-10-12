@@ -1446,19 +1446,11 @@
   // Meal groups for a day (one per meal plan whose meal exists, in plan order), then single foods
   // that are not part of one of those groups
   function dayGroups(packs, mealPlans, meals, dayIso) {
-    let plans = mealPlans;
-    let mealList = meals;
-    let day = dayIso;
-    // Older screens call dayGroups(packs, day): no meal plans yet, so single foods only
-    if (typeof mealPlans === "string") {
-      day = mealPlans;
-      plans = [];
-      mealList = [];
-    }
+    const day = dayIso;
     const groups = [];
     const planIds = new Set();
-    for (const plan of (plans || []).filter(pl => pl.day === day)) {
-      const meal = (mealList || []).find(m => String(m.id) === String(plan.mealId));
+    for (const plan of (mealPlans || []).filter(pl => pl.day === day)) {
+      const meal = (meals || []).find(m => String(m.id) === String(plan.mealId));
       if (!meal) continue;
       planIds.add(plan.id);
       groups.push({ type: "meal", plan, view: mealPlanView(plan, meal, packs) });
@@ -1497,49 +1489,6 @@
   // Meal plans more than 3 days old: these drop off
   function expiredMealPlans(mealPlans, today) {
     return (mealPlans || []).filter(pl => daysLeft(pl.day, today) < -3);
-  }
-
-  // Compatibility for the current screens (app.js) until the meals UI step: same names, new logic
-  function makeRecipe(input) {
-    return makeMeal(input, []).meal || null;
-  }
-
-  // Plan id given to packs planned by the old recipe screen (no meal plan list yet)
-  function legacyPlanId(recipe, dayIso) {
-    return "recipe:" + recipe.id + ":" + dayIso;
-  }
-
-  function recipeCheck(recipe, packs, dayIso) {
-    const m = normMeal(recipe) || { fresh: [], other: [] };
-    const { picks, missing } = pickFoods(m.fresh.map(f => f.name), packs || []);
-    const have = picks.map(({ pack }) => ({ name: pack.name, pack, out: outByDay(pack, dayIso) }));
-    return {
-      have,
-      missing,
-      other: m.other,
-      outNames: have.filter(h => h.out > 0).map(h => h.name),
-      ready: missing.length === 0
-    };
-  }
-
-  function recipePlannedDay(recipe, packs, today) {
-    const prefix = legacyPlanId(recipe, "");
-    let best = null;
-    for (const p of packs || []) {
-      if (p.status !== "in_fridge" || !p.plannedFor || !String(p.mealPlanId ?? "").startsWith(prefix)) continue;
-      if (p.plannedFor < today) continue;
-      if (best === null || p.plannedFor < best) best = p.plannedFor;
-    }
-    return best;
-  }
-
-  function planRecipe(recipe, packs, dayIso) {
-    return planMeal(recipe, packs, dayIso, legacyPlanId(recipe, dayIso));
-  }
-
-  function recipeShopNames(recipe, check) {
-    const m = normMeal(recipe) || { other: [] };
-    return mealShopNames({ missing: check.missing, other: m.other });
   }
 
   // Names (first spelling, no repeats) not already to get on the shopping list
@@ -1616,11 +1565,6 @@
     mealStatus,
     partDefaults,
     expiredMealPlans,
-    makeRecipe,
-    recipeCheck,
-    planRecipe,
-    recipePlannedDay,
-    recipeShopNames,
     recipeShopList,
     shopOrder,
     expiredShopDeletes,
