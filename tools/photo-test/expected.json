@@ -1,7 +1,54 @@
 {
-  "p01.jpg": { "name": "Gammon", "sub": "Asda Just Essentials unsmoked gammon joint", "date": "2026-10-21", "price": 5.39 },
-  "p02.jpg": { "name": "Mince", "sub": "Asda beef steak mince 15% fat", "date": "2026-10-18" },
-  "p03.jpg": { "name": "Bacon", "sub": "Asda smoked back bacon rashers", "date": "2026-10-23" },
-  "p04.jpg": { "name": "Bacon", "sub": "Asda smoked back bacon rashers", "date": "2026-10-21" },
-  "p05.jpg": { "name": "Chicken", "sub": "Asda extra tasty large chicken", "date": "2026-10-10" }
+  "p01.jpg": {
+    "name": "Gammon",
+    "sub": "Asda Just Essentials unsmoked gammon joint",
+    "date": "2026-10-21",
+    "price": 5.39
+  },
+  "p02.jpg": {
+    "name": "Mince",
+    "sub": "Asda beef steak mince 15% fat",
+    "date": "2026-10-18"
+  },
+  "p03.jpg": {
+    "name": "Bacon",
+    "sub": "Asda smoked back bacon rashers",
+    "date": "2026-10-23"
+  },
+  "p04.jpg": {
+    "name": "Bacon",
+    "sub": "Asda smoked back bacon rashers",
+    "date": "2026-10-21"
+  },
+  "p05.jpg": {
+    "name": "Chicken",
+    "sub": "Asda extra tasty large chicken",
+    "date": "2026-10-10"
+  },
+  "p06.jpg": {
+    "name": "Potatoes",
+    "sub": "Asda British Maris Piper potatoes",
+    "noDate": true,
+    "packs": 2
+  },
+  "p07.jpg": {
+    "name": "Sausages",
+    "sub": "Asda Exceptional 20 classic pork chipolata sausages",
+    "date": "2026-10-13"
+  },
+  "p08.jpg": {
+    "name": "Puff pastry",
+    "sub": "Jus-Rol ready rolled puff pastry sheet",
+    "date": "2026-10-30"
+  },
+  "p09.jpg": {
+    "name": "Tagliatelle",
+    "sub": "Asda fresh egg tagliatelle",
+    "date": "2026-11-03"
+  },
+  "p10.jpg": {
+    "name": "Milk",
+    "sub": "Asda British semi skimmed milk",
+    "date": "2026-10-14"
+  }
 }
