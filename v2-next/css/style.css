@@ -636,3 +636,7 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 #mealShop .rs-row.cupboard-row{min-height:34px;font-size:14px;color:var(--muted)}
 .askrow .act.day-meal{background:transparent;color:var(--text-2);border:1px dashed var(--accent-border);min-width:0;padding:0 10px;min-height:36px;font-size:14px;border-radius:10px}
 .dh .day-meal{margin-left:auto;min-height:34px;padding:0 10px;border-radius:10px;border:1px dashed var(--accent-border);background:transparent;color:var(--text-2);font:inherit;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center}
+/* My meals: same rhythm as the other sections; a smaller New meal button */
+#myMeals{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+#myMeals .sechead{min-height:36px}
+#newMeal{height:36px;min-height:36px;padding:0 14px;font-size:14px;border-radius:10px;width:auto;flex:none}
