@@ -43,3 +43,16 @@ test("v2-next: the bell always shows, even alone in a household (Darren 2026-10-
   const app = read("v2-next", "js/app.js");
   assert.doesNotMatch(app, /getElementById\('bellBtn'\)\.hidden = alone/);
 });
+
+// Version names (Darren 2026-10-13): show "v3.11", "v3.12"… during V3. n still counts up for updates.
+test("v2-next: version has a v3.x label, shown everywhere instead of the bare number", () => {
+  const vm = require("node:vm");
+  const window = {};
+  vm.runInNewContext(read("v2-next", "js/version.js"), { window });
+  assert.match(window.FT_VERSION.label, /^3\.\d+$/);
+  assert.ok(Number.isInteger(window.FT_VERSION.n));
+  const app = read("v2-next", "js/app.js"), acc = read("v2-next", "js/account.js");
+  assert.match(app, /'v' \+ \(v\.label \|\| v\.n\)/, "bottom line");
+  assert.match(acc, /Up to date · v\$\{window\.FT_VERSION\.label \|\| window\.FT_VERSION\.n\}/);
+  assert.match(acc, /App version v\$\{v\.label \|\| v\.n\}/);
+});
