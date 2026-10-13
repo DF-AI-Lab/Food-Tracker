@@ -1353,7 +1353,7 @@
 
     document.getElementById('sheet').style.display = 'block';
     document.getElementById('sheet').querySelector('.title').textContent = pack.name;
-    document.getElementById('sheet').querySelector('.subtitle').textContent = pack.date ? FT.formatDate(pack.date) : FT.ageLabel(pack.added, today);
+    document.getElementById('sheet').querySelector('.subtitle').textContent = FT.sheetLine(pack, today);
   }
 
   function hideSheet() {

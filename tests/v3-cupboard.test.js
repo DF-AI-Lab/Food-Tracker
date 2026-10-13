@@ -49,3 +49,14 @@ test("kind buttons offer Other and Cupboard (One item + Quick fill)", () => {
   assert.match(APP, /\['misc', 'Other'\]/);
   assert.match(APP, /\['cupboard', 'Cupboard'\]/);
 });
+
+test("fridge menu line: date · kind · price (Price n/a when none) — Darren 2026-10-13", () => {
+  for (const dir of ["v2", "v2-next"]) {
+    const L = require(path.join(__dirname, "..", dir, "js", "logic.js"));
+    assert.equal(L.sheetLine({ kind: "cupboard", date: "2026-10-13", price: 1.2 }, "2026-10-13"), "Tue 13 Oct · Cupboard · £1.20");
+    assert.equal(L.sheetLine({ kind: "misc", date: "2026-10-20", price: null }, "2026-10-13"), "Tue 20 Oct · Other · Price n/a");
+    assert.match(L.sheetLine({ kind: "veg", date: null, added: "2026-10-13" }, "2026-10-13"), / · Veg · Price n\/a$/);
+    const app = fs.readFileSync(path.join(__dirname, "..", dir, "js", "app.js"), "utf8");
+    assert.match(app, /querySelector\('\.subtitle'\)\.textContent = FT\.sheetLine\(pack, today\)/);
+  }
+});

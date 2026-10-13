@@ -12,6 +12,13 @@
   function kindLabel(kind) {
     return Object.prototype.hasOwnProperty.call(KIND_LABELS, kind) ? KIND_LABELS[kind] : "";
   }
+  // The fridge menu's small line: "Tue 13 Oct · Cupboard · £1.20" (Price n/a when there is none)
+  function sheetLine(pack, today) {
+    const when = pack.date ? formatDate(pack.date) : ageLabel(pack.added, today);
+    const price = typeof pack.price === "number" ? `£${pack.price.toFixed(2)}` : "Price n/a";
+    return [when, kindLabel(pack.kind), price].filter(Boolean).join(" · ");
+  }
+
   // Everyday UK fresh foods, offered even when never bought (after STARTERS in foodCandidates)
   const COMMON_FOODS = {
     "Beef": "main", "Steak": "main", "Turkey": "main", "Pork chops": "main", "Pork belly": "main",
@@ -1579,6 +1586,7 @@
     STARTERS,
     KINDS,
     kindLabel,
+    sheetLine,
     usuals,
     rememberedNoDate,
     rememberedKind,
