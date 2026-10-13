@@ -139,7 +139,7 @@ function startStatic() {
   });
 
   await step("version number shows at the bottom", async () => {
-    await until(async () => assert.match(await text("#ver"), /^v\d+ · \d+ \w+$/));
+    await until(async () => assert.match(await text("#ver"), /^v\d+(\.\d+)? · \d+ \w+$/));
   });
 
   await step("test banner stays hidden", async () => {
