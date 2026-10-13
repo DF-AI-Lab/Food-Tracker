@@ -226,16 +226,15 @@
     <div data-sub-pane="quick" style="display:none;">
       <div class="pane af">
         <ol class="steps qf-steps">
-          <li class="on" id="qfStep1"><b>Photo your shopping</b><span>One item per photo · labels with dates work best</span>
+          <li class="on" id="qfStep1"><b>Photo your shopping</b><span>Each photo goes straight to Claude</span>
             <div class="act-row">
               <button type="button" class="act big" id="qfTake">Take photo</button>
               <button type="button" class="act ghost" id="qfSelect">Select images</button>
               <input type="file" id="qfCamera" accept="image/*" capture="environment" hidden>
               <input type="file" id="qfPick" accept="image/*" multiple hidden>
             </div>
-            <div id="qfTray" class="qf-tray" hidden><span id="qfTrayN"></span><button type="button" class="act big" id="qfRead"></button></div>
           </li>
-          <li id="qfStep2"><b>Claude reads them</b><span id="qfStep2Sub">Starts when you tap Read</span>
+          <li id="qfStep2"><b>Claude reads them</b><span id="qfStep2Sub">Starts as soon as a photo is in</span>
             <div id="qfGauge" class="qf-gauge" hidden><div class="qf-gauge-n" id="qfGaugeN">0/0</div><div class="track"><div class="fill" id="qfGaugeFill"></div></div><div class="note" id="qfGaugeLeft"></div></div>
           </li>
           <li id="qfStep3"><b>Check and add</b><span id="qfStep3Sub">The list opens here</span>
@@ -244,6 +243,14 @@
             <button type="button" class="act big" id="qfAdd" style="display:none;">Add ticked</button>
           </li>
         </ol>
+        <div id="qfDone" class="qf-done" hidden>
+          <b id="qfDoneText"></b>
+          <div id="qfShopWrap" class="qf-shopwrap" hidden>
+            <span class="note">These were on your shopping list:</span>
+            <div id="qfShopList"></div>
+            <button type="button" class="act big" id="qfShopTick">Tick off on shopping list</button>
+          </div>
+        </div>
         <details id="qfPasteWrap" class="qf-paste">
           <summary>Paste a Claude reply instead</summary>
           <button type="button" class="act ghost acc" id="qfCopy"><i data-icon="copy" data-size="16"></i><span>Copy message</span></button>
@@ -251,6 +258,10 @@
           <button type="button" class="act big" id="qfCheck">Check</button>
           <details><summary>See the message</summary><pre id="qfPrompt"></pre></details>
         </details>
+        <section id="addedWrap" class="added" hidden>
+          <h2 class="sec" id="addedHead">Added today</h2>
+          <div id="addedToday" class="added-list"></div>
+        </section>
       </div>
     </div>
 
