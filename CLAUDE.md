@@ -40,7 +40,8 @@ New chats start from the repo's **default branch**, so work left on a chat's own
   1. Run the tests. If they fail, tell me and stop.
   2. Commit and push everything.
   3. Open a pull request from this chat's branch into the **default branch** and merge it.
-  4. Tell me in one line that it's merged, with the PR link.
+  4. **Close the branches** (Darren, 2026-10-13): delete every `claude/*` branch on GitHub whose work is already on the default branch, this chat's branch included. Never delete the default branch. If a branch still has commits not on the default branch, don't delete it: list it and ask me.
+  5. Tell me in one line that it's merged and the branches are closed, with the PR link.
 - **At the start of every chat:** check for other `claude/*` branches with commits not yet on the default branch. If there are any, tell me which and ask before merging them in.
   - **Skip these old ones, never ask about them** (old V1 work from 7–8 Oct, replaced by V2; Darren said leave them, 2026-10-11/12): `claude/adoring-mccarthy-22jl0l`, `claude/festive-hopper-xdzo11`, `claude/nice-thompson-lxinyj`, `claude/stoic-faraday-8q4w4a`.
   - **Also skip these, never ask** (Darren, 2026-10-13): `claude/festive-johnson-vp52uf`, `claude/quirky-hypatia-xx7jyn`, `claude/trusting-dirac-xu88h2`.
