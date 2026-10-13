@@ -398,11 +398,7 @@
     document.getElementById('qfSelect').addEventListener('click', () => document.getElementById('qfPick').click());
     document.getElementById('qfCamera').addEventListener('change', e => addPhotos(e.target.files, e.target));
     document.getElementById('qfPick').addEventListener('change', e => addPhotos(e.target.files, e.target));
-    document.getElementById('qfRead').addEventListener('click', () => {
-      scanPhotos(photoPile);
-      photoPile = [];
-      showPile();
-    });
+    document.getElementById('qfShopTick').addEventListener('click', tickOffShopping);
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
@@ -687,20 +683,34 @@
     document.getElementById('qfAdd').style.display = 'none';
   }
 
-  // Photos wait in a pile until Read is tapped
-  let photoPile = [];
+  // Photos go straight to Claude. A photo taken while a scan runs waits in the queue; the gauge
+  // counts done / total for the whole round, and the round resets when the queue empties.
+  let scanQueue = [];
+  let scanRound = null;   // { done, total, started } while photos are queued or being read
+  let scanBusy = false;
+  let photoSeq = 0;
+  let qfShopMatches = []; // [{ item, box }] on the shopping list after Add ticked
 
   function addPhotos(files, input) {
-    photoPile.push(...Array.from(files || []));
+    const list = Array.from(files || []);
     input.value = '';
-    showPile();
+    if (list.length === 0) return;
+    document.getElementById('qfDone').hidden = true;
+    scanRound = scanRound || { done: 0, total: 0, started: Date.now() };
+    scanRound.total += list.length;
+    scanQueue.push(...list);
+    if (!scanBusy) runScanQueue();
   }
 
-  function showPile() {
-    const n = photoPile.length;
-    document.getElementById('qfTray').hidden = n === 0;
-    document.getElementById('qfTrayN').textContent = FT_PHOTOS.trayText(n);
-    document.getElementById('qfRead').textContent = FT_PHOTOS.readLabel(n);
+  async function runScanQueue() {
+    scanBusy = true;
+    try {
+      while (scanQueue.length) await scanPhotos(scanQueue.splice(0));
+    } finally {
+      scanBusy = false;
+      scanRound = null;
+      document.getElementById('qfGauge').hidden = true;
+    }
   }
 
   // Quick fill steps: 1 photo, 2 Claude reads, 3 check and add
@@ -712,78 +722,80 @@
 
   function resetQfSteps() {
     setQfStep(1);
-    document.getElementById('qfStep2Sub').textContent = 'Starts when you tap Read';
+    document.getElementById('qfStep2Sub').textContent = 'Starts as soon as a photo is in';
     document.getElementById('qfStep2Sub').hidden = false;
     document.getElementById('qfStep3Sub').hidden = false;
   }
 
-  // Photos -> Worker -> Quick fill list, which opens by itself
-  async function scanPhotos(files) {
-    const list = Array.from(files || []);
-    if (list.length === 0) return;
+  // Photos -> Worker -> rows added to the end of the list (the list is not cleared)
+  async function scanPhotos(list) {
+    const round = scanRound;
     const gauge = document.getElementById('qfGauge');
     const gaugeN = document.getElementById('qfGaugeN');
     const fill = document.getElementById('qfGaugeFill');
     const left = document.getElementById('qfGaugeLeft');
     const msg = document.getElementById('qfMsg');
+    const show = done => {
+      const n = round.done + done;
+      gaugeN.textContent = FT_PHOTOS.gaugeText(n, round.total);
+      fill.style.width = FT_PHOTOS.gaugePct(n, round.total) + '%';
+      left.textContent = FT_PHOTOS.gaugeLeft(n, round.total, n ? (Date.now() - round.started) / n : 0);
+    };
     msg.textContent = '';
     setQfStep(2);
     document.getElementById('qfStep2Sub').hidden = true;
     gauge.hidden = false;
-    gaugeN.textContent = FT_PHOTOS.gaugeText(0, list.length);
-    fill.style.width = '0%';
-    left.textContent = FT_PHOTOS.gaugeLeft(0, list.length, 0);
+    show(0);
 
     const photos = [];
-    for (let i = 0; i < list.length; i++) {
+    for (const file of list) {
       try {
-        photos.push({ id: 'p' + i, jpeg: await FT_PHOTOS.shrink(list[i]) });
+        photos.push({ id: 'p' + photoSeq++, jpeg: await FT_PHOTOS.shrink(file) });
       } catch (e) { /* a photo that will not open is skipped */ }
     }
 
     const names = [...new Set(packs.map(p => p.name.trim()))];
-    const started = Date.now();
     const out = await FT_PHOTOS.scanAll(photos, {
-      fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: window.FT_HOUSEHOLD.id, names, today,
-      onProgress: (done, total) => {
-        const avgMs = (Date.now() - started) / done;
-        gaugeN.textContent = FT_PHOTOS.gaugeText(done, total);
-        fill.style.width = FT_PHOTOS.gaugePct(done, total) + '%';
-        left.textContent = FT_PHOTOS.gaugeLeft(done, total, avgMs);
-      },
+      fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: window.FT_HOUSEHOLD?.id, names, today,
+      onProgress: done => show(done),
     });
+    round.done += list.length;
+    show(0);
 
-    gauge.hidden = true;
     if (out.results.length > 0) {
-      document.getElementById('qfText').value = JSON.stringify(FT_PHOTOS.toQuickFill(out.results));
-      checkQuickFill();
+      appendQuickFill(JSON.stringify(FT_PHOTOS.toQuickFill(out.results)));
       setQfStep(3);
-      document.getElementById('qfStep2Sub').textContent = `${photos.length} photos read`;
+      document.getElementById('qfStep2Sub').textContent = `${round.done} photos read`;
       document.getElementById('qfStep2Sub').hidden = false;
       document.getElementById('qfStep3Sub').hidden = true;
-    } else {
-      clearQuickFillList();
-      resetQfSteps();
     }
     if (out.error) msg.textContent = out.error;
     else if (photos.length === 0) msg.textContent = "Couldn't read those photos — try others";
   }
 
+  // The paste box builds a fresh list
   function checkQuickFill() {
+    clearQuickFillList();
+    appendQuickFill(document.getElementById('qfText').value, true);
+  }
+
+  // Rows go on the end of the list. A photo scan appends and marks its new rows NEW (older rows
+  // lose the tag); the paste box (fresh) does not.
+  function appendQuickFill(text, fresh = false) {
     const msg = document.getElementById('qfMsg');
     const listEl = document.getElementById('qfList');
-    const result = FT.parseQuickFill(document.getElementById('qfText').value, today, packs);
-
-    clearQuickFillList();
+    const result = FT.parseQuickFill(text, today, packs);
+    if (!fresh) listEl.querySelectorAll('.qf-new').forEach(tag => tag.remove());
     if (result.error) {
       msg.textContent = result.error;
       return;
     }
     msg.textContent = '';
-
-    quickFillItems = result.items;
-    result.items.forEach((item, i) => {
-      const rowEl = buildQuickFillRow(item, i);
+    const start = quickFillItems.length;
+    result.items.forEach((item, j) => {
+      const i = start + j;
+      quickFillItems[i] = item;
+      const rowEl = buildQuickFillRow(item, i, !fresh);
       quickFillRowEls[i] = rowEl;
       listEl.appendChild(rowEl);
     });
@@ -791,7 +803,7 @@
   }
 
   // One row: tick box, name, date, price; a food with no known kind gets 4 kind buttons
-  function buildQuickFillRow(item, index) {
+  function buildQuickFillRow(item, index, isNew = false) {
     const kindName = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Misc' };
     const row = document.createElement('label');
     row.className = 'srow qf-row';
@@ -818,6 +830,12 @@
       text.appendChild(price);
     }
     if (item.toFreezer) text.append(' · Freezer');
+    if (isNew) {
+      const tag = document.createElement('span');
+      tag.className = 'qf-new';
+      tag.textContent = 'NEW';
+      text.appendChild(tag);
+    }
     row.appendChild(text);
 
     const when = document.createElement('span');
@@ -896,10 +914,18 @@
   function pickQuickFillKind(index, kind) {
     const item = quickFillItems[index];
     if (!item) return;
-    const fixed = FT.quickFillRow({ ...item.raw, kind }, packs);
-    quickFillItems[index] = fixed;
-    const rowEl = buildQuickFillRow(fixed, index);
-    quickFillRowEls[index].replaceWith(rowEl);
+    swapQuickFillRow(index, FT.quickFillRow({ ...item.raw, kind }, packs));
+  }
+
+  // Redraw one row after a change: it keeps its tick (a row that was not OK is ticked once fixed) and NEW tag
+  function swapQuickFillRow(index, item) {
+    const old = quickFillRowEls[index];
+    const wasTicked = quickFillBoxes[index].checked;
+    const wasOk = quickFillItems[index].ok;
+    quickFillItems[index] = item;
+    const rowEl = buildQuickFillRow(item, index, !!old.querySelector('.qf-new'));
+    quickFillBoxes[index].checked = item.ok && (wasTicked || !wasOk);
+    old.replaceWith(rowEl);
     quickFillRowEls[index] = rowEl;
   }
 
@@ -922,11 +948,7 @@
   function setQfDate(index, date) {
     const item = quickFillItems[index];
     if (!item) return;
-    const fixed = FT.quickFillRow({ ...item.raw, kind: item.kind, date, dateMissing: date === null, check: item.check }, packs);
-    quickFillItems[index] = fixed;
-    const rowEl = buildQuickFillRow(fixed, index);
-    quickFillRowEls[index].replaceWith(rowEl);
-    quickFillRowEls[index] = rowEl;
+    swapQuickFillRow(index, FT.quickFillRow({ ...item.raw, kind: item.kind, date, dateMissing: date === null, check: item.check }, packs));
     const fix = FT_PHOTOS.fixFor(item.raw, date);
     if (fix) FT_PHOTOS.sendFix(fix, { fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: window.FT_HOUSEHOLD.id });
   }
@@ -956,16 +978,50 @@
       lastAction = { type: 'add', ids };
       syncPlans();
 
-      msg.textContent = `✓ added ${newPacks.length} packs`;
+      msg.textContent = '';
       showUndoBar();
       document.getElementById('qfText').value = '';
       clearQuickFillList();
       resetQfSteps();
+      showQfDone(chosen.length, FT.shopMatches(shop, chosen.map(item => FT.tidyName(item.name))));
       refreshUsuals();
       renderAll();
     } catch (dbErr) {
       msg.textContent = 'Error saving to database';
     }
+  }
+
+  // After Add ticked: how many went in, and the shopping items they may have bought (ticked by default)
+  function showQfDone(n, onList) {
+    document.getElementById('qfDoneText').innerHTML = ICON('check', 16, 2.6) + `${n} item${n === 1 ? '' : 's'} added`;
+    const listEl = document.getElementById('qfShopList');
+    listEl.innerHTML = '';
+    qfShopMatches = onList.map(item => {
+      const label = document.createElement('label');
+      label.className = 'qf-shop-row';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = true;
+      const name = document.createElement('span');
+      name.textContent = item.name;
+      label.append(box, name);
+      listEl.appendChild(label);
+      return { item, box };
+    });
+    document.getElementById('qfShopWrap').hidden = onList.length === 0;
+    document.getElementById('qfDone').hidden = false;
+  }
+
+  // Tick off the ticked shopping items (got = true), then hide that part
+  async function tickOffShopping() {
+    const ticked = qfShopMatches.filter(m => m.box.checked).map(m => m.item);
+    qfShopMatches = [];
+    for (const item of ticked) {
+      item.got = true;
+      await saveShop(item);
+    }
+    renderShop();
+    document.getElementById('qfShopWrap').hidden = true;
   }
 
   function switchTab(tab) {
@@ -2995,13 +3051,64 @@
     todayEl.textContent = 'Today · ' + FT.formatDate(today);
   }
 
+  // Packs added today, still in the fridge or freezer: tap one for the fridge menu
+  function renderAddedToday() {
+    const list = FT.addedToday(packs, today);
+    document.getElementById('addedWrap').hidden = list.length === 0;
+    document.getElementById('addedHead').textContent = `Added today · ${list.length} ${list.length === 1 ? 'pack' : 'packs'}`;
+    const box = document.getElementById('addedToday');
+    box.innerHTML = '';
+    list.forEach(pack => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'added-row';
+      const kind = document.createElement('span');
+      kind.className = 'qf-kindtag';
+      kind.textContent = String(pack.kind || '').toUpperCase();
+      const name = document.createElement('span');
+      name.className = 'nm';
+      name.textContent = pack.name;
+      if (typeof pack.price === 'number') {
+        const price = document.createElement('span');
+        price.className = 'pr';
+        price.textContent = ` · £${pack.price.toFixed(2)}`;
+        name.appendChild(price);
+      }
+      row.append(kind, name);
+      const tag = FT.dateTag(pack);
+      if (tag) {
+        const dt = document.createElement('span');
+        dt.className = 'dt';
+        dt.textContent = tag;
+        row.appendChild(dt);
+      }
+      const when = document.createElement('span');
+      if (pack.date) {
+        when.className = 'when';
+        when.textContent = FT.formatDate(pack.date);
+      } else if (pack.dateMissing) {
+        when.className = 'nd-tag';
+        when.textContent = 'NO DATE';
+      } else {
+        when.className = 'when';
+        when.textContent = 'no date';
+      }
+      row.appendChild(when);
+      row.addEventListener('click', () => showSheet(pack.id));
+      box.appendChild(row);
+    });
+  }
+
   function renderAll() {
     renderTopDate();
     const activeView = document.querySelector('[data-view].on')?.dataset.view;
     if (activeView === 'fridge' || activeView === 'misc') renderFridgeView();
     else if (activeView === 'freezer') renderFreezerView();
     else if (activeView === 'used') renderUsedView();
-    if (packs) renderTabCounts();
+    if (packs) {
+      renderTabCounts();
+      renderAddedToday();
+    }
     renderPageCount();
     renderBell();
     refreshBackup();

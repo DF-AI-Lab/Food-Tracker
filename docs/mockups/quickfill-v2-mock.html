@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quick fill v2 mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--track:#1C2B26;--text:#E8EFEC;--text-2:#C9D6D1;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--on-accent:#0A1210;--warn:#F2B35B;--danger:#F08A7E;--ok-bg:#13261E;--ok-border:#22402F;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;padding:16px}
+.wrap{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:14px}
+.steps{list-style:none;margin:0;padding:0}
+.step{display:grid;grid-template-columns:28px 1fr;gap:12px;padding-bottom:18px;position:relative}
+.step:not(:last-child)::before{content:"";position:absolute;left:13px;top:30px;bottom:2px;width:2px;background:var(--border)}
+.n{width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px}
+.step.on .n{background:var(--accent);color:var(--on-accent);font-weight:700}
+.t{font-weight:600;font-size:16px;margin:3px 0 4px}.s{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:10px;margin-top:10px}
+.btn{flex:1;min-height:52px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-weight:600;font-size:16px}
+.btn.pri{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.gauge{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.big{font-family:var(--mono);font-size:30px;font-weight:700}.big small{font-size:16px;color:var(--muted)}
+.track{width:100%;height:12px;background:var(--track);border-radius:6px;overflow:hidden}.fill{height:100%;background:var(--accent)}
+.list{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.item{display:grid;grid-template-columns:22px 44px 1fr auto;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--border)}.item:first-child{border-top:0}
+.box{width:20px;height:20px;border-radius:5px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900}
+.kind{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.date{font-family:var(--mono);font-size:13px;color:var(--accent);border-bottom:1px dashed var(--dim)}
+.new{font-size:11px;font-weight:700;color:var(--accent)}
+.done{background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.done b{font-size:16px}
+.shop{display:flex;align-items:center;gap:10px;font-size:15px}
+.paste{font-size:13px;color:var(--muted);text-align:center;text-decoration:underline;margin-top:6px}
+.today{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.trow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--border)}.trow:first-child{border-top:0}
+.trow .nm{flex:1}.pr{color:var(--muted);font-size:13px}.dt{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:1px 5px}.when{font-family:var(--mono);font-size:13px;color:var(--text-2)}
+.nd{font-size:11px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
+.sheet{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet h3{grid-column:1/-1;margin:0;font-size:20px}.sheet .sub{grid-column:1/-1;font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:-6px}
+.sb{min-height:48px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);font:inherit;font-weight:600}
+.sb.u{background:var(--accent);color:var(--on-accent);border:0}.sb.p{background:#4A3F22;color:var(--warn);border:0}.sb.t{background:#2A1714;color:var(--danger);border:0}.sb.c{grid-column:1/-1}
+.cap{font-size:12px;color:var(--dim);text-align:center}
+</style></head><body><div class="wrap">
+
+<ol class="steps">
+ <li class="step"><span class="n">1</span><div><div class="t">Photo your shopping</div><div class="s">Each photo goes straight to Claude</div>
+  <div class="row"><button class="btn pri">Take photo</button><button class="btn">Select images</button></div></div></li>
+ <li class="step on"><span class="n">2</span><div><div class="t">Claude reads them</div>
+  <div class="gauge"><div class="big">5<small>/6</small></div><div class="track"><div class="fill" style="width:83%"></div></div><div class="s">about 2s left</div></div></div></li>
+ <li class="step on"><span class="n">3</span><div><div class="t">Check and add</div><div class="s">New photos join the list — nothing is replaced</div>
+  <div class="list">
+   <div class="item"><span class="box">✓</span><span class="kind">MAIN</span><span>Chicken ×2</span><span class="date">Fri 16 Oct</span></div>
+   <div class="item"><span class="box">✓</span><span class="kind">MISC</span><span>Milk</span><span class="date">Tue 20 Oct</span></div>
+   <div class="item"><span class="box">✓</span><span class="kind">VEG</span><span>Carrots</span><span class="date">no date</span></div>
+   <div class="item"><span class="box">✓</span><span class="kind">MAIN</span><span>Beef mince <span class="new">NEW</span></span><span class="date">Sun 18 Oct</span></div>
+   <div class="item"><span class="box">✓</span><span class="kind">MISC</span><span>Brie <span class="new">NEW</span></span><span class="date">Sat 24 Oct</span></div>
+  </div>
+  <div class="row"><button class="btn pri">Add ticked</button></div></div></li>
+</ol>
+
+<div class="lbl">AFTER "ADD TICKED"</div>
+<div class="done">
+ <b>✓ 5 items added</b>
+ <div class="s">These were on your shopping list:</div>
+ <div class="shop"><span class="box">✓</span>Chicken</div>
+ <div class="shop"><span class="box">✓</span>Milk</div>
+ <button class="btn pri">Tick off on shopping list</button>
+</div>
+<div class="cap">Ticked ones move to "Got" on the Shop list. Untick any that don't match.</div>
+
+<div class="paste">Paste a Claude reply instead</div>
+
+<div class="lbl">ADDED TODAY · 6 packs</div>
+<div class="today">
+ <div class="trow"><span class="kind">MAIN</span><span class="nm">Chicken ×2<span class="pr"> · £3.50</span></span><span class="dt">UB</span><span class="when">Fri 16 Oct</span></div>
+ <div class="trow"><span class="kind">MISC</span><span class="nm">Milk<span class="pr"> · £1.45</span></span><span class="dt">BB</span><span class="when">Tue 20 Oct</span></div>
+ <div class="trow"><span class="kind">VEG</span><span class="nm">Carrots</span><span class="when">no date</span></div>
+ <div class="trow"><span class="kind">MAIN</span><span class="nm">Beef mince<span class="pr"> · £4.00</span></span><span class="dt">UB</span><span class="when">Sun 18 Oct</span></div>
+ <div class="trow"><span class="kind">MISC</span><span class="nm">Cheddar</span><span class="nd">NO DATE</span></div>
+</div>
+<div class="cap">Tap any one → same menu as in the fridge ↓</div>
+<div class="sheet">
+ <h3>Beef mince</h3><div class="sub">Sun 18 Oct</div>
+ <button class="sb u">✓ Used</button><button class="sb p">◐ Part used</button>
+ <button class="sb t">Thrown away</button><button class="sb">✳ Freeze</button>
+ <button class="sb">✎ Edit</button><button class="sb">✕ Delete</button>
+ <button class="sb c">Cancel</button>
+</div>
+</div></body></html>

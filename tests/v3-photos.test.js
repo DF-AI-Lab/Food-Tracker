@@ -142,11 +142,10 @@ test("trayText / readLabel: plain words for the photo pile", () => {
 test("Quick fill is 3 steps: photo -> Claude reads -> check and add", () => {
   const pane = HTML.slice(HTML.indexOf('data-sub-pane="quick"'), HTML.indexOf('data-sub-pane="quick"') + 6000);
   const at = id => pane.indexOf(`id="${id}"`);
-  for (const id of ["qfStep1", "qfStep2", "qfStep3", "qfTake", "qfSelect", "qfTray", "qfTrayN", "qfRead", "qfGauge", "qfList", "qfAdd"]) {
+  for (const id of ["qfStep1", "qfStep2", "qfStep3", "qfTake", "qfSelect", "qfGauge", "qfList", "qfAdd"]) {
     assert.ok(at(id) > 0, `${id} in the Quick fill pane`);
   }
   assert.ok(at("qfTake") < at("qfStep2") && at("qfStep2") < at("qfGauge") && at("qfGauge") < at("qfStep3") && at("qfStep3") < at("qfList"), "order: photo, gauge, list");
-  assert.match(pane, /<div[^>]*id="qfTray"[^>]*hidden/);
 });
 
 test("old paste way hides behind a 'Paste a Claude reply instead' link", () => {
@@ -157,12 +156,6 @@ test("old paste way hides behind a 'Paste a Claude reply instead' link", () => {
   for (const id of ["qfCopy", "qfText", "qfCheck"]) assert.match(m[1], new RegExp(`id="${id}"`));
 });
 
-test("app.js: camera adds to the pile, Read button starts the scan", () => {
-  const APP = fs.readFileSync(path.join(__dirname, "..", "v2-next", "js", "app.js"), "utf8");
-  assert.match(APP, /getElementById\('qfRead'\)/);
-  assert.match(APP, /FT_PHOTOS\.trayText\(/);
-  assert.match(APP, /FT_PHOTOS\.readLabel\(/);
-});
 
 // ---- Fixing dates on the list (Darren, 2026-10-13) ----
 
@@ -237,4 +230,49 @@ test("Meals: Save as meal shows on every opened asking card; an already-saved me
   const past = APP.slice(APP.indexOf("function pastCard("), APP.indexOf("} else if (state === 'use')"));
   assert.match(past, /day-meal/);
   assert.match(past, /Saved ✓/);
+});
+
+// ---- Quick fill v2 (mock: docs/mockups/quickfill-v2-mock.html, Darren 2026-10-13) ----
+
+test("shopMatches: shopping items whose word appears in what was added (to get only)", () => {
+  const shop = [
+    { id: 1, name: "Chicken" }, { id: 2, name: "Mince" }, { id: 3, name: "Milk", got: true },
+    { id: 4, name: "Eggs" }, { id: 5, name: "Bread", del: "2026-10-12" }, { id: 6, name: "Ham" },
+  ];
+  const got = FT.shopMatches(shop, ["Chicken thighs", "Beef mince", "Milk", "Bread", "Hamburger buns"]);
+  assert.deepEqual(got.map(i => i.id), [1, 2], "whole words only; got/deleted ignored; Ham ≠ Hamburger");
+  assert.deepEqual(FT.shopMatches(shop, []), []);
+  assert.deepEqual(FT.shopMatches([], ["Chicken"]), []);
+});
+
+test("addedToday: packs added today still in the fridge or freezer, mains first", () => {
+  const packs = [
+    { id: 1, name: "Milk", kind: "misc", added: "2026-10-13", status: "in_fridge" },
+    { id: 2, name: "Chicken", kind: "main", added: "2026-10-13", status: "in_fridge" },
+    { id: 3, name: "Bacon", kind: "main", added: "2026-10-12", status: "in_fridge" },
+    { id: 4, name: "Peas", kind: "veg", added: "2026-10-13", status: "frozen" },
+    { id: 5, name: "Eggs", kind: "misc", added: "2026-10-13", status: "used" },
+  ];
+  assert.deepEqual(FT.addedToday(packs, "2026-10-13").map(p => p.id), [2, 4, 1]);
+});
+
+test("dateTag: UB / BB / nothing", () => {
+  assert.equal(FT.dateTag({ date: "2026-10-16", dateType: "use_by" }), "UB");
+  assert.equal(FT.dateTag({ date: "2026-10-16", dateType: "best_before" }), "BB");
+  assert.equal(FT.dateTag({ date: null }), "");
+});
+
+test("page: no Read button; Added today list; shopping tick-off box", () => {
+  const html = HTML;
+  assert.doesNotMatch(html, /id="qfRead"/, "photos go straight to Claude");
+  assert.match(html, /id="qfDone"[^>]*hidden/, "'items added' box, hidden until used");
+  assert.match(html, /id="qfShopList"/);
+  assert.match(html, /id="qfShopTick"/);
+  assert.match(html, /id="addedToday"/);
+  const APP = fs.readFileSync(path.join(__dirname, "..", "v2-next", "js", "app.js"), "utf8");
+  assert.match(APP, /FT\.shopMatches\(/);
+  assert.match(APP, /FT\.addedToday\(/);
+  assert.match(APP, /FT\.dateTag\(/);
+  assert.match(APP, /showSheet\(/);
+  assert.match(APP, /qf-new/, "new rows are marked NEW");
 });
