@@ -29,7 +29,7 @@
 .paste{font-size:13px;color:var(--muted);text-align:center;text-decoration:underline;margin-top:6px}
 .today{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
 .trow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--border)}.trow:first-child{border-top:0}
-.trow .nm{flex:1}.when{font-family:var(--mono);font-size:13px;color:var(--text-2)}
+.trow .nm{flex:1}.pr{color:var(--muted);font-size:13px}.dt{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:1px 5px}.when{font-family:var(--mono);font-size:13px;color:var(--text-2)}
 .nd{font-size:11px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
 .sheet{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .sheet h3{grid-column:1/-1;margin:0;font-size:20px}.sheet .sub{grid-column:1/-1;font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:-6px}
@@ -66,13 +66,12 @@
 
 <div class="paste">Paste a Claude reply instead</div>
 
-<div class="lbl">ADDED TODAY · 6</div>
+<div class="lbl">ADDED TODAY · 6 packs</div>
 <div class="today">
- <div class="trow"><span class="kind">MAIN</span><span class="nm">Chicken</span><span class="when">Fri 16 Oct</span></div>
- <div class="trow"><span class="kind">MAIN</span><span class="nm">Chicken</span><span class="when">Fri 16 Oct</span></div>
- <div class="trow"><span class="kind">MISC</span><span class="nm">Milk</span><span class="when">Tue 20 Oct</span></div>
+ <div class="trow"><span class="kind">MAIN</span><span class="nm">Chicken ×2<span class="pr"> · £3.50</span></span><span class="dt">UB</span><span class="when">Fri 16 Oct</span></div>
+ <div class="trow"><span class="kind">MISC</span><span class="nm">Milk<span class="pr"> · £1.45</span></span><span class="dt">BB</span><span class="when">Tue 20 Oct</span></div>
  <div class="trow"><span class="kind">VEG</span><span class="nm">Carrots</span><span class="when">no date</span></div>
- <div class="trow"><span class="kind">MAIN</span><span class="nm">Beef mince</span><span class="when">Sun 18 Oct</span></div>
+ <div class="trow"><span class="kind">MAIN</span><span class="nm">Beef mince<span class="pr"> · £4.00</span></span><span class="dt">UB</span><span class="when">Sun 18 Oct</span></div>
  <div class="trow"><span class="kind">MISC</span><span class="nm">Cheddar</span><span class="nd">NO DATE</span></div>
 </div>
 <div class="cap">Tap any one → same menu as in the fridge ↓</div>
