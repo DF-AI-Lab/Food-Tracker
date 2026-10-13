@@ -66,6 +66,7 @@ function startStatic() {
 
   await step("can add a pack and see it in the fridge (memory only)", async () => {
     await page.click('[data-tab="add"]');
+    await page.click('[data-sub=\"fridge\"]'); // Add opens on Quick fill (v25)
     await page.click('[data-kind="main"]');
     await page.fill("#name", "Chicken");
     await page.fill("#days", "1");

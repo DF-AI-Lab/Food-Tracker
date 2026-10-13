@@ -118,6 +118,7 @@ function startStatic() {
       // two foods in the fridge
       for (const name of ["Chicken", "Bacon"]) {
         await page.click('[data-tab="add"]');
+        await page.click('[data-sub=\"fridge\"]'); // Add opens on Quick fill (v25)
         await page.click('[data-kind="main"]');
         await page.fill("#name", name);
         await page.fill("#days", "4");

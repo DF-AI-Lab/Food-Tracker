@@ -47,6 +47,7 @@ function startStatic() {
   const ask = page.locator("#backupAsk");
   async function addMain(name) {
     await page.click('[data-tab="add"]');
+    await page.click('[data-sub=\"fridge\"]'); // Add opens on Quick fill (v25)
     await page.click('[data-kind="main"]');
     await page.fill("#name", name);
     await page.fill("#days", "4");

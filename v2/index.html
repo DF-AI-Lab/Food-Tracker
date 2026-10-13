@@ -171,13 +171,13 @@
   <!-- Add Tab -->
   <div data-tab-pane="add" style="display:none;">
     <div id="subTabs" class="seg seg2">
-      <button data-sub="fridge" class="sb on">One item</button>
-      <button data-sub="quick" class="sb">Quick fill</button>
+      <button data-sub="quick" class="sb on">Quick fill</button>
+      <button data-sub="fridge" class="sb">One item</button>
       <button data-sub="shop" class="sb" hidden>Shopping list</button>
     </div>
 
     <!-- Add to fridge -->
-    <div data-sub-pane="fridge">
+    <div data-sub-pane="fridge" style="display:none;">
       <div class="pane af">
         <div class="group">
           <div class="lbl">What is it?</div>
@@ -223,7 +223,7 @@
     </div>
 
     <!-- Quick fill (JSON pasted back from Claude) -->
-    <div data-sub-pane="quick" style="display:none;">
+    <div data-sub-pane="quick">
       <div class="pane af">
         <ol class="steps qf-steps">
           <li class="on" id="qfStep1"><b>Photo your shopping</b><span>Each photo goes straight to Claude</span>
