@@ -381,3 +381,23 @@ test("API key never appears in any reply", async () => {
   const r = await call("POST", "/scan", { body: scanBody(1), token: await makeToken(), net });
   assert.ok(!JSON.stringify(r.data).includes("sk-test"));
 });
+
+test("live entry point calls fetch the way Cloudflare allows (no 'Illegal invocation')", async () => {
+  const net = fakeNet();
+  const real = globalThis.fetch;
+  // Cloudflare throws when fetch is called as a method of another object
+  globalThis.fetch = function (url, init) {
+    if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+    return net.fetch(url, init);
+  };
+  try {
+    const req = new Request("https://worker.example/usage?household=h1", { headers: { authorization: `Bearer ${await makeToken()}` } });
+    const realNow = Date.now;
+    Date.now = () => NOW;
+    let res;
+    try { res = await W.default.fetch(req, env()); } finally { Date.now = realNow; }
+    assert.equal(res.status, 200);
+  } finally {
+    globalThis.fetch = real;
+  }
+});

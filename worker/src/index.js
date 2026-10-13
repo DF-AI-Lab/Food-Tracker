@@ -311,4 +311,5 @@ export async function handle(request, env, deps) {
   return new Response(JSON.stringify(reply[1]), { status: reply[0], headers: { "content-type": "application/json", ...cors } });
 }
 
-export default { fetch: (req, env) => handle(req, env, { fetch, now: Date.now }) };
+// Wrap fetch: Cloudflare throws "Illegal invocation" if it is called as deps.fetch(...)
+export default { fetch: (req, env) => handle(req, env, { fetch: (u, i) => fetch(u, i), now: () => Date.now() }) };
