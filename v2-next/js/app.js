@@ -242,7 +242,7 @@
       el.classList.add('stale');
       return;
     }
-    el.textContent = ['v' + (v.label || v.n), shortDate(v.date)].filter(Boolean).join(' · ');
+    el.textContent = [(v.prefix || 'v') + (v.label || v.n), shortDate(v.date)].filter(Boolean).join(' · ');
   }
 
   function applyTheme(theme) {

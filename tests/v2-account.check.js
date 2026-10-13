@@ -102,9 +102,9 @@ function startStatic() {
     assert.equal(await alice.locator("#members li button.remove").count(), 0, "no ❌ on yourself");
   });
 
-  await step("top right has only 📷 · 🖨️ · ⚙️", async () => {
+  await step("top right: 🔔 · 📷 · 🖨️ · ⚙️ (bell always shows, even alone — Darren 2026-10-13)", async () => {
     const ids = await alice.locator("#top .pal button").evaluateAll(bs => bs.filter(b => !b.hidden).map(b => b.id));
-    assert.deepEqual(ids, ["scanBtn", "printF", "settingsBtn"]);
+    assert.deepEqual(ids, ["bellBtn", "scanBtn", "printF", "settingsBtn"]);
   });
 
   await step("light / dark switch lives in Settings", async () => {

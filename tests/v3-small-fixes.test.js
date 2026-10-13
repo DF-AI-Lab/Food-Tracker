@@ -52,7 +52,17 @@ test("v2-next: version has a v3.x label, shown everywhere instead of the bare nu
   assert.match(window.FT_VERSION.label, /^3\.\d+$/);
   assert.ok(Number.isInteger(window.FT_VERSION.n));
   const app = read("v2-next", "js/app.js"), acc = read("v2-next", "js/account.js");
-  assert.match(app, /'v' \+ \(v\.label \|\| v\.n\)/, "bottom line");
-  assert.match(acc, /Up to date · v\$\{window\.FT_VERSION\.label \|\| window\.FT_VERSION\.n\}/);
-  assert.match(acc, /App version v\$\{v\.label \|\| v\.n\}/);
 });
+
+// Live shows "v3.11"; the demo shows "d.v3.11" (prefix in its own version.js) — Darren 2026-10-13
+for (const [dir, prefix] of [["v2", "v"], ["v2-next", "d.v"]]) {
+  test(`${dir}: version shows as ${prefix}3.x`, () => {
+    const vm = require("node:vm");
+    const window = {};
+    vm.runInNewContext(read(dir, "js/version.js"), { window });
+    assert.match(window.FT_VERSION.label, /^3\.\d+$/);
+    assert.equal(window.FT_VERSION.prefix || "v", prefix);
+    assert.match(read(dir, "js/app.js"), /\(v\.prefix \|\| 'v'\) \+ \(v\.label \|\| v\.n\)/);
+    assert.match(read(dir, "js/account.js"), /App version \$\{v\.prefix \|\| "v"\}\$\{v\.label \|\| v\.n\}/);
+  });
+}

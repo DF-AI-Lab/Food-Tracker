@@ -49,7 +49,7 @@ test("removing the date is fine for veg and sides, and clears the date type", ()
 
 test("clear messages for bad input", () => {
   assert.throws(() => FT.editPack(pack, { name: "   " }), /Needs a name/);
-  assert.throws(() => FT.editPack(pack, { kind: "pudding" }), /Kind must be main, side, veg or misc/);
+  assert.throws(() => FT.editPack(pack, { kind: "pudding" }), /Kind must be main, side, veg, misc or cupboard/);
   assert.throws(() => FT.editPack(pack, { date: "2026-13-45" }), /Date must look like 2026-10-10/);
   assert.throws(() => FT.editPack(pack, { date: "" }), /Needs a date/, "mains need a date");
   assert.throws(() => FT.editPack(pack, { price: "cheap" }), /Price must be a number/);
