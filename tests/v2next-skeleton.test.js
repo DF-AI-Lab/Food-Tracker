@@ -90,11 +90,11 @@ test("bottom bar: Fridge, Meals, +, Shop, Used", () => {
   assert.match(nav, /data-tab="add"[^>]*aria-label="Add food"|aria-label="Add food"[^>]*data-tab="add"/);
 });
 
-test("top tabs: Fridge | Freezer | Misc (Used lives in the bottom bar only)", () => {
+test("top tabs: Fridge | Freezer | Cupboard (Used lives in the bottom bar only)", () => {
   const html = read("index.html");
   const tabs = /<div id="fridgeTabs"[\s\S]*?<\/div>/.exec(html)[0];
-  assert.deepEqual([...tabs.matchAll(/data-view="(\w+)"/g)].map(m => m[1]), ["fridge", "freezer", "misc"]);
-  assert.ok(html.includes('data-view-pane="misc"'));
+  assert.deepEqual([...tabs.matchAll(/data-view="(\w+)"/g)].map(m => m[1]), ["fridge", "freezer", "cupboard"]);
+  assert.ok(html.includes('data-view-pane="cupboard"'));
 });
 
 test("top right: bell, camera, print, settings in one box", () => {
