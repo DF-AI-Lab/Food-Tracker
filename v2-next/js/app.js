@@ -395,8 +395,13 @@
     document.getElementById('qfAdd').addEventListener('click', addQuickFill);
     document.getElementById('qfTake').addEventListener('click', () => document.getElementById('qfCamera').click());
     document.getElementById('qfSelect').addEventListener('click', () => document.getElementById('qfPick').click());
-    document.getElementById('qfCamera').addEventListener('change', e => scanPhotos(e.target.files));
-    document.getElementById('qfPick').addEventListener('change', e => scanPhotos(e.target.files));
+    document.getElementById('qfCamera').addEventListener('change', e => addPhotos(e.target.files, e.target));
+    document.getElementById('qfPick').addEventListener('change', e => addPhotos(e.target.files, e.target));
+    document.getElementById('qfRead').addEventListener('click', () => {
+      scanPhotos(photoPile);
+      photoPile = [];
+      showPile();
+    });
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
@@ -681,6 +686,36 @@
     document.getElementById('qfAdd').style.display = 'none';
   }
 
+  // Photos wait in a pile until Read is tapped
+  let photoPile = [];
+
+  function addPhotos(files, input) {
+    photoPile.push(...Array.from(files || []));
+    input.value = '';
+    showPile();
+  }
+
+  function showPile() {
+    const n = photoPile.length;
+    document.getElementById('qfTray').hidden = n === 0;
+    document.getElementById('qfTrayN').textContent = FT_PHOTOS.trayText(n);
+    document.getElementById('qfRead').textContent = FT_PHOTOS.readLabel(n);
+  }
+
+  // Quick fill steps: 1 photo, 2 Claude reads, 3 check and add
+  function setQfStep(step) {
+    [1, 2, 3].forEach(n => {
+      document.getElementById('qfStep' + n).className = n < step ? 'done' : n === step ? 'on' : '';
+    });
+  }
+
+  function resetQfSteps() {
+    setQfStep(1);
+    document.getElementById('qfStep2Sub').textContent = 'Starts when you tap Read';
+    document.getElementById('qfStep2Sub').hidden = false;
+    document.getElementById('qfStep3Sub').hidden = false;
+  }
+
   // Photos -> Worker -> Quick fill list, which opens by itself
   async function scanPhotos(files) {
     const list = Array.from(files || []);
@@ -691,6 +726,8 @@
     const left = document.getElementById('qfGaugeLeft');
     const msg = document.getElementById('qfMsg');
     msg.textContent = '';
+    setQfStep(2);
+    document.getElementById('qfStep2Sub').hidden = true;
     gauge.hidden = false;
     gaugeN.textContent = FT_PHOTOS.gaugeText(0, list.length);
     fill.style.width = '0%';
@@ -716,13 +753,16 @@
     });
 
     gauge.hidden = true;
-    document.getElementById('qfCamera').value = '';
-    document.getElementById('qfPick').value = '';
     if (out.results.length > 0) {
       document.getElementById('qfText').value = JSON.stringify(FT_PHOTOS.toQuickFill(out.results));
       checkQuickFill();
+      setQfStep(3);
+      document.getElementById('qfStep2Sub').textContent = `${photos.length} photos read`;
+      document.getElementById('qfStep2Sub').hidden = false;
+      document.getElementById('qfStep3Sub').hidden = true;
     } else {
       clearQuickFillList();
+      resetQfSteps();
     }
     if (out.error) msg.textContent = out.error;
     else if (photos.length === 0) msg.textContent = "Couldn't read those photos — try others";
@@ -762,17 +802,14 @@
     quickFillBoxes[index] = box;
     row.appendChild(box);
 
+    const kindEl = document.createElement('small');
+    kindEl.className = 'qf-kindtag';
+    kindEl.textContent = kindName[item.kind] || 'Food';
+    row.appendChild(kindEl);
+
     const text = document.createElement('span');
-    const kindTag = kindName[item.kind] || 'Food';
-    const when = document.createElement('span');
-    if (item.date) {
-      when.textContent = FT.formatDate(item.date);
-      when.className = 'preview-' + FT.colour(item.date, today);
-    } else {
-      when.textContent = 'no date';
-    }
-    text.textContent = `${item.name || '(no name)'} ×${item.count} · `;
-    text.appendChild(when);
+    text.className = 'qf-name';
+    text.textContent = `${item.name || '(no name)'} ×${item.count}`;
     if (item.price !== null) {
       const price = document.createElement('span');
       price.className = 'qf-price';
@@ -780,17 +817,24 @@
       text.appendChild(price);
     }
     if (item.toFreezer) text.append(' · Freezer');
+    row.appendChild(text);
+
+    const when = document.createElement('span');
+    when.className = 'qf-date';
+    if (item.date) {
+      when.textContent = FT.formatDate(item.date);
+      when.classList.add('preview-' + FT.colour(item.date, today));
+    } else {
+      when.textContent = 'no date';
+    }
+    row.appendChild(when);
+
     if (item.check === true) {
       const check = document.createElement('span');
       check.className = 'qf-check';
       check.textContent = 'CHECK';
-      text.append(' ', check);
+      row.appendChild(check);
     }
-    const kindEl = document.createElement('small');
-    kindEl.className = 'qf-kindtag';
-    kindEl.textContent = kindTag;
-    text.prepend(kindEl);
-    row.appendChild(text);
 
     if (!item.ok) {
       const problem = document.createElement('span');
@@ -860,6 +904,7 @@
       showUndoBar();
       document.getElementById('qfText').value = '';
       clearQuickFillList();
+      resetQfSteps();
       refreshUsuals();
       renderAll();
     } catch (dbErr) {
