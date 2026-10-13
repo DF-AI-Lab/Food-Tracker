@@ -14,7 +14,8 @@
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
   let askDay = null;      // past day in "What did you have?" (or cost) mode
-  let addingTonight = false; // after 5pm: tonight's card has its picker open again (+ Add)
+  let addingDay = null;  // an asking day whose picker is open (+ Add); tonight after 5pm too
+  let askOpen = null;    // the asking day whose card is open (tap its top to open or close)
   const pastState = {};   // past day -> 'ask' | 'use' | 'cost' | 'had'
   const hadPicked = {};   // past day -> foods picked in "had" mode
   let cleaning = false;   // guards dropExpiredPlans against re-entry
@@ -393,6 +394,15 @@
     document.getElementById('qfCopy').addEventListener('click', copyQuickFillPrompt);
     document.getElementById('qfCheck').addEventListener('click', checkQuickFill);
     document.getElementById('qfAdd').addEventListener('click', addQuickFill);
+    document.getElementById('qfTake').addEventListener('click', () => document.getElementById('qfCamera').click());
+    document.getElementById('qfSelect').addEventListener('click', () => document.getElementById('qfPick').click());
+    document.getElementById('qfCamera').addEventListener('change', e => addPhotos(e.target.files, e.target));
+    document.getElementById('qfPick').addEventListener('change', e => addPhotos(e.target.files, e.target));
+    document.getElementById('qfRead').addEventListener('click', () => {
+      scanPhotos(photoPile);
+      photoPile = [];
+      showPile();
+    });
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
@@ -677,6 +687,88 @@
     document.getElementById('qfAdd').style.display = 'none';
   }
 
+  // Photos wait in a pile until Read is tapped
+  let photoPile = [];
+
+  function addPhotos(files, input) {
+    photoPile.push(...Array.from(files || []));
+    input.value = '';
+    showPile();
+  }
+
+  function showPile() {
+    const n = photoPile.length;
+    document.getElementById('qfTray').hidden = n === 0;
+    document.getElementById('qfTrayN').textContent = FT_PHOTOS.trayText(n);
+    document.getElementById('qfRead').textContent = FT_PHOTOS.readLabel(n);
+  }
+
+  // Quick fill steps: 1 photo, 2 Claude reads, 3 check and add
+  function setQfStep(step) {
+    [1, 2, 3].forEach(n => {
+      document.getElementById('qfStep' + n).className = n < step ? 'done' : n === step ? 'on' : '';
+    });
+  }
+
+  function resetQfSteps() {
+    setQfStep(1);
+    document.getElementById('qfStep2Sub').textContent = 'Starts when you tap Read';
+    document.getElementById('qfStep2Sub').hidden = false;
+    document.getElementById('qfStep3Sub').hidden = false;
+  }
+
+  // Photos -> Worker -> Quick fill list, which opens by itself
+  async function scanPhotos(files) {
+    const list = Array.from(files || []);
+    if (list.length === 0) return;
+    const gauge = document.getElementById('qfGauge');
+    const gaugeN = document.getElementById('qfGaugeN');
+    const fill = document.getElementById('qfGaugeFill');
+    const left = document.getElementById('qfGaugeLeft');
+    const msg = document.getElementById('qfMsg');
+    msg.textContent = '';
+    setQfStep(2);
+    document.getElementById('qfStep2Sub').hidden = true;
+    gauge.hidden = false;
+    gaugeN.textContent = FT_PHOTOS.gaugeText(0, list.length);
+    fill.style.width = '0%';
+    left.textContent = FT_PHOTOS.gaugeLeft(0, list.length, 0);
+
+    const photos = [];
+    for (let i = 0; i < list.length; i++) {
+      try {
+        photos.push({ id: 'p' + i, jpeg: await FT_PHOTOS.shrink(list[i]) });
+      } catch (e) { /* a photo that will not open is skipped */ }
+    }
+
+    const names = [...new Set(packs.map(p => p.name.trim()))];
+    const started = Date.now();
+    const out = await FT_PHOTOS.scanAll(photos, {
+      fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: window.FT_HOUSEHOLD.id, names, today,
+      onProgress: (done, total) => {
+        const avgMs = (Date.now() - started) / done;
+        gaugeN.textContent = FT_PHOTOS.gaugeText(done, total);
+        fill.style.width = FT_PHOTOS.gaugePct(done, total) + '%';
+        left.textContent = FT_PHOTOS.gaugeLeft(done, total, avgMs);
+      },
+    });
+
+    gauge.hidden = true;
+    if (out.results.length > 0) {
+      document.getElementById('qfText').value = JSON.stringify(FT_PHOTOS.toQuickFill(out.results));
+      checkQuickFill();
+      setQfStep(3);
+      document.getElementById('qfStep2Sub').textContent = `${photos.length} photos read`;
+      document.getElementById('qfStep2Sub').hidden = false;
+      document.getElementById('qfStep3Sub').hidden = true;
+    } else {
+      clearQuickFillList();
+      resetQfSteps();
+    }
+    if (out.error) msg.textContent = out.error;
+    else if (photos.length === 0) msg.textContent = "Couldn't read those photos — try others";
+  }
+
   function checkQuickFill() {
     const msg = document.getElementById('qfMsg');
     const listEl = document.getElementById('qfList');
@@ -711,17 +803,14 @@
     quickFillBoxes[index] = box;
     row.appendChild(box);
 
+    const kindEl = document.createElement('small');
+    kindEl.className = 'qf-kindtag';
+    kindEl.textContent = kindName[item.kind] || 'Food';
+    row.appendChild(kindEl);
+
     const text = document.createElement('span');
-    const kindTag = kindName[item.kind] || 'Food';
-    const when = document.createElement('span');
-    if (item.date) {
-      when.textContent = FT.formatDate(item.date);
-      when.className = 'preview-' + FT.colour(item.date, today);
-    } else {
-      when.textContent = 'no date';
-    }
-    text.textContent = `${item.name || '(no name)'} ×${item.count} · `;
-    text.appendChild(when);
+    text.className = 'qf-name';
+    text.textContent = `${item.name || '(no name)'} ×${item.count}`;
     if (item.price !== null) {
       const price = document.createElement('span');
       price.className = 'qf-price';
@@ -729,17 +818,57 @@
       text.appendChild(price);
     }
     if (item.toFreezer) text.append(' · Freezer');
-    const kindEl = document.createElement('small');
-    kindEl.className = 'qf-kindtag';
-    kindEl.textContent = kindTag;
-    text.prepend(kindEl);
     row.appendChild(text);
+
+    const when = document.createElement('span');
+    when.className = 'qf-date';
+    if (item.date) {
+      when.textContent = FT.formatDate(item.date);
+      when.classList.add('preview-' + FT.colour(item.date, today));
+    } else {
+      when.textContent = 'no date';
+    }
+    when.addEventListener('click', e => {
+      e.preventDefault(); // inside the label: don't tick the box
+      openQfDate(index, row);
+    });
+    row.appendChild(when);
+
+    if (item.check === true) {
+      const check = document.createElement('span');
+      check.className = 'qf-check';
+      check.textContent = 'CHECK';
+      row.appendChild(check);
+    }
 
     if (!item.ok) {
       const problem = document.createElement('span');
       problem.className = 'qf-problem';
-      problem.textContent = item.problem;
+      problem.textContent = item.problem === 'Needs a date' ? 'No date found' : item.problem;
       row.appendChild(problem);
+    }
+
+    if (item.problem === 'Needs a date') {
+      const group = document.createElement('div');
+      group.className = 'qf-kind';
+      const addDate = document.createElement('button');
+      addDate.type = 'button';
+      addDate.className = 'qc';
+      addDate.innerHTML = ICON('meals', 14, 2) + 'Add date';
+      addDate.addEventListener('click', e => {
+        e.preventDefault();
+        openQfDate(index, row);
+      });
+      const noDate = document.createElement('button');
+      noDate.type = 'button';
+      noDate.className = 'qc';
+      noDate.textContent = 'No date';
+      noDate.addEventListener('click', e => {
+        e.preventDefault();
+        setQfDate(index, null);
+      });
+      group.append(addDate, noDate);
+      row.appendChild(group);
     }
 
     if (item.needsKind) {
@@ -774,6 +903,34 @@
     quickFillRowEls[index] = rowEl;
   }
 
+  // Tap a date (or Add date): a date box opens in the row
+  function openQfDate(index, rowEl) {
+    if (rowEl.querySelector('.qf-datein')) return;
+    const input = document.createElement('input');
+    input.type = 'date';
+    input.className = 'qf-datein';
+    input.value = (quickFillItems[index] && quickFillItems[index].date) || '';
+    input.addEventListener('change', () => {
+      if (input.value) setQfDate(index, input.value);
+    });
+    rowEl.appendChild(input);
+    try { input.showPicker(); } catch (e) { input.focus(); }
+  }
+
+  // Give a row its date, or null for "no date": re-check it (CHECK kept), tick it, and
+  // tell the Worker when the row came from a photo so the fix is saved
+  function setQfDate(index, date) {
+    const item = quickFillItems[index];
+    if (!item) return;
+    const fixed = FT.quickFillRow({ ...item.raw, kind: item.kind, date, dateMissing: date === null, check: item.check }, packs);
+    quickFillItems[index] = fixed;
+    const rowEl = buildQuickFillRow(fixed, index);
+    quickFillRowEls[index].replaceWith(rowEl);
+    quickFillRowEls[index] = rowEl;
+    const fix = FT_PHOTOS.fixFor(item.raw, date);
+    if (fix) FT_PHOTOS.sendFix(fix, { fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: window.FT_HOUSEHOLD.id });
+  }
+
   async function addQuickFill() {
     const msg = document.getElementById('qfMsg');
     const chosen = quickFillItems.filter((item, i) => item.ok && quickFillBoxes[i].checked);
@@ -783,7 +940,7 @@
     }
 
     const newPacks = chosen.flatMap(item => FT.makePacks({
-      name: FT.tidyName(item.name), kind: item.kind, date: item.date, noDate: item.noDate,
+      name: FT.tidyName(item.name), kind: item.kind, date: item.date, noDate: item.noDate, dateMissing: item.dateMissing,
       dateType: item.dateType, count: item.count, toFreezer: item.toFreezer,
       sub: item.sub, price: item.price
     }, today));
@@ -803,6 +960,7 @@
       showUndoBar();
       document.getElementById('qfText').value = '';
       clearQuickFillList();
+      resetQfSteps();
       refreshUsuals();
       renderAll();
     } catch (dbErr) {
@@ -1252,6 +1410,7 @@
         dateType: document.getElementById('editDateType').value,
         price: document.getElementById('editPrice').value,
       });
+      if (updated.date) updated.dateMissing = false;
     } catch (err) {
       editMsg(err.message);
       return;
@@ -1422,7 +1581,22 @@
     const age = document.createElement('span');
     age.className = 'when';
     age.textContent = FT.ageLabel(pack.added, today);
-    btn.append(rowTop(pack.name, pack, age));
+    const top = rowTop(pack.name, pack, age);
+    btn.append(top);
+    if (pack.dateMissing) {
+      // Chosen as "no date": amber tag after the name, amber line filling over 7 days
+      const tag = document.createElement('span');
+      tag.className = 'nd-tag';
+      tag.textContent = 'NO DATE';
+      top.querySelector('.rname').appendChild(tag);
+      const line = document.createElement('span');
+      line.className = 'line';
+      const fill = document.createElement('b');
+      fill.style.width = Math.min(100, FT.daysLeft(today, pack.added) / 7 * 100) + '%';
+      line.appendChild(fill);
+      btn.append(line);
+      btn.classList.add('dm');
+    }
     btn.addEventListener('click', () => packTap(pack));
     return btn;
   }
@@ -1753,7 +1927,8 @@
   // Tap a day header: open that day (closing any other), or close it if already open
   function toggleDay(day) {
     finishHad();
-    addingTonight = false;
+    addingDay = null;
+    askOpen = null;
     if (openDay === day) {
       openDay = null;
     } else {
@@ -1780,7 +1955,7 @@
     asked.forEach(day => dayListEl.appendChild(pastCard(day, picker)));
     FT.mealDays(today).filter(day => !asked.includes(day)).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
-    document.getElementById('nextDay').hidden = inHad() || (addingTonight && asked.includes(today));
+    document.getElementById('nextDay').hidden = inHad() || (addingDay && asked.includes(addingDay));
     const nextSlot = document.getElementById('nextSlot');
     nextSlot.hidden = selSlot === 'misc';
     nextSlot.textContent = NEXT_LABEL[selSlot] || 'Next: Sides';
@@ -1882,7 +2057,7 @@
     }
     mealPlans.push(plan);
     // Planning tonight after 5pm keeps today's picker open, as with a single food
-    if (day === today) addingTonight = true;
+    if (day === today) addingDay = today;
     await persistAll(FT.planMeal(meal, packs, day, plan.id).map(p => setPack(p)));
     renderMeals();
     renderAll();
@@ -2266,13 +2441,15 @@
   // A past day with a plan still waiting: "Had this meal?" then how much was used, or the takeaway cost
   function pastCard(day, picker) {
     const state = pastState[day] || 'ask';
+    // A closed asking card: no ✕ on its chips, just the quiet tag; tap its top to open it
+    const closed = state === 'ask' && askOpen !== day && addingDay !== day;
     const card = document.createElement('div');
     card.className = 'day past';
 
     const head = document.createElement('div');
     head.className = 'dh';
     head.appendChild(dayName(day));
-    const mealBlocks = appendDayChips(head, day);
+    const mealBlocks = appendDayChips(head, day, closed);
     card.appendChild(head);
     mealBlocks.forEach(b => card.appendChild(b));
 
@@ -2299,38 +2476,55 @@
     };
 
     if (state === 'ask') {
-      // One quiet line: "Used?" / "Had the takeaway?" with small Yes / No
       card.classList.add('asking');
-      const row = document.createElement('div');
-      row.className = 'askrow';
-      const text = document.createElement('span');
-      text.className = 'q-sm';
-      text.textContent = LOOK.askText(FT.dayMeals(packs, day));
-      const yes = button('had-yes mini', 'Yes', () => { addingTonight = false; answerYes(day); });
-      const no = button('had-no mini', 'No', () => { addingTonight = false; answerNo(day); });
-      row.append(text);
-      if (saveMealNames(day)) {
-        row.append(button('mini day-meal', 'Save as meal', () => openMealFromDay(day)));
-      }
-      // Tonight (after 5pm) can still take more food: + Add opens the picker for today
-      if (day === today) {
+      const askText = LOOK.askText(FT.dayMeals(packs, day));
+      head.setAttribute('role', 'button');
+      head.setAttribute('aria-expanded', String(!closed));
+      head.addEventListener('click', () => {
+        askOpen = closed ? day : null;
+        addingDay = null;
+        openDay = null; // only one card open: close any other day
+        renderMeals();
+      });
+      if (closed) {
+        const tag = document.createElement('span');
+        tag.className = 'ask-tag';
+        tag.textContent = askText;
+        head.appendChild(tag);
+      } else {
+        // Yes / No, then + Add (this day's picker, until Done) and Save as meal
+        const row = document.createElement('div');
+        row.className = 'askrow ans';
+        const text = document.createElement('span');
+        text.className = 'q-sm';
+        text.textContent = askText;
+        const yes = button('had-yes mini', 'Yes', () => { addingDay = null; answerYes(day); });
+        const no = button('had-no mini', 'No', () => { addingDay = null; answerNo(day); });
+        row.append(text, yes, no);
+
+        const adding = addingDay === day;
+        const extra = document.createElement('div');
+        extra.className = 'askrow ans';
         const add = button('had-add mini', '', () => {
-          addingTonight = !addingTonight;
+          addingDay = adding ? null : day;
           openDay = null; // only one picker: close any other open day
-          selDay = today;
+          selDay = day;
           selSlot = defaultSlot();
           pendingPlan = null;
           renderMeals();
         });
-        add.innerHTML = ICON(addingTonight ? 'close' : 'add', 14, 2.2) + (addingTonight ? 'Done' : 'Add');
-        add.setAttribute('aria-expanded', String(addingTonight));
-        row.append(add);
-      }
-      row.append(yes, no);
-      body.appendChild(row);
-      if (day === today && addingTonight) {
-        body.appendChild(picker);
-        picker.hidden = false;
+        add.innerHTML = ICON(adding ? 'close' : 'add', 14, 2.2) + (adding ? 'Done' : 'Add');
+        add.setAttribute('aria-expanded', String(adding));
+        // A meal already planned on the day: nothing to save, so "Saved ✓"
+        const saved = FT.dayGroups(packs, mealPlans, recipes, day).some(g => g.type === 'meal');
+        const meal = button('mini day-meal', saved ? 'Saved ✓' : 'Save as meal', () => openMealFromDay(day));
+        meal.disabled = saved;
+        extra.append(add, meal);
+        body.append(row, extra);
+        if (adding) {
+          body.appendChild(picker);
+          picker.hidden = false;
+        }
       }
     } else if (state === 'use') {
       q('How much did you use?');
@@ -2396,21 +2590,21 @@
 
   // Planned foods on a day as chips: one chip per meal plan, single foods as before. Returns the
   // blocks of foods for the open meals, to go under the card head.
-  function appendDayChips(head, day) {
+  function appendDayChips(head, day, noX) {
     const blocks = [];
     for (const g of FT.dayGroups(packs, mealPlans, recipes, day)) {
       if (g.type === 'meal') {
-        head.appendChild(mealPlanChip(g, day));
+        head.appendChild(mealPlanChip(g, day, noX));
         if (openPlans.has(g.plan.id)) blocks.push(mealIngs(g.view, day));
       } else {
-        head.appendChild(mealChip(g.pack, day));
+        head.appendChild(mealChip(g.pack, day, noX));
       }
     }
     return blocks;
   }
 
   // A meal on a day: one chip. Tap it to open its foods; ✕ takes the whole meal off the day.
-  function mealPlanChip(g, day) {
+  function mealPlanChip(g, day, noX) {
     const { view, plan } = g;
     const isOpen = openPlans.has(plan.id);
     const chip = document.createElement('span');
@@ -2455,7 +2649,8 @@
       e.stopPropagation();
       removeMealPlan(plan);
     });
-    chip.append(open, x);
+    chip.append(open);
+    if (!noX) chip.append(x);
     return chip;
   }
 
@@ -2522,7 +2717,7 @@
     return box;
   }
 
-  function mealChip(item, day) {
+  function mealChip(item, day, noX) {
     const isTakeaway = item.kind === 'takeaway';
     const late = !isTakeaway && FT.outByDay(item, day) > 0;
 
@@ -2546,7 +2741,8 @@
       e.stopPropagation();
       removeMeal(item);
     });
-    chip.append(label, x);
+    chip.append(label);
+    if (!noX) chip.append(x);
     return chip;
   }
 
@@ -2740,7 +2936,7 @@
   async function planMeal(pack, day, slot) {
     pendingPlan = null;
     // Planning tonight after 5pm turns today's card into "Used?": keep its picker open until Done
-    if (day === today) addingTonight = true;
+    if (day === today) addingDay = today;
     try {
       await savePack(FT.planPack(pack, day, slot));
     } catch (e) {

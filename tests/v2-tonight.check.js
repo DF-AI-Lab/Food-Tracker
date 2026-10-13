@@ -45,9 +45,8 @@ function startStatic() {
   };
   const pastDay = () => page.locator("#dayList .day.past");
   const todayCard = () => page.locator("#dayList .day.today");
-  // V2.5 demo: an asking card is closed (quiet "Used?" tag); tap its top to open the options
+  // An asking card is closed (live from v23) (quiet "Used?" tag); tap its top to open the options
   const openAsk = async () => {
-    if (APP_DIR !== "v2-next") return;
     if (await pastDay().locator(".had-yes").isVisible()) return;
     await pastDay().locator(".dh").click();
     await until(async () => assert.ok(await pastDay().locator(".had-yes").isVisible()));
@@ -76,8 +75,8 @@ function startStatic() {
     assert.equal(await todayCard().count(), 0);
   });
 
-  if (APP_DIR === "v2-next") {
-    await step("V2.5: closed asking card = quiet tag, no buttons; tap opens Yes / No / + Add", async () => {
+  {
+    await step("V3: closed asking card = quiet tag, no buttons; tap opens Yes / No / + Add", async () => {
       await page.click('[data-tab="fridge"]');
       await page.click('[data-tab="meals"]');
       await until(async () => assert.equal(await pastDay().count(), 1));

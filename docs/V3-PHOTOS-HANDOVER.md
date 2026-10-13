@@ -31,7 +31,19 @@ Updated 2026-10-13. Issue #89.
 - Never guess: unsure → blank + amber.
 - Build in `v2-next/` first, then swap into live `v2/` (steps in `docs/V2.5-LOOK-DECISIONS.md`).
 
-## Next steps
+## Built 2026-10-13 (live in v23)
+- Quick fill: Take photo (pile) / Select images → Read N photos → bar gauge → list. Paste way behind a link.
+- List: tap any date to change it; no date → Add date / No date; fixes on kept photos saved to the Worker (`/fail-date`, `none` = no date).
+- Fridge: chosen "No date" items count days in like veg + amber NO DATE tag.
+- Meals: asking card closed (quiet "Used?" tag) until tapped; + Add and Save as meal every time.
+- Mocks: `docs/mockups/` (gauge, quickfill-photos, quickfill-dates, nodate-fridge, meals-used).
+
+## Still to do
+- Settings: "This month: $0.12 · Haiku 140 · Sonnet 6" (Worker `GET /usage` is ready).
+- Caps: revisit per run / per day once tested (now only 100/week).
+- Move live to Darren's main email.
+
+## Next steps (original)
 
 1. 🎨 Gauge mocks done: `docs/mockups/gauge-mock.html` → **Darren picked B (bar + "about Ns left")**, 2026-10-13.
 2. ☁️ Worker code done + tested: `worker/` (tests: `tests/worker.test.js`). Routes: `POST /scan`, `GET /usage`, `POST /fail-date`. Failed photos kept in KV (`fail:<household>:…`).

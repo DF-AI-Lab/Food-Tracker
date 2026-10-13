@@ -1,7 +1,7 @@
 // Service worker for V2 (step 6): the app opens offline and updates when a new version is published.
 // Classic script. Bump VERSION whenever the app files change (js/version.js n must match).
 
-const VERSION = 22;
+const VERSION = 23;
 const CACHE = "ft-v" + VERSION;
 const RUNTIME = "ft-runtime";
 
@@ -19,6 +19,7 @@ const PRECACHE = [
   "js/household.js",
   "js/logic.js",
   "js/look.js",
+  "js/photos.js",
   "js/icons.js",
   "js/omr.js",
   "js/pwa.js",
