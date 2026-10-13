@@ -1,0 +1,18 @@
+# Cloudflare Worker: phone photo -> Claude -> Quick fill
+name = "food-tracker-photos"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# KV holds weekly caps, monthly cost logs and kept failed photos.
+# Replace with the id from `wrangler kv namespace create KV`.
+[[kv_namespaces]]
+binding = "KV"
+id = "PASTE_KV_ID_HERE"
+
+[vars]
+FIREBASE_PROJECT_ID = "food-tracker-92b1c"
+WEEKLY_CAP = "100"
+# Comma-separated origins allowed to call this Worker
+ALLOWED_ORIGINS = ""
+
+# ANTHROPIC_API_KEY is a secret. Set it with `wrangler secret put ANTHROPIC_API_KEY`, never in this file.
