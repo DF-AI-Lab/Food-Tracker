@@ -163,3 +163,62 @@ test("app.js: camera adds to the pile, Read button starts the scan", () => {
   assert.match(APP, /FT_PHOTOS\.trayText\(/);
   assert.match(APP, /FT_PHOTOS\.readLabel\(/);
 });
+
+// ---- Fixing dates on the list (Darren, 2026-10-13) ----
+
+test("a row with no date can be added as 'no date' (dateMissing), and makes packs that say so", () => {
+  const stuck = FT.quickFillRow({ name: "Brie", kind: "misc" });
+  assert.equal(stuck.ok, false);
+  assert.equal(stuck.problem, "Needs a date");
+  const chosen = FT.quickFillRow({ name: "Brie", kind: "misc", dateMissing: true });
+  assert.equal(chosen.ok, true);
+  assert.equal(chosen.noDate, true);
+  assert.equal(chosen.dateMissing, true);
+  const packs = FT.makePacks({ name: "Brie", kind: "misc", noDate: true, dateMissing: true, count: 1 }, "2026-10-13");
+  assert.equal(packs[0].dateMissing, true);
+  const normal = FT.makePacks({ name: "Milk", kind: "misc", date: "2026-10-20", count: 1 }, "2026-10-13");
+  assert.equal(normal[0].dateMissing, undefined, "only set when chosen");
+});
+
+test("a date typed in makes the row OK", () => {
+  const r = FT.quickFillRow({ name: "Brie", kind: "misc", date: "2026-10-25" });
+  assert.equal(r.ok, true);
+  assert.equal(r.date, "2026-10-25");
+});
+
+test("toQuickFill keeps the Worker's failKey so a fix can be saved as a test case", () => {
+  const [row] = P.toQuickFill([{ id: "a", name: "Brie", kind: "misc", date: null, needsCheck: true, failKey: "fail:h1:1-a" }]);
+  assert.equal(row.failKey, "fail:h1:1-a");
+  const [plain] = P.toQuickFill([{ id: "b", name: "Milk", date: "2026-10-20", needsCheck: false }]);
+  assert.equal(plain.failKey, undefined);
+});
+
+test("fixFor: only kept photos send a fix; 'no date' is sent as none", () => {
+  assert.deepEqual(P.fixFor({ failKey: "fail:h1:1-a" }, "2026-10-25"), { key: "fail:h1:1-a", date: "2026-10-25" });
+  assert.deepEqual(P.fixFor({ failKey: "fail:h1:1-a" }, null), { key: "fail:h1:1-a", date: "none" });
+  assert.equal(P.fixFor({}, "2026-10-25"), null);
+  assert.equal(P.fixFor(null, "2026-10-25"), null);
+});
+
+test("sendFix posts to /fail-date with the sign-in token, and never throws", async () => {
+  const calls = [];
+  const fetch = async (url, init) => { calls.push({ url, init, body: JSON.parse(init.body) }); return { ok: true, status: 200 }; };
+  const ok = await P.sendFix({ key: "fail:h1:1-a", date: "2026-10-25" }, { fetch, getToken: async () => "tok", household: "h1" });
+  assert.equal(ok, true);
+  assert.equal(calls[0].url, P.WORKER_URL + "/fail-date");
+  assert.equal(calls[0].init.method, "POST");
+  assert.equal(calls[0].init.headers.authorization, "Bearer tok");
+  assert.deepEqual(calls[0].body, { household: "h1", key: "fail:h1:1-a", date: "2026-10-25" });
+  const bad = await P.sendFix({ key: "k", date: "2026-10-25" }, { fetch: async () => { throw new Error("offline"); }, getToken: async () => "tok", household: "h1" });
+  assert.equal(bad, false);
+});
+
+test("page: rows get a date picker + No date button; fridge marks chosen 'no date' red", () => {
+  const APP = fs.readFileSync(path.join(__dirname, "..", "v2-next", "js", "app.js"), "utf8");
+  const CSS = fs.readFileSync(path.join(__dirname, "..", "v2-next", "css", "style.css"), "utf8");
+  assert.match(APP, /qf-date/, "date picker on each row");
+  assert.match(APP, /'No date'/, "No date button");
+  assert.match(APP, /FT_PHOTOS\.sendFix\(/);
+  assert.match(APP, /dateMissing/);
+  assert.match(CSS, /\.nodate\.missing/);
+});
