@@ -58,7 +58,8 @@ function startStatic() {
       try { return await fn(); } catch (e) { if (i >= 75) throw e; await page.waitForTimeout(200); }
     }
   };
-  const version = async () => Number((await page.locator("#ver").innerText()).match(/^v(\d+)/)[1]);
+  // The update counter n (the screen shows a label like v3.11 since Oct 2026)
+  const version = async () => page.evaluate(() => window.FT_VERSION.n);
 
   await page.goto(URL_);
 
