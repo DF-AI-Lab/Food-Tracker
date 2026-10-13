@@ -18,7 +18,8 @@ function thinkingFor(model) {
 // or a date already past (fresh shopping is rarely out of date, so it's likely a misread)
 function needsRetry(r, today) {
   if (r.error) return true;
-  if (r.date == null) return r.kind !== "veg" && !r.noDate;
+  // "No date" is double-checked too: a missed date must not slip through silently
+  if (r.date == null) return r.kind !== "veg";
   return Boolean(today) && r.date < today;
 }
 

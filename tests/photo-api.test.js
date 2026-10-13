@@ -159,3 +159,19 @@ test("scanOne flags a date that is still past after Sonnet", async () => {
   assert.equal(r.date, "2026-10-01");
   assert.equal(r.needsCheck, true);
 });
+
+test("needsRetry double-checks 'no date' on a non-veg item", () => {
+  assert.equal(needsRetry({ date: null, noDate: true, needsCheck: false }), true);
+  assert.equal(needsRetry({ date: null, noDate: true, kind: "veg", needsCheck: false }), false);
+});
+
+test("scanOne accepts 'no date' when Sonnet agrees", async () => {
+  const client = fakeClient({
+    "claude-haiku-5-5": ['{"name":"Ketchup","noDate":true}'],
+    "claude-sonnet-5-5": ['{"name":"Ketchup","noDate":true}'],
+  });
+  const r = await scanOne({ file: "h.jpg", base64: "A" }, { client, prompt: "p" });
+  assert.equal(r.retried, true);
+  assert.equal(r.noDate, true);
+  assert.equal(r.needsCheck, false);
+});
