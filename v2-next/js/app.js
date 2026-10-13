@@ -393,6 +393,10 @@
     document.getElementById('qfCopy').addEventListener('click', copyQuickFillPrompt);
     document.getElementById('qfCheck').addEventListener('click', checkQuickFill);
     document.getElementById('qfAdd').addEventListener('click', addQuickFill);
+    document.getElementById('qfTake').addEventListener('click', () => document.getElementById('qfCamera').click());
+    document.getElementById('qfSelect').addEventListener('click', () => document.getElementById('qfPick').click());
+    document.getElementById('qfCamera').addEventListener('change', e => scanPhotos(e.target.files));
+    document.getElementById('qfPick').addEventListener('change', e => scanPhotos(e.target.files));
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
@@ -677,6 +681,53 @@
     document.getElementById('qfAdd').style.display = 'none';
   }
 
+  // Photos -> Worker -> Quick fill list, which opens by itself
+  async function scanPhotos(files) {
+    const list = Array.from(files || []);
+    if (list.length === 0) return;
+    const gauge = document.getElementById('qfGauge');
+    const gaugeN = document.getElementById('qfGaugeN');
+    const fill = document.getElementById('qfGaugeFill');
+    const left = document.getElementById('qfGaugeLeft');
+    const msg = document.getElementById('qfMsg');
+    msg.textContent = '';
+    gauge.hidden = false;
+    gaugeN.textContent = FT_PHOTOS.gaugeText(0, list.length);
+    fill.style.width = '0%';
+    left.textContent = FT_PHOTOS.gaugeLeft(0, list.length, 0);
+
+    const photos = [];
+    for (let i = 0; i < list.length; i++) {
+      try {
+        photos.push({ id: 'p' + i, jpeg: await FT_PHOTOS.shrink(list[i]) });
+      } catch (e) { /* a photo that will not open is skipped */ }
+    }
+
+    const names = [...new Set(packs.map(p => p.name.trim()))];
+    const started = Date.now();
+    const out = await FT_PHOTOS.scanAll(photos, {
+      fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: window.FT_HOUSEHOLD.id, names, today,
+      onProgress: (done, total) => {
+        const avgMs = (Date.now() - started) / done;
+        gaugeN.textContent = FT_PHOTOS.gaugeText(done, total);
+        fill.style.width = FT_PHOTOS.gaugePct(done, total) + '%';
+        left.textContent = FT_PHOTOS.gaugeLeft(done, total, avgMs);
+      },
+    });
+
+    gauge.hidden = true;
+    document.getElementById('qfCamera').value = '';
+    document.getElementById('qfPick').value = '';
+    if (out.results.length > 0) {
+      document.getElementById('qfText').value = JSON.stringify(FT_PHOTOS.toQuickFill(out.results));
+      checkQuickFill();
+    } else {
+      clearQuickFillList();
+    }
+    if (out.error) msg.textContent = out.error;
+    else if (photos.length === 0) msg.textContent = "Couldn't read those photos — try others";
+  }
+
   function checkQuickFill() {
     const msg = document.getElementById('qfMsg');
     const listEl = document.getElementById('qfList');
@@ -729,6 +780,12 @@
       text.appendChild(price);
     }
     if (item.toFreezer) text.append(' · Freezer');
+    if (item.check === true) {
+      const check = document.createElement('span');
+      check.className = 'qf-check';
+      check.textContent = 'CHECK';
+      text.append(' ', check);
+    }
     const kindEl = document.createElement('small');
     kindEl.className = 'qf-kindtag';
     kindEl.textContent = kindTag;

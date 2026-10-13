@@ -649,6 +649,7 @@
 
     return {
       name, sub, price, kind, date, dateType, count, toFreezer, noDate,
+      check: r.check === true,
       ok: problem === null, problem, needsKind, raw: row
     };
   }

@@ -225,6 +225,13 @@
     <!-- Quick fill (JSON pasted back from Claude) -->
     <div data-sub-pane="quick" style="display:none;">
       <div class="pane af">
+        <div class="act-row">
+          <button type="button" class="act big" id="qfTake">Take photo</button>
+          <button type="button" class="act ghost" id="qfSelect">Select images</button>
+          <input type="file" id="qfCamera" accept="image/*" capture="environment" hidden>
+          <input type="file" id="qfPick" accept="image/*" multiple hidden>
+        </div>
+        <div id="qfGauge" class="qf-gauge" hidden><div class="qf-gauge-n" id="qfGaugeN">0/0</div><div class="track"><div class="fill" id="qfGaugeFill"></div></div><div class="note" id="qfGaugeLeft"></div></div>
         <ol class="steps">
           <li><b>Photo your receipt or shopping</b><span>Labels with dates work best</span></li>
           <li><b>Send them to Claude with this message</b>
@@ -457,6 +464,7 @@
   <script src="js/icons.js"></script>
   <script src="js/omr.js"></script>
   <script src="js/db.js"></script>
+  <script src="js/photos.js"></script>
   <script src="js/app.js"></script>
   <script type="module" src="js/account.js"></script>
 </body>
