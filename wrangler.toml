@@ -3,6 +3,9 @@
 name = "food-tracker-photos"
 main = "worker/src/index.js"
 compatibility_date = "2026-09-01"
+# Public address: food-tracker-photos.df-ai-lab-hq.workers.dev (sign-in still required)
+workers_dev = true
+preview_urls = false
 
 # KV holds weekly caps, monthly cost logs and kept failed photos.
 # Replace with the id from `wrangler kv namespace create KV`.
