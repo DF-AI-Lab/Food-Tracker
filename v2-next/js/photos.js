@@ -31,6 +31,15 @@
     return Math.round(done / total * 1000) / 10;
   }
 
+  // The photo pile: "1 photo ready", "Read 3 photos"
+  function trayText(n) {
+    return `${n} photo${n === 1 ? "" : "s"} ready`;
+  }
+
+  function readLabel(n) {
+    return `Read ${n} photo${n === 1 ? "" : "s"}`;
+  }
+
   // Plain words for each Worker answer
   function errorText(status, body) {
     if (status === 0) return "Couldn't connect — check your internet and try again";
@@ -121,7 +130,7 @@
 
   const FT_PHOTOS = {
     WORKER_URL, chunk, fitSize, gaugeText, gaugeLeft, gaugePct,
-    errorText, toQuickFill, scanAll, shrink
+    trayText, readLabel, errorText, toQuickFill, scanAll, shrink
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = FT_PHOTOS;
