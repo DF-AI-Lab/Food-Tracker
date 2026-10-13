@@ -50,6 +50,7 @@ async function start() {
     ? { apiKey: "fake-key", authDomain: "localhost", projectId: "demo-food-tracker" }
     : firebaseConfig, "v2-next"); // own app name: separate sign-in + offline cache from the live app
   const auth = AU.getAuth(app);
+  window.FT_TOKEN = () => auth.currentUser.getIdToken();
   // Offline cache on, shared across open tabs: the app works without a signal
   const db = F.initializeFirestore(app, {
     localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }),
