@@ -223,3 +223,18 @@ test("page: rows get a date picker + No date button; fridge marks chosen 'no dat
   assert.match(CSS, /\.nd-tag/, "amber NO DATE tag");
   assert.match(APP, /NO DATE/);
 });
+
+test("Meals: + Add is offered on every asking day, not only tonight (Darren, 2026-10-13)", () => {
+  const APP = fs.readFileSync(path.join(__dirname, "..", "v2-next", "js", "app.js"), "utf8");
+  const past = APP.slice(APP.indexOf("function pastCard("), APP.indexOf("} else if (state === 'use')"));
+  assert.match(past, /ask-tag/, "closed card shows a quiet tag");
+  assert.match(past, /had-add/);
+  assert.doesNotMatch(past, /if \(day === today\) \{\s*const add/, "+ Add no longer only for today");
+});
+
+test("Meals: Save as meal shows on every opened asking card; an already-saved meal says 'Saved ✓'", () => {
+  const APP = fs.readFileSync(path.join(__dirname, "..", "v2-next", "js", "app.js"), "utf8");
+  const past = APP.slice(APP.indexOf("function pastCard("), APP.indexOf("} else if (state === 'use')"));
+  assert.match(past, /day-meal/);
+  assert.match(past, /Saved ✓/);
+});
