@@ -698,6 +698,7 @@
     document.getElementById('qfDone').hidden = true;
     scanRound = scanRound || { done: 0, total: 0, started: Date.now() };
     scanRound.total += list.length;
+    document.getElementById('qfReadText').textContent = FT_PHOTOS.readingText(scanRound.total);
     scanQueue.push(...list);
     if (!scanBusy) runScanQueue();
   }
@@ -731,21 +732,12 @@
   async function scanPhotos(list) {
     const round = scanRound;
     const gauge = document.getElementById('qfGauge');
-    const gaugeN = document.getElementById('qfGaugeN');
-    const fill = document.getElementById('qfGaugeFill');
-    const left = document.getElementById('qfGaugeLeft');
     const msg = document.getElementById('qfMsg');
-    const show = done => {
-      const n = round.done + done;
-      gaugeN.textContent = FT_PHOTOS.gaugeText(n, round.total);
-      fill.style.width = FT_PHOTOS.gaugePct(n, round.total) + '%';
-      left.textContent = FT_PHOTOS.gaugeLeft(n, round.total, n ? (Date.now() - round.started) / n : 0);
-    };
     msg.textContent = '';
     setQfStep(2);
     document.getElementById('qfStep2Sub').hidden = true;
     gauge.hidden = false;
-    show(0);
+    document.getElementById('qfReadText').textContent = FT_PHOTOS.readingText(round.total);
 
     const photos = [];
     for (const file of list) {
@@ -757,10 +749,8 @@
     const names = [...new Set(packs.map(p => p.name.trim()))];
     const out = await FT_PHOTOS.scanAll(photos, {
       fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: window.FT_HOUSEHOLD?.id, names, today,
-      onProgress: done => show(done),
     });
     round.done += list.length;
-    show(0);
 
     if (out.results.length > 0) {
       appendQuickFill(JSON.stringify(FT_PHOTOS.toQuickFill(out.results)));

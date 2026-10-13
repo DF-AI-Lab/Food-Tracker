@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reading and collapse mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--track:#1C2B26;--text:#E8EFEC;--text-2:#C9D6D1;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--on-accent:#0A1210;--warn:#F2B35B;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;padding:16px}
+.wrap{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:12px}
+.step{display:grid;grid-template-columns:28px 1fr;gap:12px}
+.n{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px}
+.t{font-weight:600;font-size:16px;margin:3px 0 10px}
+.reading{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.words{font-size:16px;font-weight:600;text-align:center}
+.words small{display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:4px}
+.track{height:10px;background:var(--track);border-radius:5px;overflow:hidden;position:relative}
+.slide{position:absolute;top:0;bottom:0;width:35%;background:var(--accent);border-radius:5px;animation:go 1.2s ease-in-out infinite}
+@keyframes go{0%{left:-35%}100%{left:100%}}
+.coll{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.ch span:last-child{font-size:16px}
+.trow{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--border)}
+.kind{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);width:40px}
+.nm{flex:1}.pr{color:var(--muted);font-size:13px}.when{font-family:var(--mono);font-size:13px;color:var(--text-2)}
+.dt{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
+.cap{font-size:12px;color:var(--dim);text-align:center}
+</style></head><body><div class="wrap">
+<div class="lbl">STEP 2 · WHILE READING (bar slides, no numbers)</div>
+<div class="step"><span class="n">2</span><div><div class="t">Claude reads them</div>
+ <div class="reading"><div class="words">Reading 3 photos…<small>The list opens below when done</small></div><div class="track"><div class="slide"></div></div></div></div></div>
+<div class="cap">More photos while it's reading? The words change to "Reading 5 photos…"</div>
+
+<div class="lbl">ADDED TODAY · CLOSED (default)</div>
+<div class="coll"><div class="ch"><span>ADDED TODAY · 6 PACKS</span><span>⌄</span></div></div>
+
+<div class="lbl">ADDED TODAY · AFTER A TAP</div>
+<div class="coll"><div class="ch"><span>ADDED TODAY · 6 PACKS</span><span>⌃</span></div>
+ <div class="trow"><span class="kind">MAIN</span><span class="nm">Chicken thighs<span class="pr"> · £3.50</span></span><span class="dt">UB</span><span class="when">Fri 16 Oct</span></div>
+ <div class="trow"><span class="kind">MISC</span><span class="nm">Milk<span class="pr"> · £1.45</span></span><span class="dt">BB</span><span class="when">Tue 20 Oct</span></div>
+ <div class="trow"><span class="kind">VEG</span><span class="nm">Carrots</span><span class="when">no date</span></div>
+</div>
+</div></body></html>
