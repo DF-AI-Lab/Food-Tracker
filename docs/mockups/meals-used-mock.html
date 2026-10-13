@@ -24,35 +24,34 @@ h1{font-size:28px;margin:0 0 6px}
 .pick .w{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .b.done{background:var(--accent);color:#0A1210;border:0}
 .b.dash.on{border-color:var(--accent);color:var(--accent)}
+.ask{margin-left:auto;font-size:12px;font-weight:700;color:var(--warn,#F2B35B);border:1px solid var(--warn,#F2B35B);border-radius:6px;padding:2px 7px}
+.day.open{border-color:var(--accent-border)}
+.tap{font-size:12px;color:var(--dim)}
 .cap{font-size:12px;color:var(--dim);text-align:center}
 </style></head><body><div class="wrap">
 <h1>Meals</h1>
-<div class="lbl">BEFORE YOU TAP · today after 5pm</div>
+<div class="lbl">CLOSED · just a quiet "Used?" tag, nothing to press by accident</div>
 <div class="day">
- <div class="top"><span class="d">Tue</span><span class="dt">13 Oct</span><span class="chip"><small>MAIN</small>Fishcakes<span class="x">✕</span></span></div>
- <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button></div>
- <div class="extra"><button class="b dash">+ Add</button><button class="b dash">Save as meal</button></div>
+ <div class="top"><span class="d">Mon</span><span class="dt">12 Oct</span><span class="chip"><small>MAIN</small>Fishcakes</span><span class="ask">Used?</span></div>
 </div>
-<div class="lbl">AFTER TAPPING + ADD · picker opens in the card</div>
 <div class="day">
- <div class="top"><span class="d">Tue</span><span class="dt">13 Oct</span><span class="chip"><small>MAIN</small>Fishcakes<span class="x">✕</span></span><span class="chip"><small>SIDE</small>Chips<span class="x">✕</span></span></div>
- <div class="extra"><button class="b dash on">+ Add ▴</button><button class="b dash">Save as meal</button></div>
- <div class="tabs"><span>Meals</span><span>Mains</span><span class="on">Sides</span><span>Veg</span><span>Misc</span></div>
- <div class="pick"><span>Rice</span><span class="w">2 days in</span></div>
- <div class="pick"><span>Garlic bread</span><span class="w">Thu 15 Oct</span></div>
- <button class="b done">Done</button>
+ <div class="top"><span class="d">Tue</span><span class="dt">13 Oct</span><span class="chip"><small>MEAL</small>Fajita recipe</span></div>
 </div>
-<div class="lbl">AFTER DONE · back to the question</div>
-<div class="day">
- <div class="top"><span class="d">Tue</span><span class="dt">13 Oct</span><span class="chip"><small>MAIN</small>Fishcakes<span class="x">✕</span></span><span class="chip"><small>SIDE</small>Chips<span class="x">✕</span></span></div>
- <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button></div>
- <div class="extra"><button class="b dash">+ Add</button><button class="b dash">Save as meal</button></div>
-</div>
-<div class="lbl">A PAST DAY · no + Add (only tonight gets it)</div>
-<div class="day">
+<div class="day"><div class="top"><span class="d">Wed</span><span class="dt">14 Oct</span><span class="plan">+ Plan</span></div></div>
+<div class="tap">↓ Tap Mon to open it</div>
+
+<div class="lbl">OPEN · options appear</div>
+<div class="day open">
  <div class="top"><span class="d">Mon</span><span class="dt">12 Oct</span><span class="chip"><small>MAIN</small>Fishcakes<span class="x">✕</span></span></div>
  <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button></div>
  <div class="extra"><button class="b dash">Save as meal</button></div>
 </div>
-<div class="cap">Yes = eaten, packs leave the fridge. No = still in the fridge.<br>Save as meal = keep this combo in My meals.</div>
+
+<div class="lbl">OPEN · tonight after 5pm also gets + Add</div>
+<div class="day open">
+ <div class="top"><span class="d">Tue</span><span class="dt">13 Oct</span><span class="chip"><small>MEAL</small>Fajita recipe ▾<span class="x">✕</span></span></div>
+ <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button></div>
+ <div class="extra"><button class="b dash">+ Add</button><button class="b dash">Save as meal</button></div>
+</div>
+<div class="cap">Closed: no ✕ and no buttons, so nothing gets tapped by mistake.<br>Open: Yes / No, then the extras. Tap the card top again to close.</div>
 </div></body></html>
