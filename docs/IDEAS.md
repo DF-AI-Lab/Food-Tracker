@@ -20,3 +20,6 @@ To plan into versions together. Nothing here is built yet.
 - **Photo caps:** per run / per day (now 100 a week).
 - **Cost line in Settings:** "This month: $0.12 · Haiku 140 · Sonnet 6" (Worker `GET /usage` ready).
 - **Live on Darren's main email:** invite darrenfawcett1980 into the live household.
+
+## Decided not to do
+- **Claude picking Cupboard:** leave it to the app. You pick Cupboard once and the app remembers it for that food (Darren 2026-10-13).

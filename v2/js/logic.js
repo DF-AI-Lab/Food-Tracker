@@ -6,7 +6,12 @@
     veg: ["Carrots", "Onions", "Broccoli", "Peppers", "Mushrooms", "Leeks", "Cabbage", "Potatoes"],
     misc: ["Milk", "Eggs", "Margarine", "Butter"]
   };
-  const KINDS = ["main", "side", "veg", "misc"];
+  const KINDS = ["main", "side", "veg", "misc", "cupboard"];
+  // What the app calls each kind. misc is the old Misc, now "Other" (the value stays "misc")
+  const KIND_LABELS = { main: "Main", side: "Side", veg: "Veg", misc: "Other", cupboard: "Cupboard" };
+  function kindLabel(kind) {
+    return Object.prototype.hasOwnProperty.call(KIND_LABELS, kind) ? KIND_LABELS[kind] : "";
+  }
   // Everyday UK fresh foods, offered even when never bought (after STARTERS in foodCandidates)
   const COMMON_FOODS = {
     "Beef": "main", "Steak": "main", "Turkey": "main", "Pork chops": "main", "Pork belly": "main",
@@ -134,7 +139,7 @@
 
     // Validation
     if (!name || !name.trim()) throw new Error("Empty name");
-    if ((kind === "main" || kind === "misc") && !date && !noDate) throw new Error(`${kind} needs a date`);
+    if (["main", "misc", "cupboard"].includes(kind) && !date && !noDate) throw new Error(`${kind} needs a date`);
 
     const trimmedName = name.trim();
     const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
@@ -389,6 +394,12 @@
     const miscUndated = inFridge.filter(p => p.kind === "misc" && !p.date).sort(byAdded);
     const misc = [...miscDated, ...miscUndated];
 
+    // Cupboard (its own tab, not in the fridge): dated soonest first, then undated oldest first
+    const cupboardDated = packs.filter(p => p.status === "in_fridge" && p.kind === "cupboard" && p.date)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const cupboardUndated = packs.filter(p => p.status === "in_fridge" && p.kind === "cupboard" && !p.date).sort(byAdded);
+    const cupboard = [...cupboardDated, ...cupboardUndated];
+
     const countKind = kind => inFridge.filter(p => p.kind === kind).length;
 
     return {
@@ -398,10 +409,12 @@
       sidesNoDate,
       veg,
       misc,
+      cupboard,
       mainCount: countKind("main"),
       sideCount: countKind("side"),
       vegCount: countKind("veg"),
-      miscCount: countKind("misc")
+      miscCount: countKind("misc"),
+      cupboardCount: countKind("cupboard")
     };
   }
 
@@ -573,7 +586,7 @@
       out.sub = trimmed || null;
     }
     if (has("kind")) {
-      if (!KINDS.includes(changes.kind)) throw new Error("Kind must be main, side, veg or misc");
+      if (!KINDS.includes(changes.kind)) throw new Error("Kind must be main, side, veg, misc or cupboard");
       out.kind = changes.kind;
     }
     if (has("date")) {
@@ -608,7 +621,7 @@
     } else if (!out.dateType) {
       out.dateType = "use_by";
     }
-    if ((out.kind === "main" || out.kind === "misc") && !out.date && !out.noDate) {
+    if (["main", "misc", "cupboard"].includes(out.kind) && !out.date && !out.noDate) {
       throw new Error("Needs a date");
     }
     return out;
@@ -645,7 +658,7 @@
     let problem = null;
     if (!name) problem = "Needs a name";
     else if (needsKind) problem = "Pick a kind";
-    else if (!KINDS.includes(kind)) problem = "Kind must be main, side, veg or misc";
+    else if (!KINDS.includes(kind)) problem = "Kind must be main, side, veg, misc or cupboard";
     else if (hasDate && !isRealDate(date)) problem = "Date must look like 2026-10-10";
     else if (!hasDate && !noDate) problem = "Needs a date";
 
@@ -1006,7 +1019,8 @@
     const byKey = Object.fromEntries(sectionDefs.map(s => [s.key, s]));
     for (const p of inFridge) {
       if (soonIds.has(p.id)) continue;
-      if (KINDS.includes(p.kind)) byKey[p.kind].packs.push(p);
+      // The print sheet has no cupboard section, so cupboard packs are left off it
+      if (byKey[p.kind]) byKey[p.kind].packs.push(p);
     }
     for (const s of sectionDefs) s.packs.sort(sheetOrder);
 
@@ -1564,6 +1578,7 @@
     usedSummary,
     STARTERS,
     KINDS,
+    kindLabel,
     usuals,
     rememberedNoDate,
     rememberedKind,

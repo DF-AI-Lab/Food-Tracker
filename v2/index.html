@@ -20,7 +20,7 @@
 
   <!-- Top bar: today + sync on the left, bell · camera · print · settings in one box on the right -->
   <div id="top" class="topbar">
-    <span class="todaycol"><span id="today">Today</span><span id="sync" class="sync"></span></span>
+    <button id="homeBtn" class="homebtn" aria-label="Home"><img src="icons/app-icon.png" width="44" height="44" alt=""><span class="todaycol"><span class="brand">Food Tracker</span><span class="homesub"><span id="today">Today</span><span id="sync" class="sync"></span></span></span></button>
     <span class="pal"><button id="bellBtn" class="ib" title="What others did" aria-label="Notifications"><i data-icon="bell" data-size="19"></i><span id="bellCount" class="bell-count" hidden></span></button><i class="sep"></i><button id="scanBtn" class="ib" title="Read a sheet photo" aria-label="Read a sheet photo"><i data-icon="camera" data-size="19"></i></button><i class="sep"></i><button id="printF" class="ib" title="Print the fridge sheet" aria-label="Print the fridge sheet"><i data-icon="print" data-size="19"></i></button><i class="sep"></i><button id="settingsBtn" class="ib" title="Settings" aria-label="Settings"><i data-icon="settings" data-size="19"></i></button></span>
   </div>
   <div class="note flash" id="updNote" hidden></div>
@@ -36,12 +36,12 @@
     <div id="pageCount" class="count"></div>
   </div>
 
-  <!-- Fridge (also Freezer, Misc and Used) -->
+  <!-- Fridge (also Freezer, Cupboard and Used) -->
   <div data-tab-pane="fridge">
     <div id="fridgeTabs" class="seg seg3" role="tablist">
       <button data-view="fridge" class="sb on" role="tab">Fridge · <span id="tabFridgeN">0</span></button>
       <button data-view="freezer" class="sb" role="tab">Freezer · <span id="tabFreezerN">0</span></button>
-      <button data-view="misc" class="sb" role="tab">Misc · <span id="tabMiscN">0</span></button>
+      <button data-view="cupboard" class="sb" role="tab">Cupboard · <span id="tabCupboardN">0</span></button>
     </div>
     <!-- Used has no top tab (it opens from the bottom bar); this keeps track of it being the open view -->
     <button data-view="used" class="sb" hidden tabindex="-1" aria-hidden="true"></button>
@@ -66,18 +66,13 @@
           <summary><span class="sec">Veg <span class="n">· <span id="vegCount">0</span></span></span><i data-icon="chevron-down" data-size="18"></i></summary>
           <div id="veg" class="rows card"></div>
         </details>
+        <details class="fbox" open>
+          <summary><span class="sec">Other <span class="n">· <span id="miscCount">0</span></span></span><i data-icon="chevron-down" data-size="18"></i></summary>
+          <div id="misc" class="rows card"></div>
+        </details>
       </div>
       <div id="emptyFridge" class="empty" hidden>Nothing in the fridge yet. Tap + to add food.</div>
       <div id="deletedList"></div>
-    </div>
-
-    <!-- Misc View (the Misc box, on its own tab) -->
-    <div data-view-pane="misc" style="display:none;">
-      <details class="fbox" open>
-        <summary><span class="sec">Misc <span class="n">· <span id="miscCount">0</span></span></span><i data-icon="chevron-down" data-size="18"></i></summary>
-        <div id="misc" class="rows card"></div>
-      </details>
-      <div id="emptyMisc" class="empty" hidden>No misc items. Pick Misc when you add food.</div>
     </div>
 
     <!-- Freezer View -->
@@ -90,6 +85,14 @@
         <div class="rows card" id="freezerList"></div>
         <div class="hint">Defrost puts it back in the fridge with a new use-by.</div>
       </div>
+    </div>
+
+    <!-- Cupboard View (bread, crisps, tins: its own tab, not in the fridge) -->
+    <div data-view-pane="cupboard" style="display:none;">
+      <div class="section">
+        <div class="rows card" id="cupboardList"></div>
+      </div>
+      <div id="emptyCupboard" class="empty" hidden>Nothing in the cupboard. Pick Cupboard when you add food.</div>
     </div>
 
     <!-- Used View (from the bottom bar) -->
@@ -154,7 +157,7 @@
         <button class="sb on" data-s="main">Mains</button>
         <button class="sb" data-s="side">Sides</button>
         <button class="sb" data-s="veg">Veg</button>
-        <button class="sb" data-s="misc">Misc</button>
+        <button class="sb" data-s="misc">Other</button>
       </div>
       <div class="tag" id="pickFor"></div>
       <div class="warnbar" id="warnBar" hidden></div>
@@ -185,7 +188,8 @@
             <button data-kind="main" class="sb on">Main</button>
             <button data-kind="side" class="sb">Side</button>
             <button data-kind="veg" class="sb">Veg</button>
-            <button data-kind="misc" class="sb">Misc</button>
+            <button data-kind="misc" class="sb">Other</button>
+            <button data-kind="cupboard" class="sb">Cupboard</button>
           </div>
           <div id="usuals" class="qchips"></div>
           <div class="sform">
@@ -399,7 +403,8 @@
             <option value="main">Main</option>
             <option value="side">Side</option>
             <option value="veg">Veg</option>
-            <option value="misc">Misc</option>
+            <option value="misc">Other</option>
+            <option value="cupboard">Cupboard</option>
           </select>
         </label>
         <label class="edit-field">Date<input id="editDate" type="date"></label>

@@ -15,7 +15,7 @@ $("checkUpdate").onclick = async () => {
     const r = await window.FT_checkUpdate();
     $("updateMsg").textContent = r === "new"
       ? "New version found, tap the bar at the bottom"
-      : `✓ Up to date · v${window.FT_VERSION.n}`;
+      : `✓ Up to date · ${window.FT_VERSION.prefix || "v"}${window.FT_VERSION.label || window.FT_VERSION.n}`;
   } catch (e) {
     $("updateMsg").textContent = "Couldn't check for updates";
   }
@@ -177,7 +177,7 @@ async function start() {
     $("hhNameRow").hidden = true;
     $("meNameRow").hidden = true;
     const v = window.FT_VERSION;
-    $("settingsVer").textContent = v ? `App version v${v.n} · ${v.date}` : "";
+    $("settingsVer").textContent = v ? `App version ${v.prefix || "v"}${v.label || v.n} · ${v.date}` : "";
     // Which Google account this phone uses (both of Darren's accounts share a name)
     $("signedInAs").textContent = user.email || "";
     // When the household last backed up (shared, so it is read again each time)

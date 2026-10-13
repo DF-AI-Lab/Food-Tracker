@@ -7,7 +7,7 @@
   let selDay = today;
   let selSlot = 'main';
   const NEXT_SLOT = { meal: 'main', main: 'side', side: 'veg', veg: 'misc' };
-  const NEXT_LABEL = { meal: 'Next: Mains', main: 'Next: Sides', side: 'Next: Veg', veg: 'Next: Misc' };
+  const NEXT_LABEL = { meal: 'Next: Mains', main: 'Next: Sides', side: 'Next: Veg', veg: 'Next: Other' };
   let pendingPlan = null; // { pack, day, slot } waiting for "Add anyway"
   let openDay = today;    // day whose card is open (null = all closed); today is open on load
   let meals = [];         // meals history, saved in DB.meals
@@ -242,7 +242,7 @@
       el.classList.add('stale');
       return;
     }
-    el.textContent = ['v' + v.n, shortDate(v.date)].filter(Boolean).join(' · ');
+    el.textContent = [(v.prefix || 'v') + (v.label || v.n), shortDate(v.date)].filter(Boolean).join(' · ');
   }
 
   function applyTheme(theme) {
@@ -278,6 +278,11 @@
 
     // 💾 Backups: the reminder, and Settings
     document.getElementById('backupYes').addEventListener('click', doBackup);
+    // App icon top left: home (the Fridge page), closing Settings if it is open
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      document.getElementById('settings').hidden = true;
+      switchTab('fridge');
+    });
     document.getElementById('backupBtn').addEventListener('click', doBackup);
     document.getElementById('backupNo').addEventListener('click', () => {
       writeSnooze({ lastBackup: DB.lastBackup(), count: backupChanges });
@@ -673,7 +678,7 @@
   let quickFillBoxes = [];
   let quickFillRowEls = [];
 
-  const QF_KINDS = [['main', 'Main'], ['side', 'Side'], ['veg', 'Veg'], ['misc', 'Misc']];
+  const QF_KINDS = [['main', 'Main'], ['side', 'Side'], ['veg', 'Veg'], ['misc', 'Other'], ['cupboard', 'Cupboard']];
 
   function clearQuickFillList() {
     quickFillItems = [];
@@ -794,7 +799,6 @@
 
   // One row: tick box, name, date, price; a food with no known kind gets 4 kind buttons
   function buildQuickFillRow(item, index, isNew = false) {
-    const kindName = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Misc' };
     const row = document.createElement('label');
     row.className = 'srow qf-row';
 
@@ -807,7 +811,7 @@
 
     const kindEl = document.createElement('small');
     kindEl.className = 'qf-kindtag';
-    kindEl.textContent = kindName[item.kind] || 'Food';
+    kindEl.textContent = FT.kindLabel(item.kind) || 'Food';
     row.appendChild(kindEl);
 
     const text = document.createElement('span');
@@ -1042,7 +1046,7 @@
     document.querySelectorAll('[data-view-pane]').forEach(p => p.style.display = 'none');
     document.querySelector(`[data-view-pane="${view}"]`).style.display = '';
 
-    if (view === 'fridge' || view === 'misc') renderFridgeView();
+    if (view === 'fridge' || view === 'cupboard') renderFridgeView(); // one render covers both pages
     else if (view === 'freezer') renderFreezerView();
     else if (view === 'used') renderUsedView();
     updateNav();
@@ -1054,11 +1058,11 @@
     if (tab === 'add') return document.querySelector('[data-sub].on')?.dataset.sub === 'shop' ? 'shop' : 'add';
     if (tab === 'meals') return 'meals';
     const view = document.querySelector('[data-view].on')?.dataset.view || 'fridge';
-    return view === 'used' ? 'used' : view; // fridge | freezer | misc | used
+    return view === 'used' ? 'used' : view; // fridge | freezer | cupboard | used
   }
 
-  const PAGE_TITLE = { fridge: 'Fridge', freezer: 'Freezer', misc: 'Misc', used: 'Used', meals: 'Meals', add: 'Add food', shop: 'Shopping' };
-  const NAV_FOR = { fridge: 'fridge', freezer: 'fridge', misc: 'fridge', used: 'used', meals: 'meals', add: 'add', shop: 'shop' };
+  const PAGE_TITLE = { fridge: 'Fridge', freezer: 'Freezer', cupboard: 'Cupboard', used: 'Used', meals: 'Meals', add: 'Add food', shop: 'Shopping' };
+  const NAV_FOR = { fridge: 'fridge', freezer: 'fridge', cupboard: 'fridge', used: 'used', meals: 'meals', add: 'add', shop: 'shop' };
 
   function updateNav() {
     const page = currentPage();
@@ -1083,8 +1087,8 @@
     const view = FT.fridgeView(packs, today);
     const items = n => n === 1 ? '1 item' : n + ' items';
     let right = '', above = '';
-    if (page === 'fridge') right = items(view.mainCount + view.sideCount + view.vegCount);
-    else if (page === 'misc') right = items(view.miscCount);
+    if (page === 'fridge') right = items(view.mainCount + view.sideCount + view.vegCount + view.miscCount);
+    else if (page === 'cupboard') right = items(view.cupboardCount);
     else if (page === 'freezer') right = items(FT.freezerList(packs, today).length);
     else if (page === 'used') above = new Date(today + 'T00:00:00Z').toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' }) + ' so far';
     else if (page === 'meals') {
@@ -1100,11 +1104,11 @@
     kicker.hidden = !above;
   }
 
-  // Top tabs: Fridge · N | Freezer · N | Misc · N
+  // Top tabs: Fridge · N | Freezer · N | Cupboard · N (the fridge count includes Other; cupboard is not in the fridge)
   function renderTabCounts() {
     const view = FT.fridgeView(packs, today);
-    document.getElementById('tabFridgeN').textContent = view.mainCount + view.sideCount + view.vegCount;
-    document.getElementById('tabMiscN').textContent = view.miscCount;
+    document.getElementById('tabFridgeN').textContent = view.mainCount + view.sideCount + view.vegCount + view.miscCount;
+    document.getElementById('tabCupboardN').textContent = view.cupboardCount;
     document.getElementById('tabFreezerN').textContent = FT.freezerList(packs, today).length;
   }
 
@@ -1694,17 +1698,22 @@
     vegEl.innerHTML = '';
     view.veg.forEach(pack => vegEl.appendChild(pack.date ? datedButton(pack) : undatedButton(pack)));
 
-    // Misc: dated soonest first, then undated
+    // Other (the misc kind): dated soonest first, then undated
     document.getElementById('miscCount').textContent = view.miscCount;
     const miscEl = document.getElementById('misc');
     miscEl.innerHTML = '';
     view.misc.forEach(pack => miscEl.appendChild(pack.date ? datedButton(pack) : undatedButton(pack)));
 
+    // Cupboard: same rows, soonest first, undated after
+    const cupboardEl = document.getElementById('cupboardList');
+    cupboardEl.innerHTML = '';
+    view.cupboard.forEach(pack => cupboardEl.appendChild(pack.date ? datedButton(pack) : undatedButton(pack)));
+
     // Empty boxes fold away; a whole empty page says how to fill it
     [['mains', view.mainCount], ['sides', view.sideCount], ['veg', view.vegCount], ['misc', view.miscCount]]
       .forEach(([id, n]) => { document.getElementById(id).closest('.fbox').hidden = n === 0; });
-    document.getElementById('emptyFridge').hidden = view.mainCount + view.sideCount + view.vegCount > 0;
-    document.getElementById('emptyMisc').hidden = view.miscCount > 0;
+    document.getElementById('emptyFridge').hidden = view.mainCount + view.sideCount + view.vegCount + view.miscCount > 0;
+    document.getElementById('emptyCupboard').hidden = view.cupboardCount > 0;
     renderTabCounts();
 
     // Deleted today or yesterday: red line, with Undo
@@ -1814,7 +1823,7 @@
     tk.querySelector('small').textContent = `${takeaways.count} this month`;
     tk.querySelector('.mono').textContent = `£${takeaways.total.toFixed(2)}`;
 
-    const KIND = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Misc' };
+    const KIND = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Other', cupboard: 'Cupboard' };
     const listEl = document.getElementById('usedList');
     listEl.innerHTML = '';
     if (!summary.list.length) {
@@ -1868,7 +1877,7 @@
 
   // ---- Meals: week planner ----
 
-  const SLOT_LABEL = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Misc' };
+  const SLOT_LABEL = { main: 'Main', side: 'Side', veg: 'Veg', misc: 'Other' };
 
   function shortDay(iso) {
     return FT.formatDate(iso).split(' ')[0];
@@ -3038,7 +3047,7 @@
   // Top line: today's date (needs no stored data, so it shows before the database loads)
   function renderTopDate() {
     const todayEl = document.getElementById('today');
-    todayEl.textContent = 'Today · ' + FT.formatDate(today);
+    todayEl.textContent = FT.formatDate(today);
   }
 
   // Packs added today, still in the fridge or freezer: tap one for the fridge menu
@@ -3054,7 +3063,7 @@
       row.className = 'added-row';
       const kind = document.createElement('span');
       kind.className = 'qf-kindtag';
-      kind.textContent = String(pack.kind || '').toUpperCase();
+      kind.textContent = (FT.kindLabel(pack.kind) || pack.kind || '').toUpperCase();
       const name = document.createElement('span');
       name.className = 'nm';
       name.textContent = pack.name;
@@ -3092,7 +3101,7 @@
   function renderAll() {
     renderTopDate();
     const activeView = document.querySelector('[data-view].on')?.dataset.view;
-    if (activeView === 'fridge' || activeView === 'misc') renderFridgeView();
+    if (activeView === 'fridge' || activeView === 'cupboard') renderFridgeView();
     else if (activeView === 'freezer') renderFreezerView();
     else if (activeView === 'used') renderUsedView();
     if (packs) {
@@ -3148,10 +3157,7 @@
     badge.textContent = String(count);
     badge.hidden = count === 0;
     document.getElementById('bellBtn').setAttribute('aria-label', LOOK.bellLabel(count));
-    // Alone in a household with nothing from anyone else: no bell to tap (local mode always has one)
-    const members = window.FT_HOUSEHOLD ? window.FT_HOUSEHOLD.members.length : 2;
-    const alone = members < 2 && FT.activityFeed(bellEntries, DB.uid).length === 0;
-    document.getElementById('bellBtn').hidden = alone;
+    // The bell always shows (Darren 2026-10-13), even alone in a household
     if (open) renderBellList();
   }
 

@@ -56,9 +56,13 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible,summary:focus
 /* ---- Top bar ---- */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:var(--tap)}
 .todaycol{display:flex;flex-direction:column;gap:2px;min-width:0}
-#today{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap}
-#today::before{content:"";width:6px;height:6px;border-radius:3px;background:var(--accent-line);flex:none}
-.sync{font-size:11px;color:var(--dim);padding-left:14px;white-space:nowrap}
+.homebtn{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0}
+.homebtn img{border-radius:12px;flex:none;display:block}
+.brand{font-size:16px;font-weight:700;color:var(--text);white-space:nowrap}
+.homesub{display:flex;font-size:12px;color:var(--dim);white-space:nowrap}
+#today{color:var(--dim)}
+.sync{font-size:12px;color:var(--dim);white-space:nowrap}
+.sync:not(:empty)::before{content:"·";margin:0 5px}
 .sync:empty{display:none}
 .sync[data-state="wait"]{color:var(--warn)}
 .sync[data-state="off"]{color:var(--danger)}
@@ -686,3 +690,19 @@ details.added[open] .chev{transform:rotate(180deg)}
 .added-row .pr{color:var(--muted);font-size:13px}
 .added-row .dt{flex:none;font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
 .added-row .when{flex:none;font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap}
+
+/* Small phones (e.g. a Fold's front screen): top bar shrinks so all 4 buttons fit */
+@media (max-width:400px){
+  .homebtn{gap:8px}
+  .homebtn img{width:36px;height:36px;border-radius:10px}
+  .brand{font-size:15px}
+  .topbar{gap:6px}
+  .homesub{font-size:11px}
+  .pal .ib{width:40px;min-width:40px}
+}
+@media (max-width:350px){
+  .homesub .sync{display:none}
+  .pal .ib{width:36px;min-width:36px}
+  .brand{font-size:14px}
+  .homebtn img{width:34px;height:34px}
+}
