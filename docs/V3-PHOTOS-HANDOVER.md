@@ -35,7 +35,7 @@ Updated 2026-10-13. Issue #89.
 
 1. 🎨 Gauge mocks done: `docs/mockups/gauge-mock.html` → **Darren picked B (bar + "about Ns left")**, 2026-10-13.
 2. ☁️ Worker code done + tested: `worker/` (tests: `tests/worker.test.js`). Routes: `POST /scan`, `GET /usage`, `POST /fail-date`. Failed photos kept in KV (`fail:<household>:…`).
-   **Still to do:** walk Darren through the Cloudflare account, `wrangler kv namespace create KV` (paste id in `worker/wrangler.toml`), `wrangler secret put ANTHROPIC_API_KEY` (Darren types it), set `ALLOWED_ORIGINS`, deploy.
+   **Still to do:** walk Darren through the Cloudflare account, `wrangler kv namespace create KV` (id now in root `wrangler.toml`), `wrangler secret put ANTHROPIC_API_KEY` (Darren types it), set `ALLOWED_ORIGINS`, deploy.
 3. **App (`v2-next/`)**: Take photo / Select images → shrink to 1000 px → Worker → gauge → Quick fill list opens.
 4. Tests first, cheapest model first (CLAUDE.md).
 

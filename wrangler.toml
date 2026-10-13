@@ -1,6 +1,7 @@
 # Cloudflare Worker: phone photo -> Claude -> Quick fill
+# Lives at the repo root so Cloudflare builds find it from / and from worker/.
 name = "food-tracker-photos"
-main = "src/index.js"
+main = "worker/src/index.js"
 compatibility_date = "2026-09-01"
 
 # KV holds weekly caps, monthly cost logs and kept failed photos.
