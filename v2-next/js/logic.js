@@ -130,7 +130,7 @@
 
   // Pack creation
   function makePacks(spec, today) {
-    const { name, kind, date, dateType, count, toFreezer, noDate, sub, price } = spec;
+    const { name, kind, date, dateType, count, toFreezer, noDate, dateMissing, sub, price } = spec;
 
     // Validation
     if (!name || !name.trim()) throw new Error("Empty name");
@@ -153,6 +153,7 @@
         sub: sub || null,
         price: (typeof price === "number" ? price : null)
       };
+      if (dateMissing === true) pack.dateMissing = true;
       packs.push(pack);
     }
     return packs;
@@ -635,7 +636,8 @@
     const dateType = hasDate ? (r.bb === true || r.dateType === "best_before" ? "best_before" : "use_by") : null;
 
     // No date is fine for sides and veg, for foods marked noDate, or for foods remembered with no date
-    const noDate = forcedNoDate || (!hasDate && (r.noDate === true || kind === "side"));
+    const dateMissing = r.dateMissing === true;
+    const noDate = forcedNoDate || (!hasDate && (r.noDate === true || kind === "side" || dateMissing));
 
     const count = Math.min(20, Math.max(1, parseInt(r.packs ?? r.count ?? 1, 10) || 1));
     const toFreezer = r.freezer === true || r.toFreezer === true;
@@ -648,7 +650,7 @@
     else if (!hasDate && !noDate) problem = "Needs a date";
 
     return {
-      name, sub, price, kind, date, dateType, count, toFreezer, noDate,
+      name, sub, price, kind, date, dateType, count, toFreezer, noDate, dateMissing,
       check: r.check === true,
       ok: problem === null, problem, needsKind, raw: row
     };

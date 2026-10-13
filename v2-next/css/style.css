@@ -142,6 +142,8 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .row.st-soon .when{color:var(--warn)}
 .row.st-out .when{color:var(--danger)}
 .row.nodate.old .when{color:var(--warn)}
+.nd-tag{margin-left:6px;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px;vertical-align:middle}
+.row.dm .line b{background:var(--warn-line)}
 .line{display:block;height:3px;border-radius:2px;background:var(--track);overflow:hidden}
 .line b{display:block;height:3px;border-radius:2px;background:var(--accent-line)}
 .row.st-soon .line b{background:var(--warn-line)}
@@ -322,7 +324,8 @@ details>summary{cursor:pointer;font-size:13px;color:var(--muted);min-height:32px
 .qf-row .qf-name{flex:1}
 .qf-row input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
 .qf-kindtag{flex:none;width:38px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.qf-date{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap}
+.qf-date{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap;border-bottom:1px dashed var(--dim);cursor:pointer}
+.qf-datein{flex-basis:100%;min-height:40px;border-radius:10px;border:1px solid var(--accent);background:var(--surface-2);color:var(--text);font:inherit;font-size:14px;padding:0 10px;color-scheme:inherit}
 .qf-check{flex:none;font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
 .qf-steps li.done::before{background:var(--surface-2);color:var(--accent)}
 .qf-steps li:not(.on):not(.done) b{color:var(--dim)}
@@ -647,6 +650,11 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 #mealShop .rs-row input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
 #mealShop .rs-row.cupboard-row{min-height:34px;font-size:14px;color:var(--muted)}
 .askrow .act.day-meal{background:transparent;color:var(--text-2);border:1px dashed var(--accent-border);min-width:0;padding:0 10px;min-height:36px;font-size:14px;border-radius:10px}
+.askrow .act.day-meal:disabled{opacity:1;border:1px solid var(--accent-border);color:var(--accent)}
+.day.past.asking .dh{cursor:pointer}
+.ask-tag{margin-left:auto;font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.askrow.ans .q-sm{flex:none}
+.askrow.ans .act.mini{flex:1 1 0;min-width:0}
 .dh .day-meal{margin-left:auto;min-height:34px;padding:0 10px;border-radius:10px;border:1px dashed var(--accent-border);background:transparent;color:var(--text-2);font:inherit;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center}
 /* My meals: same rhythm as the other sections; a smaller New meal button */
 #myMeals{display:flex;flex-direction:column;gap:10px;margin-top:14px}

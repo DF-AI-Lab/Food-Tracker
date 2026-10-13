@@ -54,17 +54,43 @@
 
   // Worker results -> Quick fill rows (the same shape Claude's JSON gives)
   function toQuickFill(results) {
-    return (results || []).map(r => ({
-      name: r.name || "",
-      sub: r.sub || null,
-      date: r.date || null,
-      bb: r.bb === true,
-      price: r.price ?? null,
-      packs: r.packs ?? 1,
-      kind: r.kind || "",
-      noDate: r.noDate === true,
-      check: r.needsCheck === true,
-    }));
+    return (results || []).map(r => {
+      const row = {
+        name: r.name || "",
+        sub: r.sub || null,
+        date: r.date || null,
+        bb: r.bb === true,
+        price: r.price ?? null,
+        packs: r.packs ?? 1,
+        kind: r.kind || "",
+        noDate: r.noDate === true,
+        check: r.needsCheck === true,
+      };
+      if (r.failKey) row.failKey = r.failKey;
+      return row;
+    });
+  }
+
+  // The real date (or "none") for a kept photo, so the Worker can save it as a test case
+  function fixFor(row, date) {
+    if (!row || !row.failKey) return null;
+    return { key: row.failKey, date: date || "none" };
+  }
+
+  // Fire and forget: true if the Worker saved it, false otherwise (never throws)
+  async function sendFix(fix, opts) {
+    try {
+      const { fetch, getToken, household } = opts;
+      const token = await getToken();
+      const res = await fetch(WORKER_URL + "/fail-date", {
+        method: "POST",
+        headers: { authorization: "Bearer " + token, "content-type": "application/json" },
+        body: JSON.stringify({ household, key: fix.key, date: fix.date }),
+      });
+      return res.ok === true;
+    } catch (e) {
+      return false;
+    }
   }
 
   // Send photos to the Worker 5 at a time, one batch after another
@@ -130,7 +156,7 @@
 
   const FT_PHOTOS = {
     WORKER_URL, chunk, fitSize, gaugeText, gaugeLeft, gaugePct,
-    trayText, readLabel, errorText, toQuickFill, scanAll, shrink
+    trayText, readLabel, errorText, toQuickFill, fixFor, sendFix, scanAll, shrink
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = FT_PHOTOS;
