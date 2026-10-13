@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cupboard mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--track:#1C2B26;--text:#E8EFEC;--text-2:#C9D6D1;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--warn:#F2B35B;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:16px}
+.wrap{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:12px}
+h1{margin:0;font-size:30px;display:flex;justify-content:space-between;align-items:baseline}h1 small{font-size:15px;font-weight:400;color:var(--muted)}
+.seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px}
+.seg div{flex:1;text-align:center;padding:10px 4px;border-radius:10px;color:var(--muted);font-size:14px}.seg .on{background:var(--surface-2);color:var(--text);font-weight:600}
+.sec{display:flex;justify-content:space-between;font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.row{padding:14px 18px 12px;border-top:1px solid var(--border)}.row:first-child{border-top:0}
+.top{display:flex;justify-content:space-between;font-size:16px;font-weight:600}.when{font-family:var(--mono);font-size:13px;font-weight:400;color:var(--text-2)}
+.line{display:block;height:4px;border-radius:2px;background:var(--track);margin-top:10px;overflow:hidden}.line b{display:block;height:100%;background:var(--accent)}
+.amb b{background:var(--warn)}.when.amb{color:var(--warn)}
+</style></head><body><div class="wrap">
+<div class="lbl">FRIDGE TAB</div>
+<h1>Fridge <small>13 items</small></h1>
+<div class="seg"><div class="on">Fridge · 13</div><div>Freezer · 0</div><div>Cupboard · 2</div></div>
+<div class="sec">MAINS · 6<span>⌄</span></div>
+<div class="card"><div class="row"><div class="top">Chicken tenders<span class="when amb">2 days</span></div><span class="line amb"><b style="width:40%"></b></span></div></div>
+<div class="sec">SIDES · 2<span>⌄</span></div>
+<div class="card"><div class="row"><div class="top">Dauphinoise potatoes<span class="when">Mon 19 Oct · 6 days</span></div><span class="line"><b style="width:100%"></b></span></div></div>
+<div class="sec">VEG · 1<span>⌄</span></div>
+<div class="card"><div class="row"><div class="top">Carrots<span class="when">3 days in</span></div></div></div>
+<div class="sec">OTHER · 4<span>⌄</span></div>
+<div class="card"><div class="row"><div class="top">Milk<span class="when">Tue 20 Oct · 7 days</span></div><span class="line"><b style="width:100%"></b></span></div></div>
+
+<div class="lbl">CUPBOARD TAB</div>
+<h1>Cupboard <small>2 items</small></h1>
+<div class="seg"><div>Fridge · 13</div><div>Freezer · 0</div><div class="on">Cupboard · 2</div></div>
+<div class="card">
+ <div class="row"><div class="top">Bread<span class="when">Fri 16 Oct · 3 days</span></div><span class="line"><b style="width:60%"></b></span></div>
+ <div class="row"><div class="top">Crisps<span class="when">Sat 31 Oct · 18 days</span></div><span class="line"><b style="width:100%"></b></span></div>
+</div>
+</div></body></html>
