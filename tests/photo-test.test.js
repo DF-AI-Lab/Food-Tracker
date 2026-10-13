@@ -168,3 +168,7 @@ test("scoreOne: veg must come back as veg", () => {
   assert.equal(scoreOne({ name: "Carrots", kind: "veg" }, { name: "Carrots", date: null }).kind, false);
   assert.equal(scoreOne({ name: "Ham", date: "2026-10-15" }, { name: "Ham", date: "2026-10-15" }).kind, true);
 });
+
+test("parseReply: veg is never best before", () => {
+  assert.equal(parseReply('{"name":"Peppers","kind":"veg","bb":true}').bb, false);
+});

@@ -1,5 +1,5 @@
 // Real Claude API photo test. Run on the PC (Node 22) with ANTHROPIC_API_KEY set.
-// Usage: node tools/photo-test/run-api.js <photoFolder> [--size 1000] [--no-retry] [--limit 5] [--expected tools/photo-test/expected.json]
+// Usage: node tools/photo-test/run-api.js <photoFolder> [--size 1000] [--thinking on|off] [--today YYYY-MM-DD] [--no-retry] [--limit 5] [--expected file]
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseReply, scoreRun, costUSD, PRICES, buildPrompt } = require("./lib.js");
@@ -14,16 +14,20 @@ function thinkingFor(model) {
   return model === "claude-sonnet-5-5" ? { type: "between_tools" } : { type: "disabled" };
 }
 
-// Retry on an error, or a missing date on something that should have one
-function needsRetry(r) {
-  return Boolean(r.error) || (r.date == null && r.kind !== "veg" && !r.noDate);
+// Retry on an error, a missing date on something that should have one,
+// or a date already past (fresh shopping is rarely out of date, so it's likely a misread)
+function needsRetry(r, today) {
+  if (r.error) return true;
+  if (r.date == null) return r.kind !== "veg" && !r.noDate;
+  return Boolean(today) && r.date < today;
 }
 
-function buildRequest({ model, base64, prompt }) {
+// thinking "on" leaves the setting out so the model uses its default
+function buildRequest({ model, base64, prompt, thinking = "off" }) {
   return {
     model,
-    max_tokens: 1024,
-    thinking: thinkingFor(model),
+    max_tokens: thinking === "on" ? 8000 : 1024,
+    ...(thinking === "on" ? {} : { thinking: thinkingFor(model) }),
     messages: [{
       role: "user",
       content: [
@@ -35,13 +39,13 @@ function buildRequest({ model, base64, prompt }) {
 }
 
 // One photo: ask Haiku, retry a doubtful answer on Sonnet
-async function scanOne(photo, { client, prompt, retry = true, model = MODEL, retryModel = RETRY_MODEL }) {
+async function scanOne(photo, { client, prompt, retry = true, model = MODEL, retryModel = RETRY_MODEL, thinking = "off", today = null }) {
   const calls = [];
 
   // Any API or parse problem becomes a needs-check result
   const ask = async (m) => {
     try {
-      const res = await client.messages.create(buildRequest({ model: m, base64: photo.base64, prompt }));
+      const res = await client.messages.create(buildRequest({ model: m, base64: photo.base64, prompt, thinking }));
       calls.push({ model: m, input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens });
       const block = res.content.find((b) => b.type === "text");
       return parseReply(block ? block.text : "");
@@ -52,7 +56,7 @@ async function scanOne(photo, { client, prompt, retry = true, model = MODEL, ret
 
   let answer = await ask(model);
   let used = model;
-  const retried = retry && needsRetry(answer);
+  const retried = retry && needsRetry(answer, today);
   if (retried) {
     const again = await ask(retryModel);
     // Keep the first name if the retry lost the date as well
@@ -63,6 +67,9 @@ async function scanOne(photo, { client, prompt, retry = true, model = MODEL, ret
     answer = again;
     used = retryModel;
   }
+
+  // Still past after the retry: show it, but ask for a check
+  if (today && answer.date && answer.date < today) answer.needsCheck = true;
 
   return { file: photo.file, ...answer, model: used, retried, calls };
 }
@@ -107,13 +114,15 @@ function listPhotos(dir) {
 }
 
 function parseArgs(argv) {
-  const opts = { dir: null, size: 1000, retry: true, limit: 5, expected: null };
+  const opts = { dir: null, size: 1000, retry: true, limit: 5, expected: null, thinking: "on", today: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--size") opts.size = Number(argv[++i]);
     else if (a === "--no-retry") opts.retry = false;
     else if (a === "--limit") opts.limit = Number(argv[++i]);
     else if (a === "--expected") opts.expected = argv[++i];
+    else if (a === "--thinking") opts.thinking = argv[++i] === "off" ? "off" : "on";
+    else if (a === "--today") opts.today = argv[++i];
     else if (!opts.dir) opts.dir = a;
   }
   return opts;
@@ -172,9 +181,12 @@ async function main(argv) {
     }
   }
 
+  // Dates before "today" get re-checked; --today lets old test photos use the day they were taken
+  const today = opts.today || new Date().toISOString().slice(0, 10);
+
   let done = 0;
   const scan = async (photo) => {
-    const r = await scanOne(photo, { client, prompt, retry: opts.retry });
+    const r = await scanOne(photo, { client, prompt, retry: opts.retry, thinking: opts.thinking, today });
     done++;
     console.log(`${done} of ${photos.length} ready`);
     return r;
@@ -191,6 +203,7 @@ async function main(argv) {
       veg: r.kind === "veg" ? "yes" : "",
       model: r.model,
       retried: r.retried ? "yes" : "",
+      check: r.needsCheck ? "CHECK" : "",
     };
   }));
 
@@ -209,7 +222,7 @@ async function main(argv) {
   const outDir = path.join(__dirname, "out");
   fs.mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, `results-api-${opts.size}-${stamp(new Date())}.json`);
-  const settings = { size: opts.size, retry: opts.retry, models: opts.retry ? [MODEL, RETRY_MODEL] : [MODEL] };
+  const settings = { size: opts.size, retry: opts.retry, thinking: opts.thinking, today, models: opts.retry ? [MODEL, RETRY_MODEL] : [MODEL] };
   fs.writeFileSync(outFile, JSON.stringify({ settings, cost, results }, null, 2));
   console.log(`Saved: ${outFile}`);
   console.log("Upload this file to Claude to score it.");

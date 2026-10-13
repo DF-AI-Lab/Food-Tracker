@@ -125,3 +125,37 @@ test("listPhotos finds only photos, sorted", () => {
   for (const f of ["b.JPG", "a.jpeg", "c.png", "notes.txt", "d.webp"]) fs.writeFileSync(path.join(dir, f), "x");
   assert.deepEqual(listPhotos(dir).map(p => path.basename(p)), ["a.jpeg", "b.JPG", "c.png", "d.webp"]);
 });
+
+// ---- v2: past dates are re-checked, thinking can be on ----
+
+test("needsRetry re-checks a date that is already past", () => {
+  assert.equal(needsRetry({ date: "2026-10-01", needsCheck: false }, "2026-10-08"), true);
+  assert.equal(needsRetry({ date: "2026-10-10", needsCheck: false }, "2026-10-08"), false);
+  assert.equal(needsRetry({ date: "2026-10-08", needsCheck: false }, "2026-10-08"), false);
+});
+
+test("thinking on leaves the thinking setting out (model default)", () => {
+  assert.equal(buildRequest({ model: "claude-haiku-5-5", base64: "A", prompt: "p", thinking: "on" }).thinking, undefined);
+  assert.deepEqual(buildRequest({ model: "claude-haiku-5-5", base64: "A", prompt: "p", thinking: "off" }).thinking, { type: "disabled" });
+});
+
+test("scanOne sends a past date to Sonnet and keeps Sonnet's date", async () => {
+  const client = fakeClient({
+    "claude-haiku-5-5": ['{"name":"Chicken","date":"2026-10-01"}'],
+    "claude-sonnet-5-5": ['{"name":"Chicken","date":"2026-10-10"}'],
+  });
+  const r = await scanOne({ file: "f.jpg", base64: "A" }, { client, prompt: "p", today: "2026-10-08" });
+  assert.equal(r.date, "2026-10-10");
+  assert.equal(r.retried, true);
+  assert.equal(r.needsCheck, false);
+});
+
+test("scanOne flags a date that is still past after Sonnet", async () => {
+  const client = fakeClient({
+    "claude-haiku-5-5": ['{"name":"Ham","date":"2026-10-01"}'],
+    "claude-sonnet-5-5": ['{"name":"Ham","date":"2026-10-01"}'],
+  });
+  const r = await scanOne({ file: "g.jpg", base64: "A" }, { client, prompt: "p", today: "2026-10-08" });
+  assert.equal(r.date, "2026-10-01");
+  assert.equal(r.needsCheck, true);
+});

@@ -44,7 +44,7 @@ function parseReply(text) {
     sub: clean(o.sub),
     kind,
     date,
-    bb: o.bb === true,
+    bb: o.bb === true && kind !== "veg",
     price: typeof o.price === "number" && Number.isFinite(o.price) ? o.price : null,
     packs: Number.isInteger(o.packs) && o.packs >= 2 ? o.packs : null,
     noDate,
