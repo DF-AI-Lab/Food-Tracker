@@ -40,6 +40,11 @@
     return `Read ${n} photo${n === 1 ? "" : "s"}`;
   }
 
+  // Step 2 while Claude reads: "Reading 3 photos…" (no counter)
+  function readingText(n) {
+    return `Reading ${n} photo${n === 1 ? "" : "s"}…`;
+  }
+
   // Plain words for each Worker answer
   function errorText(status, body) {
     if (status === 0) return "Couldn't connect — check your internet and try again";
@@ -156,7 +161,7 @@
 
   const FT_PHOTOS = {
     WORKER_URL, chunk, fitSize, gaugeText, gaugeLeft, gaugePct,
-    trayText, readLabel, errorText, toQuickFill, fixFor, sendFix, scanAll, shrink
+    trayText, readLabel, readingText, errorText, toQuickFill, fixFor, sendFix, scanAll, shrink
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = FT_PHOTOS;

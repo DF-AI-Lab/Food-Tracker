@@ -808,6 +808,28 @@
     return [...toGet, ...got, ...gone];
   }
 
+  // Shop items to get that one of the added foods may have bought: a whole word (3+ letters) in common
+  function shopMatches(shopItems, addedNames) {
+    const wordsOf = s => String(s).toLowerCase().match(/\p{L}{3,}/gu) || [];
+    const added = new Set(addedNames.flatMap(wordsOf));
+    return shopItems.filter(i => !i.got && !i.del && wordsOf(i.name).some(w => added.has(w)));
+  }
+
+  // Packs added today that are still in the fridge or freezer: mains, sides, veg, misc, then name
+  const ADDED_ORDER = ["main", "side", "veg", "misc"];
+  function addedToday(packs, today) {
+    const rank = p => (ADDED_ORDER.includes(p.kind) ? ADDED_ORDER.indexOf(p.kind) : 4);
+    return packs
+      .filter(p => p.added === today && (p.status === "in_fridge" || p.status === "frozen"))
+      .sort((a, b) => rank(a) - rank(b) || String(a.name).localeCompare(String(b.name)));
+  }
+
+  // UB (use by) or BB (best before) for a dated pack, "" when it has no date
+  function dateTag(pack) {
+    if (!pack.date) return "";
+    return pack.dateType === "best_before" ? "BB" : "UB";
+  }
+
   // Deleted before yesterday: remove from the database for good
   function expiredShopDeletes(items, today) {
     return items.filter(i => i.del && daysLeft(i.del, today) < -1);
@@ -1513,6 +1535,9 @@
 
   // Export
   const FT = {
+    shopMatches,
+    addedToday,
+    dateTag,
     addDays,
     daysLeft,
     formatDate,
