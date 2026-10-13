@@ -690,3 +690,19 @@ details.added[open] .chev{transform:rotate(180deg)}
 .added-row .pr{color:var(--muted);font-size:13px}
 .added-row .dt{flex:none;font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
 .added-row .when{flex:none;font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap}
+
+/* Small phones (e.g. a Fold's front screen): top bar shrinks so all 4 buttons fit */
+@media (max-width:400px){
+  .homebtn{gap:8px}
+  .homebtn img{width:36px;height:36px;border-radius:10px}
+  .brand{font-size:15px}
+  .topbar{gap:6px}
+  .homesub{font-size:11px}
+  .pal .ib{width:40px;min-width:40px}
+}
+@media (max-width:350px){
+  .homesub .sync{display:none}
+  .pal .ib{width:36px;min-width:36px}
+  .brand{font-size:14px}
+  .homebtn img{width:34px;height:34px}
+}

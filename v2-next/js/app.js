@@ -3157,10 +3157,7 @@
     badge.textContent = String(count);
     badge.hidden = count === 0;
     document.getElementById('bellBtn').setAttribute('aria-label', LOOK.bellLabel(count));
-    // Alone in a household with nothing from anyone else: no bell to tap (local mode always has one)
-    const members = window.FT_HOUSEHOLD ? window.FT_HOUSEHOLD.members.length : 2;
-    const alone = members < 2 && FT.activityFeed(bellEntries, DB.uid).length === 0;
-    document.getElementById('bellBtn').hidden = alone;
+    // The bell always shows (Darren 2026-10-13), even alone in a household
     if (open) renderBellList();
   }
 
