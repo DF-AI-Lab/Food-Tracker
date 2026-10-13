@@ -35,7 +35,8 @@ Updated 2026-10-13. Issue #89.
 
 1. 🎨 Gauge mocks done: `docs/mockups/gauge-mock.html` → **Darren picked B (bar + "about Ns left")**, 2026-10-13.
 2. ☁️ Worker code done + tested: `worker/` (tests: `tests/worker.test.js`). Routes: `POST /scan`, `GET /usage`, `POST /fail-date`. Failed photos kept in KV (`fail:<household>:…`).
-   **Still to do:** walk Darren through the Cloudflare account, `wrangler kv namespace create KV` (id now in root `wrangler.toml`), `wrangler secret put ANTHROPIC_API_KEY` (Darren types it), set `ALLOWED_ORIGINS`, deploy.
+   ✅ **Live** (2026-10-13): https://food-tracker-photos.df-ai-lab-hq.workers.dev — answers `{"error":"sign in"}` without a token. Cloudflare builds from GitHub on every merge (`wrangler.toml` at repo root). KV `food-tracker-photos` bound, `ANTHROPIC_API_KEY` secret set by Darren (key `food-tracker-worker`).
+   Note: Claude's cloud sessions can't reach workers.dev (network policy), so live checks go through Darren's browser.
 3. **App (`v2-next/`)**: Take photo / Select images → shrink to 1000 px → Worker → gauge → Quick fill list opens.
 4. Tests first, cheapest model first (CLAUDE.md).
 
