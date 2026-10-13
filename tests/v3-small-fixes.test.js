@@ -23,3 +23,18 @@ for (const dir of ["v2", "v2-next"]) {
     assert.match(fn, /Math\.max\(/, "newest of the shared entries and this phone's backup");
   });
 }
+
+// Home button with the app icon (mock B: docs/mockups/home-icon-mock.html) — demo first
+test("v2-next: top bar = app icon + 'Food Tracker' + date line; tapping it goes home", () => {
+  const html = read("v2-next", "index.html");
+  const top = html.slice(html.indexOf('class="topbar"'), html.indexOf('class="pal"'));
+  assert.match(top, /<button[^>]*id="homeBtn"/);
+  assert.match(top, /<img[^>]*src="icons\/app-icon\.png"/);
+  assert.match(top, /Food Tracker/);
+  assert.match(top, /id="today"/);
+  assert.match(top, /id="sync"/);
+  const app = read("v2-next", "js/app.js");
+  assert.match(app, /getElementById\('homeBtn'\)\.addEventListener\('click'/);
+  assert.ok(fs.existsSync(path.join(__dirname, "..", "v2-next", "icons", "app-icon.png")));
+  assert.match(read("v2-next", "sw.js"), /"icons\/app-icon\.png"/, "works offline");
+});

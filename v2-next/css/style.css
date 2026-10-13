@@ -56,9 +56,13 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible,summary:focus
 /* ---- Top bar ---- */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:var(--tap)}
 .todaycol{display:flex;flex-direction:column;gap:2px;min-width:0}
-#today{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap}
-#today::before{content:"";width:6px;height:6px;border-radius:3px;background:var(--accent-line);flex:none}
-.sync{font-size:11px;color:var(--dim);padding-left:14px;white-space:nowrap}
+.homebtn{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0}
+.homebtn img{border-radius:12px;flex:none;display:block}
+.brand{font-size:16px;font-weight:700;color:var(--text);white-space:nowrap}
+.homesub{display:flex;font-size:12px;color:var(--dim);white-space:nowrap}
+#today{color:var(--dim)}
+.sync{font-size:12px;color:var(--dim);white-space:nowrap}
+.sync:not(:empty)::before{content:"·";margin:0 5px}
 .sync:empty{display:none}
 .sync[data-state="wait"]{color:var(--warn)}
 .sync[data-state="off"]{color:var(--danger)}
