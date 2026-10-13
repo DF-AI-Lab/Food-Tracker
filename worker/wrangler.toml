@@ -7,12 +7,12 @@ compatibility_date = "2026-09-01"
 # Replace with the id from `wrangler kv namespace create KV`.
 [[kv_namespaces]]
 binding = "KV"
-id = "PASTE_KV_ID_HERE"
+id = "6ccc00e681d0419392a5f976ab04fd27"
 
 [vars]
 FIREBASE_PROJECT_ID = "food-tracker-92b1c"
 WEEKLY_CAP = "100"
 # Comma-separated origins allowed to call this Worker
-ALLOWED_ORIGINS = ""
+ALLOWED_ORIGINS = "https://df-ai-lab.github.io"
 
 # ANTHROPIC_API_KEY is a secret. Set it with `wrangler secret put ANTHROPIC_API_KEY`, never in this file.
