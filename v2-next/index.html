@@ -20,7 +20,7 @@
 
   <!-- Top bar: today + sync on the left, bell · camera · print · settings in one box on the right -->
   <div id="top" class="topbar">
-    <span class="todaycol"><span id="today">Today</span><span id="sync" class="sync"></span></span>
+    <button id="homeBtn" class="homebtn" aria-label="Home"><img src="icons/app-icon.png" width="44" height="44" alt=""><span class="todaycol"><span class="brand">Food Tracker</span><span class="homesub"><span id="today">Today</span><span id="sync" class="sync"></span></span></span></button>
     <span class="pal"><button id="bellBtn" class="ib" title="What others did" aria-label="Notifications"><i data-icon="bell" data-size="19"></i><span id="bellCount" class="bell-count" hidden></span></button><i class="sep"></i><button id="scanBtn" class="ib" title="Read a sheet photo" aria-label="Read a sheet photo"><i data-icon="camera" data-size="19"></i></button><i class="sep"></i><button id="printF" class="ib" title="Print the fridge sheet" aria-label="Print the fridge sheet"><i data-icon="print" data-size="19"></i></button><i class="sep"></i><button id="settingsBtn" class="ib" title="Settings" aria-label="Settings"><i data-icon="settings" data-size="19"></i></button></span>
   </div>
   <div class="note flash" id="updNote" hidden></div>

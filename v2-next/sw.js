@@ -1,7 +1,7 @@
 // Service worker for V2 (step 6): the app opens offline and updates when a new version is published.
 // Classic script. Bump VERSION whenever the app files change (js/version.js n must match).
 
-const VERSION = 38;
+const VERSION = 39;
 const CACHE = "ftnext-v" + VERSION; // the live app (v2/) only clears ft-v*
 const RUNTIME = "ftnext-runtime";
 
@@ -26,6 +26,7 @@ const PRECACHE = [
   "js/version.js",
   "js/vendor/qrcode.mjs",
   "icons/apple-touch-icon.png",
+  "icons/app-icon.png",
   "icons/icon-192.png",
   "icons/icon-512.png",
 ];

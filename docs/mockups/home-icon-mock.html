@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Home icon mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--text-2:#C9D6D1;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:16px}
+.wrap{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:14px}
+.phone{border:1px solid var(--border);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.home{display:flex;align-items:center;gap:10px}
+.home img{border-radius:12px;display:block}
+.today{font-size:13px;font-weight:500;color:var(--text-2)}.synced{font-size:12px;color:var(--dim)}
+.brand{font-size:16px;font-weight:700}
+.icons{display:flex;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:8px 12px;gap:16px;color:var(--text-2);font-size:18px}
+h1{margin:4px 0 0;font-size:28px}
+.seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px}
+.seg div{flex:1;text-align:center;padding:9px;border-radius:10px;color:var(--muted);font-size:14px}.seg .on{background:var(--surface-2);color:var(--text);font-weight:600}
+.cap{font-size:12px;color:var(--dim)}
+</style></head><body><div class="wrap">
+
+<div class="lbl">A · ICON ONLY (top left, tap = home)</div>
+<div class="phone">
+ <div class="top"><div class="home"><img src="assets/app-icon-192.png" width="40" height="40" alt="Home"><div><div class="today">Today · Tue 13 Oct</div><div class="synced">Synced</div></div></div>
+  <div class="icons"><span>🔔</span><span>📷</span><span>🖨</span></div></div>
+ <h1>Meals</h1>
+ <div class="seg"><div class="on">This week</div><div>My meals</div></div>
+</div>
+<div class="cap">Small and quiet. The date stays where it is now.</div>
+
+<div class="lbl">B · ICON + NAME</div>
+<div class="phone">
+ <div class="top"><div class="home"><img src="assets/app-icon-192.png" width="44" height="44" alt="Home"><div><div class="brand">Food Tracker</div><div class="synced">Tue 13 Oct · Synced</div></div></div>
+  <div class="icons"><span>🔔</span><span>📷</span><span>🖨</span></div></div>
+ <h1>Meals</h1>
+ <div class="seg"><div class="on">This week</div><div>My meals</div></div>
+</div>
+<div class="cap">Feels more like an app. Date moves to the small line.</div>
+
+<div class="lbl">ALSO · PHONE HOME SCREEN</div>
+<div class="phone" style="flex-direction:row;gap:18px;align-items:flex-end">
+ <div style="text-align:center;font-size:12px"><img src="assets/app-icon-192.png" width="60" height="60" style="border-radius:16px;display:block;margin-bottom:6px">Food</div>
+ <div class="cap" style="flex:1">The same icon when you add the app to your home screen (and the browser tab).</div>
+</div>
+</div></body></html>

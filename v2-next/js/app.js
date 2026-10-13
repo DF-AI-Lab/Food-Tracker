@@ -278,6 +278,11 @@
 
     // 💾 Backups: the reminder, and Settings
     document.getElementById('backupYes').addEventListener('click', doBackup);
+    // App icon top left: home (the Fridge page), closing Settings if it is open
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      document.getElementById('settings').hidden = true;
+      switchTab('fridge');
+    });
     document.getElementById('backupBtn').addEventListener('click', doBackup);
     document.getElementById('backupNo').addEventListener('click', () => {
       writeSnooze({ lastBackup: DB.lastBackup(), count: backupChanges });
@@ -3038,7 +3043,7 @@
   // Top line: today's date (needs no stored data, so it shows before the database loads)
   function renderTopDate() {
     const todayEl = document.getElementById('today');
-    todayEl.textContent = 'Today · ' + FT.formatDate(today);
+    todayEl.textContent = FT.formatDate(today);
   }
 
   // Packs added today, still in the fridge or freezer: tap one for the fridge menu
