@@ -220,5 +220,6 @@ test("page: rows get a date picker + No date button; fridge marks chosen 'no dat
   assert.match(APP, /'No date'/, "No date button");
   assert.match(APP, /FT_PHOTOS\.sendFix\(/);
   assert.match(APP, /dateMissing/);
-  assert.match(CSS, /\.nodate\.missing/);
+  assert.match(CSS, /\.nd-tag/, "amber NO DATE tag");
+  assert.match(APP, /NO DATE/);
 });
