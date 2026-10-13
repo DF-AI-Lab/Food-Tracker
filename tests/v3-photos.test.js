@@ -129,3 +129,37 @@ test("account.js gives the app a way to get the sign-in token", () => {
   assert.match(ACCOUNT, /window\.FT_TOKEN\s*=/);
   assert.match(ACCOUNT, /getIdToken\(/);
 });
+
+// ---- Quick fill layout (mock: docs/mockups/quickfill-photos-mock.html) ----
+
+test("trayText / readLabel: plain words for the photo pile", () => {
+  assert.equal(P.trayText(1), "1 photo ready");
+  assert.equal(P.trayText(3), "3 photos ready");
+  assert.equal(P.readLabel(1), "Read 1 photo");
+  assert.equal(P.readLabel(3), "Read 3 photos");
+});
+
+test("Quick fill is 3 steps: photo -> Claude reads -> check and add", () => {
+  const pane = HTML.slice(HTML.indexOf('data-sub-pane="quick"'), HTML.indexOf('data-sub-pane="quick"') + 6000);
+  const at = id => pane.indexOf(`id="${id}"`);
+  for (const id of ["qfStep1", "qfStep2", "qfStep3", "qfTake", "qfSelect", "qfTray", "qfTrayN", "qfRead", "qfGauge", "qfList", "qfAdd"]) {
+    assert.ok(at(id) > 0, `${id} in the Quick fill pane`);
+  }
+  assert.ok(at("qfTake") < at("qfStep2") && at("qfStep2") < at("qfGauge") && at("qfGauge") < at("qfStep3") && at("qfStep3") < at("qfList"), "order: photo, gauge, list");
+  assert.match(pane, /<div[^>]*id="qfTray"[^>]*hidden/);
+});
+
+test("old paste way hides behind a 'Paste a Claude reply instead' link", () => {
+  const m = HTML.match(/<details[^>]*id="qfPasteWrap"[^>]*>([\s\S]*?)<\/details>/);
+  assert.ok(m, "paste section is a closed <details>");
+  assert.doesNotMatch(m[0], /<details[^>]*\bopen\b/);
+  assert.match(m[1], /<summary>Paste a Claude reply instead<\/summary>/);
+  for (const id of ["qfCopy", "qfText", "qfCheck"]) assert.match(m[1], new RegExp(`id="${id}"`));
+});
+
+test("app.js: camera adds to the pile, Read button starts the scan", () => {
+  const APP = fs.readFileSync(path.join(__dirname, "..", "v2-next", "js", "app.js"), "utf8");
+  assert.match(APP, /getElementById\('qfRead'\)/);
+  assert.match(APP, /FT_PHOTOS\.trayText\(/);
+  assert.match(APP, /FT_PHOTOS\.readLabel\(/);
+});
