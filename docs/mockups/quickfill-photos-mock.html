@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quick fill photos mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--track:#1C2B26;--text:#E8EFEC;--text-2:#C9D6D1;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--on-accent:#0A1210;--warn:#F2B35B;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;padding:16px}
+.wrap{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:28px;margin:0}
+.seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px}
+.seg div{flex:1;text-align:center;padding:10px;border-radius:10px;color:var(--muted)}
+.seg .on{background:var(--surface-2);color:var(--text);font-weight:600}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0}
+.step{display:grid;grid-template-columns:28px 1fr;gap:12px;padding-bottom:20px;position:relative}
+.step:not(:last-child)::before{content:"";position:absolute;left:13px;top:30px;bottom:2px;width:2px;background:var(--border)}
+.n{width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--muted);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px}
+.step.on .n{background:var(--accent);color:var(--on-accent);font-weight:700}
+.step.done .n{background:var(--surface-2);color:var(--accent)}
+.t{font-weight:600;font-size:16px;margin:3px 0 4px}
+.s{font-size:13px;color:var(--muted)}
+.step:not(.on):not(.done) .t{color:var(--dim)}
+.row{display:flex;gap:10px;margin-top:10px}
+.btn{flex:1;min-height:52px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-weight:600;font-size:16px}
+.btn.pri{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.gauge{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.big{font-family:var(--mono);font-size:40px;font-weight:700;line-height:1}
+.big small{font-size:20px;color:var(--muted)}
+.track{width:100%;height:14px;background:var(--track);border-radius:7px;overflow:hidden}
+.fill{height:100%;width:0;background:var(--accent);border-radius:7px;transition:width .3s}
+.list{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--border)}
+.item:first-child{border-top:0}
+.item input{width:20px;height:20px;accent-color:var(--accent)}
+.kind{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);width:38px}
+.name{flex:1}
+.date{font-family:var(--mono);font-size:13px;color:var(--text-2)}
+.chk{font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
+.add{width:100%;margin-top:10px}
+.paste{font-size:13px;color:var(--muted);text-align:center;text-decoration:underline}
+.note{font-size:13px;color:var(--dim);text-align:center}
+.ctrl button{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 14px;font:inherit;min-height:44px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctrl"><button id="play">▶ Play the flow</button></div>
+  <h1>Add food</h1>
+  <div class="seg"><div>One item</div><div class="on">Quick fill</div></div>
+
+  <ol class="steps">
+    <li class="step on" id="s1"><span class="n">1</span><div>
+      <div class="t">Photo your shopping</div>
+      <div class="s">One item per photo · labels with dates work best</div>
+      <div class="row"><button class="btn pri">Take photo</button><button class="btn">Select images</button></div>
+    </div></li>
+
+    <li class="step" id="s2"><span class="n">2</span><div>
+      <div class="t">Claude reads them</div>
+      <div class="s" id="s2sub">Starts by itself</div>
+      <div class="gauge" id="gauge" hidden>
+        <div class="big"><span id="g">0</span><small>/8</small></div>
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <div class="s" id="left">about 16s left</div>
+      </div>
+    </div></li>
+
+    <li class="step" id="s3"><span class="n">3</span><div>
+      <div class="t">Check and add</div>
+      <div class="s" id="s3sub">The list opens here</div>
+      <div id="found" hidden>
+        <div class="list">
+          <label class="item"><input type="checkbox" checked><span class="kind">Main</span><span class="name">Chicken ×2</span><span class="date">Fri 16</span></label>
+          <label class="item"><input type="checkbox" checked><span class="kind">Misc</span><span class="name">Milk</span><span class="date">Tue 20</span></label>
+          <label class="item"><input type="checkbox" checked><span class="kind">Main</span><span class="name">Mince</span><span class="date">Sat 17</span></label>
+          <label class="item"><input type="checkbox" checked><span class="kind">Veg</span><span class="name">Carrots</span><span class="date">no date</span></label>
+          <label class="item"><input type="checkbox"><span class="kind">Main</span><span class="name">Ham</span><span class="date">no date</span><span class="chk">CHECK</span></label>
+          <label class="item"><input type="checkbox" checked><span class="kind">Misc</span><span class="name">Yoghurt</span><span class="date">Thu 15</span><span class="chk">CHECK</span></label>
+        </div>
+        <button class="btn pri add">Add ticked</button>
+      </div>
+    </div></li>
+  </ol>
+
+  <div class="paste">Paste a Claude reply instead</div>
+  <div class="note">The old copy-and-paste way hides behind this link</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);let t;
+function reset(){clearInterval(t);['s1','s2','s3'].forEach(s=>$(s).className='step');$('s1').className='step on';$('gauge').hidden=true;$('found').hidden=true;$('s2sub').hidden=false;$('s3sub').hidden=false;$('fill').style.width='0';$('g').textContent=0}
+function play(){reset();setTimeout(()=>{$('s1').className='step done';$('s2').className='step on';$('s2sub').hidden=true;$('gauge').hidden=false;let n=0;t=setInterval(()=>{n++;$('g').textContent=n;$('fill').style.width=(n/8*100)+'%';$('left').textContent=n<8?`about ${(8-n)*2}s left`:'opening the list…';if(n>=8){clearInterval(t);setTimeout(()=>{$('s2').className='step done';$('gauge').hidden=true;$('s2sub').textContent='8 photos read';$('s2sub').hidden=false;$('s3').className='step on';$('s3sub').hidden=true;$('found').hidden=false},700)}},500)},800)}
+$('play').onclick=play;play();
+</script>
+</body>
+</html>
