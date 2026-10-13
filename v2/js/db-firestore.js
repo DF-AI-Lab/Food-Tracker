@@ -308,7 +308,8 @@ export function makeCloudDB(F, db, householdId, uid, opts = {}) {
       for (const e of activityEntries) {
         if (e.verb === "backed up" && (last === null || e.at > last)) last = e.at;
       }
-      return last ?? localBackupAt;
+      // This phone's own backup counts straight away (the shared entry can arrive a moment later)
+      return Math.max(last ?? 0, localBackupAt ?? 0) || null;
     },
 
     // Note a backup for everyone in the household (as a 🔔 entry: "Alice backed up")

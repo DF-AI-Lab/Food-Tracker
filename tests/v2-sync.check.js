@@ -70,6 +70,7 @@ function startStatic() {
   };
   async function addMain(page, name) {
     await page.click('[data-tab="add"]');
+    await page.click('[data-sub=\"fridge\"]'); // Add opens on Quick fill (v25)
     await page.click('[data-kind="main"]');
     await page.fill("#name", name);
     await page.fill("#days", "2");

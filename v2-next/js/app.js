@@ -1026,8 +1026,8 @@
     if (tab === 'fridge') {
       switchView('fridge');
     } else if (tab === 'add') {
-      // The Add tab opens "One item" (the Shop sub-view is opened by openShopList, after this)
-      switchSub('fridge');
+      // The Add tab opens "Quick fill" (the Shop sub-view is opened by openShopList, after this)
+      switchSub('quick');
       refreshUsuals();
     } else if (tab === 'meals') {
       renderMeals();
