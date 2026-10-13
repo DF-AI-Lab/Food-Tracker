@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meals used row mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--accent-border:#2E4A3F;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:16px}
+.wrap{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+h1{font-size:28px;margin:0 0 6px}
+.day{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.d{font-weight:700;font-size:18px}.dt{font-family:var(--mono);color:var(--dim);font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-2);border-radius:10px;padding:6px 10px;font-size:16px}
+.chip small{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted)}.chip .x{color:var(--muted)}
+.plan{margin-left:auto;color:var(--accent)}
+.used{display:flex;align-items:center;gap:8px}
+.used .q{color:var(--muted);margin-right:4px}
+.b{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);font:inherit;font-weight:600;font-size:15px}
+.b.yes{border-color:var(--accent-border);color:var(--accent)}
+.b.dash{border-style:dashed;color:var(--text-2,#C9D6D1);font-size:14px;min-height:40px}
+.extra{display:flex;gap:8px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:8px}
+.tabs{display:flex;gap:18px;border-bottom:1px solid var(--border);font-size:14px;color:var(--muted);padding-bottom:8px}
+.tabs .on{color:var(--text);font-weight:700;border-bottom:2px solid var(--accent);padding-bottom:6px;margin-bottom:-9px}
+.pick{display:flex;justify-content:space-between;border:1px solid var(--border);background:var(--surface-2);border-radius:12px;padding:12px 14px;font-size:15px}
+.pick .w{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.b.done{background:var(--accent);color:#0A1210;border:0}
+.b.dash.on{border-color:var(--accent);color:var(--accent)}
+.ask{margin-left:auto;font-size:12px;font-weight:700;color:var(--warn,#F2B35B);border:1px solid var(--warn,#F2B35B);border-radius:6px;padding:2px 7px}
+.day.open{border-color:var(--accent-border)}
+.tap{font-size:12px;color:var(--dim)}
+.cap{font-size:12px;color:var(--dim);text-align:center}
+</style></head><body><div class="wrap">
+<h1>Meals</h1>
+<div class="lbl">CLOSED · just a quiet "Used?" tag, nothing to press by accident</div>
+<div class="day">
+ <div class="top"><span class="d">Mon</span><span class="dt">12 Oct</span><span class="chip"><small>MAIN</small>Fishcakes</span><span class="ask">Used?</span></div>
+</div>
+<div class="day">
+ <div class="top"><span class="d">Tue</span><span class="dt">13 Oct</span><span class="chip"><small>MEAL</small>Fajita recipe</span></div>
+</div>
+<div class="day"><div class="top"><span class="d">Wed</span><span class="dt">14 Oct</span><span class="plan">+ Plan</span></div></div>
+<div class="tap">↓ Tap Mon to open it</div>
+
+<div class="lbl">OPEN · options appear</div>
+<div class="day open">
+ <div class="top"><span class="d">Mon</span><span class="dt">12 Oct</span><span class="chip"><small>MAIN</small>Fishcakes<span class="x">✕</span></span></div>
+ <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button></div>
+ <div class="extra"><button class="b dash">Save as meal</button></div>
+</div>
+
+<div class="lbl">OPEN · tonight after 5pm also gets + Add</div>
+<div class="day open">
+ <div class="top"><span class="d">Tue</span><span class="dt">13 Oct</span><span class="chip"><small>MEAL</small>Fajita recipe ▾<span class="x">✕</span></span></div>
+ <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button></div>
+ <div class="extra"><button class="b dash">+ Add</button><button class="b dash">Save as meal</button></div>
+</div>
+<div class="cap">Closed: no ✕ and no buttons, so nothing gets tapped by mistake.<br>Open: Yes / No, then the extras. Tap the card top again to close.</div>
+</div></body></html>

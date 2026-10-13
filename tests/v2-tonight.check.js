@@ -45,6 +45,13 @@ function startStatic() {
   };
   const pastDay = () => page.locator("#dayList .day.past");
   const todayCard = () => page.locator("#dayList .day.today");
+  // V2.5 demo: an asking card is closed (quiet "Used?" tag); tap its top to open the options
+  const openAsk = async () => {
+    if (APP_DIR !== "v2-next") return;
+    if (await pastDay().locator(".had-yes").isVisible()) return;
+    await pastDay().locator(".dh").click();
+    await until(async () => assert.ok(await pastDay().locator(".had-yes").isVisible()));
+  };
   // Today's card is open on load: pick Takeaway for tonight
   const planTakeawayTonight = async hour => {
     await page.goto(url(hour));
@@ -69,7 +76,27 @@ function startStatic() {
     assert.equal(await todayCard().count(), 0);
   });
 
+  if (APP_DIR === "v2-next") {
+    await step("V2.5: closed asking card = quiet tag, no buttons; tap opens Yes / No / + Add", async () => {
+      await page.click('[data-tab="fridge"]');
+      await page.click('[data-tab="meals"]');
+      await until(async () => assert.equal(await pastDay().count(), 1));
+      assert.ok(await pastDay().locator(".ask-tag").isVisible(), "ask tag shows");
+      assert.match(await pastDay().locator(".ask-tag").innerText(), /Had the takeaway\?|Used\?/);
+      assert.equal(await pastDay().locator(".had-yes").count(), 0, "no Yes while closed");
+      assert.equal(await pastDay().locator(".had-add").count(), 0, "no + Add while closed");
+      assert.equal(await pastDay().locator(".meal-x, .chip-x").count(), 0, "no ✕ while closed");
+      await pastDay().locator(".dh").click();
+      await until(async () => assert.ok(await pastDay().locator(".had-yes").isVisible()));
+      assert.ok(await pastDay().locator(".had-no").isVisible());
+      assert.ok(await pastDay().locator(".had-add").isVisible(), "+ Add on every opened asking card");
+      await pastDay().locator(".dh").click();
+      await until(async () => assert.equal(await pastDay().locator(".had-yes").count(), 0, "tap again closes"));
+    });
+  }
+
   await step("yes -> how much was it? -> done, nothing left to ask", async () => {
+    await openAsk();
     await pastDay().locator(".had-yes").click();
     assert.match(await pastDay().innerText(), /How much was it\?/);
     await pastDay().locator(".cost-in").fill("20");
@@ -81,6 +108,7 @@ function startStatic() {
   await step("from 5pm: no -> 'What did you have?'", async () => {
     await planTakeawayTonight(19);
     await until(async () => assert.equal(await pastDay().count(), 1));
+    await openAsk();
     await pastDay().locator(".had-no").click();
     await until(async () => assert.match(await page.locator("#dayList").innerText(), /What did you have\?/));
   });

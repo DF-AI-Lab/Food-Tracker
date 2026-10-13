@@ -267,7 +267,7 @@ async function failDate(request, env, deps, who) {
   if (!b || !okHouse(b.household)) return [400, { error: "bad request" }];
   if (!(await isMember(who.token, who.uid, b.household, env, deps))) return [403, { error: "not a member" }];
   if (typeof b.key !== "string" || !b.key.startsWith(`fail:${b.household}:`)) return [403, { error: "not this household's photo" }];
-  if (!realDate(b.date)) return [400, { error: "bad date" }];
+  if (b.date !== "none" && !realDate(b.date)) return [400, { error: "bad date" }];
   const rec = await env.KV.get(b.key, "json");
   if (!rec) return [404, { error: "not found" }];
   rec.date = b.date;

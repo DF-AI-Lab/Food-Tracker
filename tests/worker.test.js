@@ -401,3 +401,14 @@ test("live entry point calls fetch the way Cloudflare allows (no 'Illegal invoca
     globalThis.fetch = real;
   }
 });
+
+test("POST /fail-date accepts 'none' (Darren chose no date)", async () => {
+  const e = env();
+  const token = await makeToken();
+  const net = fakeNet({ answers: { "claude-haiku-5-5": ['{"kind":"main"}'], "claude-sonnet-5-5": ['{"kind":"main"}'] } });
+  const s = await call("POST", "/scan", { body: scanBody(1), token, net, e });
+  const key = s.data.results[0].failKey;
+  const r = await call("POST", "/fail-date", { body: { household: "h1", key, date: "none" }, token, e });
+  assert.equal(r.status, 200);
+  assert.equal(JSON.parse(e.KV.m.get(key)).date, "none");
+});
