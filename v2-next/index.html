@@ -235,7 +235,7 @@
             </div>
           </li>
           <li id="qfStep2"><b>Claude reads them</b><span id="qfStep2Sub">Starts as soon as a photo is in</span>
-            <div id="qfGauge" class="qf-gauge" hidden><div class="qf-gauge-n" id="qfGaugeN">0/0</div><div class="track"><div class="fill" id="qfGaugeFill"></div></div><div class="note" id="qfGaugeLeft"></div></div>
+            <div id="qfGauge" class="qf-gauge" hidden><div class="qf-read-words" id="qfReadText"></div><div class="qf-read-sub">The list opens below when done</div><div class="track"><div class="qf-slide"></div></div></div>
           </li>
           <li id="qfStep3"><b>Check and add</b><span id="qfStep3Sub">The list opens here</span>
             <div id="qfMsg"></div>
@@ -258,10 +258,10 @@
           <button type="button" class="act big" id="qfCheck">Check</button>
           <details><summary>See the message</summary><pre id="qfPrompt"></pre></details>
         </details>
-        <section id="addedWrap" class="added" hidden>
-          <h2 class="sec" id="addedHead">Added today</h2>
+        <details id="addedWrap" class="added" hidden>
+          <summary><span id="addedHead">Added today</span><span class="chev" aria-hidden="true">⌄</span></summary>
           <div id="addedToday" class="added-list"></div>
-        </section>
+        </details>
       </div>
     </div>
 
