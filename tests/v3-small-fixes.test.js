@@ -38,3 +38,8 @@ test("v2-next: top bar = app icon + 'Food Tracker' + date line; tapping it goes 
   assert.ok(fs.existsSync(path.join(__dirname, "..", "v2-next", "icons", "app-icon.png")));
   assert.match(read("v2-next", "sw.js"), /"icons\/app-icon\.png"/, "works offline");
 });
+
+test("v2-next: the bell always shows, even alone in a household (Darren 2026-10-13)", () => {
+  const app = read("v2-next", "js/app.js");
+  assert.doesNotMatch(app, /getElementById\('bellBtn'\)\.hidden = alone/);
+});
