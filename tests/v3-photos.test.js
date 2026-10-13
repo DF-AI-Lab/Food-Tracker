@@ -120,7 +120,6 @@ test("page has Take photo + Select images, a bar gauge, and loads photos.js", ()
   assert.match(HTML, /<input[^>]*id="qfCamera"[^>]*capture="environment"/);
   assert.match(HTML, /<input[^>]*id="qfPick"[^>]*multiple/);
   assert.match(HTML, /id="qfGauge"/);
-  assert.match(HTML, /id="qfGaugeFill"/);
   assert.match(HTML, /<script src="js\/photos\.js"><\/script>/);
   assert.ok(HTML.indexOf('js/photos.js') < HTML.indexOf('js/app.js'), "photos.js loads before app.js");
 });
@@ -275,4 +274,28 @@ test("page: no Read button; Added today list; shopping tick-off box", () => {
   assert.match(APP, /FT\.dateTag\(/);
   assert.match(APP, /showSheet\(/);
   assert.match(APP, /qf-new/, "new rows are marked NEW");
+});
+
+// ---- Step 2 sliding bar + Added today collapsed (mock: docs/mockups/reading-collapse-mock.html) ----
+
+test("readingText: words instead of a counter", () => {
+  assert.equal(P.readingText(1), "Reading 1 photo…");
+  assert.equal(P.readingText(3), "Reading 3 photos…");
+});
+
+test("step 2 shows 'Reading N photos…' with a sliding bar, no numbers", () => {
+  assert.doesNotMatch(HTML, /id="qfGaugeN"/, "no 0/3 counter");
+  assert.match(HTML, /id="qfReadText"/);
+  assert.match(HTML, /class="qf-slide"/);
+  const CSS = fs.readFileSync(path.join(__dirname, "..", "v2-next", "css", "style.css"), "utf8");
+  assert.match(CSS, /\.qf-slide\{[^}]*animation/);
+  const APP = fs.readFileSync(path.join(__dirname, "..", "v2-next", "js", "app.js"), "utf8");
+  assert.match(APP, /FT_PHOTOS\.readingText\(/);
+});
+
+test("Added today is collapsed until tapped", () => {
+  const m = HTML.match(/<details[^>]*id="addedWrap"[^>]*>/);
+  assert.ok(m, "Added today is a <details>");
+  assert.doesNotMatch(m[0], /\bopen\b/, "closed by default");
+  assert.match(HTML, /<summary[^>]*>[\s\S]*?id="addedHead"/);
 });
