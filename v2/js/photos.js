@@ -159,9 +159,39 @@
     return url.slice(url.indexOf(",") + 1);
   }
 
+  // Settings: the Worker's /usage numbers in words (cost in US dollars, like the Anthropic bill)
+  function usageText(data) {
+    if (!data) return null;
+    const m = data.month;
+    const cost = m && typeof m.cost === "number" ? m.cost : 0;
+    const money = cost > 0 && cost < 0.005 ? "under $0.01" : `$${cost.toFixed(2)}`;
+    const calls = (m && m.calls) || {};
+    const parts = Object.entries(calls).filter(([, n]) => n > 0)
+      .map(([model, n]) => `${/haiku/.test(model) ? "Haiku" : /sonnet/.test(model) ? "Sonnet" : model} ${n}`);
+    const w = data.week || { used: 0, cap: 0 };
+    return {
+      month: `This month: ${money} · ${parts.length ? parts.join(" · ") : "no photos yet"}`,
+      week: `This week: ${w.used} of ${w.cap} photos`,
+    };
+  }
+
+  // Ask the Worker for this household's photo count and cost; null when it can't (never throws)
+  async function fetchUsage({ fetch, getToken, household }) {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${WORKER_URL}/usage?household=${encodeURIComponent(household)}`, {
+        headers: { authorization: "Bearer " + token },
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
+  }
+
   const FT_PHOTOS = {
     WORKER_URL, chunk, fitSize, gaugeText, gaugeLeft, gaugePct,
-    trayText, readLabel, readingText, errorText, toQuickFill, fixFor, sendFix, scanAll, shrink
+    trayText, readLabel, readingText, errorText, toQuickFill, usageText, fetchUsage, fixFor, sendFix, scanAll, shrink
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = FT_PHOTOS;
