@@ -49,8 +49,8 @@ test("live installs as the same app as before", () => {
   assert.equal(m.id, undefined, "no id: same app identity as before");
 });
 
-test("live version bumped to 29 (v3.14), sw.js agrees", () => {
+test("live version bumped to 30 (v3.15), sw.js agrees", () => {
   const n = Number(/n:\s*(\d+)/.exec(read("js/version.js"))[1]);
-  assert.equal(n, 29);
+  assert.equal(n, 30);
   assert.equal(Number(/const VERSION = (\d+)/.exec(read("sw.js"))[1]), n);
 });
