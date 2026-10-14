@@ -19,7 +19,7 @@ To plan into versions together. Nothing here is built yet.
 - **Precise shopping match:** tell "Whole chicken" from "Chicken fillets" when ticking off the shopping list.
 - **Photo caps:** per run / per day (now 100 a week).
 - ~~Cost line in Settings~~ done in v3.13.
-- **Live on Darren's main email?** (sign into live with darrenfawcett1980 instead of df.ai.lab.hq) — asked Darren 2026-10-14 whether to keep this.
+- **Live stays on df.ai.lab.hq** for now (Darren 2026-10-14: "leave it as is"). The monthly report still goes to his main email.
 
 ## Decided not to do
 - **Claude picking Cupboard:** leave it to the app. You pick Cupboard once and the app remembers it for that food (Darren 2026-10-13).
