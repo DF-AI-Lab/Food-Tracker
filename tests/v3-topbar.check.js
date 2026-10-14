@@ -44,6 +44,22 @@ const srv = http.createServer((req, res) => {
     }
     if (r.boxes.homeBtn) assert.ok(r.boxes.homeBtn.r <= r.boxes.bellBtn.l, `${width}px: home and buttons don't overlap`);
     if (r.brandRight !== null) assert.ok(r.brandRight <= r.buttonsLeft, `${width}px: "Food Tracker" runs under the buttons (${Math.round(r.brandRight)} > ${Math.round(r.buttonsLeft)})`);
+    // Pinned: after scrolling a long page the top bar is still at the top and tappable (Darren 2026-10-14)
+    const pinned = await page.evaluate(() => {
+      const filler = document.createElement("div");
+      filler.style.height = "3000px";
+      document.querySelector(".phone").appendChild(filler);
+      window.scrollTo({ top: 1500, behavior: "instant" });
+      const b = document.getElementById("homeBtn") || document.getElementById("today");
+      const r = b.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const scrolled = window.scrollY;
+      filler.remove();
+      return { top: r.top, tappable: !!hit && b.contains(hit), scrolled };
+    });
+    assert.ok(pinned.scrolled > 0, `${width}px: page scrolled`);
+    assert.ok(pinned.top >= 0 && pinned.top < 60, `${width}px: top bar stays at the top when scrolled (top ${Math.round(pinned.top)})`);
+    assert.ok(pinned.tappable, `${width}px: home button can be tapped after scrolling`);
     console.log(`ok - ${width}px fits`);
     await page.close();
   }
