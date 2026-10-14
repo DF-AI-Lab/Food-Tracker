@@ -278,6 +278,7 @@
 
     // 💾 Backups: the reminder, and Settings
     document.getElementById('backupYes').addEventListener('click', doBackup);
+    document.getElementById('useSoonMore').addEventListener('click', () => { eatAll = !eatAll; renderUseSoon(); });
     // App icon top left: home (the Fridge page), closing Settings if it is open
     document.getElementById('homeBtn').addEventListener('click', () => {
       document.getElementById('settings').hidden = true;
@@ -1652,8 +1653,10 @@
   }
 
   // Eat first: the use-soon packs (2 days or less), top 3, one per line; tap opens the menu
+  let eatAll = false; // Eat first card opened up to show every soon item
+
   function renderUseSoon() {
-    const ef = LOOK.eatFirst(packs, today);
+    const ef = LOOK.eatFirst(packs, today, eatAll);
     const box = document.getElementById('useSoon');
     const list = document.getElementById('useSoonList');
     list.innerHTML = '';
@@ -1669,9 +1672,12 @@
       list.appendChild(b);
     });
     const sub = document.getElementById('useSoonSub');
-    const more = ef.more ? `+${ef.more} more soon` : '';
-    sub.textContent = [ef.sub, more].filter(Boolean).join(' · ');
+    sub.textContent = ef.sub;
     sub.hidden = !sub.textContent;
+    // "+2 more soon" opens the full list; "Show less" closes it again
+    const moreBtn = document.getElementById('useSoonMore');
+    moreBtn.textContent = eatAll ? 'Show less' : `+${ef.more} more soon`;
+    moreBtn.hidden = ef.more === 0;
     box.hidden = ef.lines.length === 0;
   }
 

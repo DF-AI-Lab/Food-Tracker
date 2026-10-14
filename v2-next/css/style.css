@@ -706,3 +706,6 @@ details.added[open] .chev{transform:rotate(180deg)}
   .brand{font-size:14px}
   .homebtn img{width:34px;height:34px}
 }
+
+/* Eat first: "+2 more soon" / "Show less" */
+.eatmore{background:none;border:0;padding:8px 0 0;font:inherit;font-size:13px;color:var(--muted);text-decoration:underline;cursor:pointer;min-height:var(--tap);text-align:left}
