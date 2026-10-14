@@ -18,7 +18,7 @@ To plan into versions together. Nothing here is built yet.
 - **Added history:** keep "Added today" as a history to look back on.
 - **Precise shopping match:** tell "Whole chicken" from "Chicken fillets" when ticking off the shopping list.
 - **Photo caps:** per run / per day (now 100 a week).
-- **Cost line in Settings:** "This month: $0.12 · Haiku 140 · Sonnet 6" (Worker `GET /usage` ready).
+- ~~Cost line in Settings~~ done in v3.13.
 - **Live on Darren's main email:** invite darrenfawcett1980 into the live household.
 
 ## Decided not to do

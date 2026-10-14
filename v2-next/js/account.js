@@ -178,6 +178,14 @@ async function start() {
     $("meNameRow").hidden = true;
     const v = window.FT_VERSION;
     $("settingsVer").textContent = v ? `App version ${v.prefix || "v"}${v.label || v.n} · ${v.date}` : "";
+    // Photo reading: count and Claude cost from the Worker (fills in when it answers)
+    $("usageMonth").textContent = "Checking…";
+    $("usageWeek").textContent = "";
+    window.FT_PHOTOS.fetchUsage({ fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: h.id }).then(d => {
+      const t = window.FT_PHOTOS.usageText(d);
+      $("usageMonth").textContent = t ? t.month : "Couldn't check right now";
+      $("usageWeek").textContent = t ? t.week : "";
+    });
     // Which Google account this phone uses (both of Darren's accounts share a name)
     $("signedInAs").textContent = user.email || "";
     // When the household last backed up (shared, so it is read again each time)
