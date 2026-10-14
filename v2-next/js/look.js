@@ -75,21 +75,23 @@
   const WORDS = { "-": "out of date", 0: "today", 1: "tomorrow", 2: "in 2 days" };
 
   // Eat first: fridge packs due within 2 days, soonest first
-  function eatFirst(packs, today) {
+  // all = true: every soon item (the card's "+N more soon" was tapped)
+  function eatFirst(packs, today, all = false) {
     const soon = packs
       .filter(p => p.status === "in_fridge" && p.date && daysLeft(p.date, today) <= 2)
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    const shown = soon.slice(0, 3);
+    const top = soon.slice(0, 3);
+    const shown = all ? soon : top;
     const lines = shown.map(p => {
       const d = daysLeft(p.date, today);
       const key = d < 0 ? "-" : d;
       return { id: p.id, name: p.name, word: WORDS[key], state: freshState(p.date, today) };
     });
-    const more = Math.max(0, soon.length - shown.length);
+    const more = Math.max(0, soon.length - top.length);
 
-    const planned = shown.filter(p => p.plannedFor === today);
+    const planned = top.filter(p => p.plannedFor === today);
     let sub = "";
-    if (planned.length === shown.length && planned.length > 0) {
+    if (planned.length === top.length && planned.length > 0) {
       sub = ["", "On tonight's plan", "Both on tonight's plan", "All on tonight's plan"][planned.length];
     } else if (planned.length > 0) {
       const names = planned.map(p => p.name).join(" and ");
