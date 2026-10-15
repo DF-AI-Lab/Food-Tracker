@@ -13,6 +13,7 @@
   let meals = [];         // meals history, saved in DB.meals
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
+  let feedback = [];      // ideas & feedback (Settings), saved in DB.feedback
   let askDay = null;      // past day in "What did you have?" (or cost) mode
   let addingDay = null;  // an asking day whose picker is open (+ Add); tonight after 5pm too
   let askOpen = null;    // the asking day whose card is open (tap its top to open or close)
@@ -163,6 +164,7 @@
     meals = await DB.meals.all();
     recipes = (await DB.recipes.all()).map(FT.normMeal);
     mealPlans = await DB.mealPlans.all();
+    feedback = await DB.feedback.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     // Shop items deleted before yesterday are removed for good
     const expiredShop = FT.expiredShopDeletes(shop, today);
@@ -172,6 +174,7 @@
     } catch (e) {
       // try again next time the app starts
     }
+    await foldShop();
     bellEntries = await DB.activity.all();
     // Meal plans from days long gone drop off; the rest are brought up to date with the fridge
     dropExpiredMealPlans();
@@ -196,7 +199,9 @@
     meals = await DB.meals.all();
     recipes = (await DB.recipes.all()).map(FT.normMeal);
     mealPlans = await DB.mealPlans.all();
+    feedback = await DB.feedback.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
+    await foldShop();
     bellEntries = await DB.activity.all();
   }
 
@@ -270,6 +275,10 @@
     document.getElementById('themeDark').addEventListener('click', () => setTheme('dark'));
     document.getElementById('themeLight').addEventListener('click', () => setTheme('light'));
     document.getElementById('reloadApp').addEventListener('click', () => location.reload());
+    // Ideas & feedback (Settings)
+    document.getElementById('fbIdea').addEventListener('click', () => saveFeedback('idea'));
+    document.getElementById('fbProblem').addEventListener('click', () => saveFeedback('problem'));
+    document.getElementById('fbCopy').addEventListener('click', copyFeedback);
     document.getElementById('editBack').addEventListener('click', closeEditForm);
 
     // 🔔 What others did
@@ -405,6 +414,13 @@
     document.getElementById('qfCamera').addEventListener('change', e => addPhotos(e.target.files, e.target));
     document.getElementById('qfPick').addEventListener('change', e => addPhotos(e.target.files, e.target));
     document.getElementById('qfShopTick').addEventListener('click', tickOffShopping);
+
+    // Search: every key redraws the results; ✕ clears the box and the fridge page comes back
+    document.getElementById('fridgeSearch').addEventListener('input', renderSearch);
+    document.getElementById('searchClear').addEventListener('click', () => {
+      document.getElementById('fridgeSearch').value = '';
+      renderSearch();
+    });
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
@@ -1078,6 +1094,68 @@
     document.getElementById('pageTitle').textContent = PAGE_TITLE[page];
     renderPageCount();
     renderAddBar();
+    syncSearch();
+  }
+
+  // ---- Search: fridge, freezer and cupboard (the bar shows on those pages only) ----
+  const SEARCH_PAGES = ['fridge', 'freezer', 'cupboard'];
+
+  // Leaving those pages clears the search; the bar shows only on them
+  function syncSearch() {
+    const on = SEARCH_PAGES.includes(currentPage());
+    const input = document.getElementById('fridgeSearch');
+    if (!on) input.value = '';
+    document.getElementById('fridgeSearchWrap').hidden = !on;
+    renderSearch();
+  }
+
+  // With text in the box, the results card replaces the fridge page; with none, the page is back
+  function renderSearch() {
+    const input = document.getElementById('fridgeSearch');
+    const text = input.value;
+    const active = text.trim() !== '';
+    document.getElementById('searchClear').hidden = text === '';
+    document.querySelector('[data-tab-pane="fridge"]').hidden = active;
+    const box = document.getElementById('searchResults');
+    box.hidden = !active;
+    if (!active || !packs) return;
+    box.innerHTML = '';
+    const hits = FT.searchPacks(packs, text);
+    if (hits.length === 0) {
+      const none = document.createElement('div');
+      none.className = 'srch-none';
+      none.textContent = 'Nothing found';
+      box.appendChild(none);
+      return;
+    }
+    for (const { pack, place } of hits) box.appendChild(searchRow(pack, place));
+  }
+
+  // One result: name, a place tag, and the date on the right (tap opens the pack)
+  function searchRow(pack, place) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'row srch';
+    const name = document.createElement('span');
+    name.className = 'rname';
+    name.textContent = pack.name;
+    const tag = document.createElement('span');
+    tag.className = 'where';
+    tag.textContent = place.toUpperCase();
+    name.appendChild(tag);
+    const when = document.createElement('span');
+    when.className = 'when';
+    if (place === 'Freezer' && pack.frozen) {
+      const age = FT.freezeAge(pack.frozen, today);
+      when.textContent = age === 'today' ? 'Frozen today' : age + ' frozen';
+    } else if (pack.date) {
+      when.textContent = LOOK.whenText(pack.date, today);
+    } else if (pack.added) {
+      when.textContent = FT.ageLabel(pack.added, today);
+    }
+    row.append(name, when);
+    row.addEventListener('click', () => showSheet(pack.id));
+    return row;
   }
 
   // Small line beside / above the title: item counts, the week, the month
@@ -3104,6 +3182,124 @@
     });
   }
 
+  // ---- Ideas & feedback (Settings) ----
+
+  let fbNoteTimer = null;
+  // Short message under the notes box; hides itself after a few seconds
+  function fbSay(text) {
+    const note = document.getElementById('fbMsg');
+    clearTimeout(fbNoteTimer);
+    note.textContent = text;
+    note.hidden = !text;
+    if (text) fbNoteTimer = setTimeout(() => { note.hidden = true; }, 2500);
+  }
+
+  // The version shown in Settings, e.g. "v3.16"
+  function fbVersion() {
+    const v = window.FT_VERSION;
+    return v ? (v.prefix || 'v') + (v.label || v.n) : '';
+  }
+
+  // My name in the household (falls back to "Me", e.g. in memory mode)
+  function fbMyName() {
+    const members = (window.FT_HOUSEHOLD && window.FT_HOUSEHOLD.members) || [];
+    const me = members.find(m => m.uid === DB.uid);
+    return me && me.name ? me.name : 'Me';
+  }
+
+  async function saveFeedback(type) {
+    const box = document.getElementById('fbText');
+    const item = FT.makeFeedback(box.value, type, { by: DB.uid, name: fbMyName(), version: fbVersion(), at: Date.now() });
+    if (!item) {
+      fbSay('Write something first');
+      box.focus();
+      return;
+    }
+    try {
+      const id = await DB.feedback.add(item);
+      feedback = [...feedback, { ...item, id }];
+      box.value = '';
+      fbSay('Saved');
+    } catch (e) {
+      fbSay('Could not save. Try again');
+    }
+    renderFeedback();
+  }
+
+  async function removeFeedback(id) {
+    try {
+      await DB.feedback.remove(id);
+      feedback = feedback.filter(f => String(f.id) !== String(id));
+    } catch (e) {
+      fbSay('Could not delete. Try again');
+    }
+    renderFeedback();
+  }
+
+  // Newest first; each note: type tag, text, then "Thu 15 Oct · Darren · v3.16" and a delete button
+  function renderFeedback() {
+    const list = document.getElementById('fbList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (feedback.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'li';
+      empty.innerHTML = '<div class="grow note">No notes yet</div>';
+      list.appendChild(empty);
+      return;
+    }
+    const sorted = [...feedback].sort((a, b) => (b.at || 0) - (a.at || 0));
+    for (const f of sorted) {
+      const row = document.createElement('div');
+      row.className = 'li fb-item';
+
+      const body = document.createElement('div');
+      body.className = 'grow';
+      const problem = f.type === 'problem';
+      const tag = document.createElement('span');
+      tag.className = 'fb-tag' + (problem ? ' problem' : '');
+      tag.textContent = problem ? 'PROBLEM' : 'IDEA';
+      const text = document.createElement('div');
+      text.className = 'fb-text';
+      text.textContent = f.text;
+      const meta = document.createElement('div');
+      meta.className = 'note small fb-meta';
+      meta.textContent = [f.at ? FT.dayLabel(f.at) : '', f.name || 'Someone', f.version].filter(Boolean).join(' · ');
+      const top = document.createElement('div');
+      top.appendChild(tag);
+      top.appendChild(text);
+      body.appendChild(top);
+      body.appendChild(meta);
+
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'fb-x';
+      x.innerHTML = ICON('close', 16, 2);
+      x.setAttribute('aria-label', 'Delete this note');
+      x.title = 'Delete';
+      x.addEventListener('click', () => removeFeedback(f.id));
+
+      row.appendChild(body);
+      row.appendChild(x);
+      list.appendChild(row);
+    }
+  }
+
+  // Every note as one list for a Claude chat
+  async function copyFeedback() {
+    const text = FT.feedbackText(feedback, fbVersion());
+    if (!text) {
+      fbSay('Nothing to copy yet');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      fbSay('Copied — paste it into a Claude chat');
+    } catch (e) {
+      fbSay('Could not copy. Select the notes and copy them by hand');
+    }
+  }
+
   function renderAll() {
     renderTopDate();
     const activeView = document.querySelector('[data-view].on')?.dataset.view;
@@ -3115,7 +3311,9 @@
       renderAddedToday();
     }
     renderPageCount();
+    syncSearch(); // also at start-up, where updateNav has not run yet
     renderBell();
+    renderFeedback();
     refreshBackup();
   }
 
@@ -3329,12 +3527,31 @@
     return item;
   }
 
-  // Add an item with a reason, unless it is already to get
+  // The item with this name that is still to get (not crossed out, not deleted), if any
+  function toGetItem(name) {
+    const key = name.toLowerCase();
+    return shop.find(i => !i.got && !i.del && i.name.toLowerCase() === key) || null;
+  }
+
+  // Same food again while it is still to get: one line, counted (auto null = the user typed it)
+  async function mergeShopItem(item, auto) {
+    Object.assign(item, FT.shopMerge(item, auto));
+    await saveShop(item);
+    renderShop();
+    return item;
+  }
+
+  // Add an item with a reason; a name already to get is counted instead (then returns null)
   async function autoAdd(name, auto) {
     const key = name.toLowerCase();
-    if (autoBusy.has(key) || onShopList(name)) return null;
+    if (autoBusy.has(key)) return null;
     autoBusy.add(key);
     try {
+      const have = toGetItem(name);
+      if (have) {
+        await mergeShopItem(have, auto);
+        return null; // not a new line: undo must not remove the user's line
+      }
       return await addShopItem(name, auto);
     } catch (e) {
       return null;
@@ -3362,13 +3579,16 @@
     const name = FT.tidyName(input.value);
     if (!name) return;
     input.value = '';
-    if (!onShopList(name)) await addShopItem(name);
+    const have = toGetItem(name);
+    if (have) await mergeShopItem(have, null);
+    else await addShopItem(name);
     renderShop();
   }
 
-  // Bought-before chip or Ideas "+": add it, or un-get it if it is crossed out
+  // Bought-before chip or Ideas "+": add it (or count it if it is already to get), or un-get it if it is crossed out
   async function tapShopName(name) {
-    if (onShopList(name)) return;
+    const have = toGetItem(name);
+    if (have) return mergeShopItem(have, null);
     const key = name.toLowerCase();
     const crossed = shop.find(i => !i.del && i.got && i.name.toLowerCase() === key);
     if (crossed) {
@@ -3377,6 +3597,25 @@
       renderShop();
     } else {
       await addShopItem(name);
+    }
+  }
+
+  // Old repeated lines (from before counting) become one line with a count; the extra lines are removed
+  async function foldShop() {
+    const f = FT.foldShopRepeats(shop);
+    for (const keep of f.keep) {
+      const item = shop.find(i => i.id === keep.id);
+      if (!item) continue;
+      item.count = keep.count;
+      await saveShop(item);
+    }
+    for (const id of f.remove) {
+      try {
+        await DB.shop.remove(id);
+      } catch (e) {
+        continue; // not removed: it is folded again at the next start
+      }
+      shop = shop.filter(i => i.id !== id);
     }
   }
 
@@ -3430,7 +3669,7 @@
     box.type = 'checkbox';
     box.checked = item.got;
     const label = document.createElement('label');
-    label.textContent = item.name;
+    label.textContent = FT.shopLabel(item);
     if (item.auto) {
       const auto = document.createElement('span');
       auto.className = 'auto';

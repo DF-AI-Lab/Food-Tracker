@@ -835,6 +835,58 @@
     return shopItems.filter(i => !i.got && !i.del && wordsOf(i.name).some(w => added.has(w)));
   }
 
+  // Same food typed or added again while it is still to get: one line, counted (Darren 2026-10-15).
+  // auto null = the user typed it (replaces the app's reason); otherwise the item keeps its reason.
+  function shopMerge(item, auto) {
+    return { ...item, count: (item.count || 1) + 1, auto: auto === null ? null : item.auto };
+  }
+
+  // "Chicken · 2 used", "Milk · 2", or just the name
+  function shopLabel(item) {
+    const n = item.count || 1;
+    if (n > 1 && item.auto) return `${item.name} · ${n} used`;
+    if (n > 1) return `${item.name} · ${n}`;
+    return item.name;
+  }
+
+  // Old repeated lines: among the items to get, one line per name (lower case).
+  // keep = the first of each repeated name, with the summed count; remove = the other ids.
+  function foldShopRepeats(items) {
+    const groups = new Map();
+    for (const item of items) {
+      if (item.got || item.del) continue;
+      const key = String(item.name).toLowerCase();
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+    }
+    const keep = [];
+    const remove = [];
+    for (const group of groups.values()) {
+      if (group.length < 2) continue;
+      const total = group.reduce((sum, i) => sum + (i.count || 1), 0);
+      keep.push({ ...group[0], count: total });
+      for (const extra of group.slice(1)) remove.push(extra.id);
+    }
+    return { keep, remove };
+  }
+
+  // Search: fridge, cupboard and freezer packs whose name or sub matches (case-insensitive)
+  function searchPacks(packs, query) {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return [];
+    const out = [];
+    for (const pack of packs) {
+      const hit = String(pack.name || "").toLowerCase().includes(q) ||
+        String(pack.sub || "").toLowerCase().includes(q);
+      if (!hit) continue;
+      let place = null;
+      if (pack.status === "in_fridge") place = pack.kind === "cupboard" ? "Cupboard" : "Fridge";
+      else if (pack.status === "frozen") place = "Freezer";
+      if (place) out.push({ pack, place });
+    }
+    return out.sort((a, b) => a.pack.name.localeCompare(b.pack.name) || a.place.localeCompare(b.place));
+  }
+
   // Packs added today that are still in the fridge or freezer: mains, sides, veg, misc, then name
   const ADDED_ORDER = ["main", "side", "veg", "misc"];
   function addedToday(packs, today) {
@@ -1554,9 +1606,37 @@
     return out;
   }
 
+  // Ideas & feedback (Settings): one note, cleaned. Blank text = null (nothing to save).
+  // Type is "problem" or "idea"; anything else is an idea.
+  function makeFeedback(text, type, { by, name, version, at } = {}) {
+    const clean = String(text ?? "").trim();
+    if (!clean) return null;
+    return { text: clean, type: type === "problem" ? "problem" : "idea", by: by ?? null, name: name ?? null, version: version ?? null, at: at ?? null };
+  }
+
+  // One plain list to paste into a Claude chat, newest first
+  function feedbackText(items, version) {
+    if (!items || items.length === 0) return "";
+    const sorted = [...items].sort((a, b) => b.at - a.at);
+    const count = sorted.length === 1 ? "1 note" : `${sorted.length} notes`;
+    const lines = [`Food Tracker ideas & feedback (app ${version}), ${count}:`];
+    for (const f of sorted) {
+      const kind = f.type === "problem" ? "Problem" : "Idea";
+      const when = f.at ? dayLabel(f.at) : "";
+      const who = [when, f.name, f.version].filter(Boolean).join(", ");
+      const text = String(f.text).replace(/\s*\n\s*/g, " ");
+      lines.push(who ? `- ${kind}: ${text} (${who})` : `- ${kind}: ${text}`);
+    }
+    return lines.join("\n");
+  }
+
   // Export
   const FT = {
     shopMatches,
+    shopMerge,
+    shopLabel,
+    foldShopRepeats,
+    searchPacks,
     addedToday,
     dateTag,
     addDays,
@@ -1652,7 +1732,9 @@
     BACKUP_VERB,
     backupDue,
     dayLabel,
-    lastBackupLabel
+    lastBackupLabel,
+    makeFeedback,
+    feedbackText
   };
 
   if (typeof module !== "undefined") {

@@ -21,6 +21,19 @@ $("checkUpdate").onclick = async () => {
   }
 };
 
+// Settings → Install app (FT_install is defined by pwa.js): runs Chrome's prompt, or says how
+$("settingsInstall").onclick = async () => {
+  const note = $("settingsInstallNote");
+  let r = "none";
+  try {
+    if (window.FT_install) r = await window.FT_install();
+  } catch (e) {
+    r = "none";
+  }
+  note.textContent = r === "installed" ? "Installed" : "Use your browser menu → Add to Home screen";
+  note.hidden = r === "prompted";
+};
+
 // app.js waits for this before it starts
 let resolveReady;
 window.FT_READY = new Promise(r => { resolveReady = r; });
