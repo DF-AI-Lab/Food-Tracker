@@ -46,7 +46,7 @@ export async function createHousehold(F, db, user, name) {
     names: { [user.uid]: user.displayName || "Someone" },
     created: F.Timestamp.now(),
   });
-  await F.setDoc(F.doc(db, "users", user.uid), { householdId: ref.id });
+  await F.setDoc(F.doc(db, "users", user.uid), { householdId: ref.id }, { merge: true });
   return ref.id;
 }
 
@@ -112,7 +112,7 @@ export async function joinHousehold(F, db, user, code) {
     throw new Error(SAME_MESSAGE);
   }
 
-  await F.setDoc(F.doc(db, "users", user.uid), { householdId });
+  await F.setDoc(F.doc(db, "users", user.uid), { householdId }, { merge: true });
   return householdId;
 }
 
