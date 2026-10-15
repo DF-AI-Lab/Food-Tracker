@@ -445,6 +445,15 @@
         <div class="li"><div class="grow">Look</div><div class="seg mini" role="group" aria-label="Look"><button class="sb" id="themeDark" aria-pressed="true"><i data-icon="moon" data-size="14" data-width="1.8"></i>Dark</button><button class="sb" id="themeLight" aria-pressed="false"><i data-icon="sun" data-size="14" data-width="1.8"></i>Light</button></div></div>
       </div>
 
+      <h3 class="sec">Ideas &amp; feedback</h3>
+      <div class="card list fb-card">
+        <div class="li fb-compose"><textarea id="fbText" rows="3" placeholder="An idea, or something that went wrong…" aria-label="An idea, or something that went wrong"></textarea></div>
+        <div class="li fb-btns"><button class="act" id="fbIdea">Save idea</button><button class="act ghost" id="fbProblem">Save problem</button></div>
+        <div class="note fb-msg" id="fbMsg" hidden></div>
+        <div id="fbList"></div>
+        <div class="li fb-copy"><button class="act ghost" id="fbCopy">Copy all for Claude</button></div>
+      </div>
+
       <h3 class="sec">Members <span class="n" id="memCount"></span></h3>
       <div class="card list">
         <ul id="members"></ul>
