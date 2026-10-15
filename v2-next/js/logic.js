@@ -1554,6 +1554,30 @@
     return out;
   }
 
+  // Ideas & feedback (Settings): one note, cleaned. Blank text = null (nothing to save).
+  // Type is "problem" or "idea"; anything else is an idea.
+  function makeFeedback(text, type, { by, name, version, at } = {}) {
+    const clean = String(text ?? "").trim();
+    if (!clean) return null;
+    return { text: clean, type: type === "problem" ? "problem" : "idea", by: by ?? null, name: name ?? null, version: version ?? null, at: at ?? null };
+  }
+
+  // One plain list to paste into a Claude chat, newest first
+  function feedbackText(items, version) {
+    if (!items || items.length === 0) return "";
+    const sorted = [...items].sort((a, b) => b.at - a.at);
+    const count = sorted.length === 1 ? "1 note" : `${sorted.length} notes`;
+    const lines = [`Food Tracker ideas & feedback (app ${version}), ${count}:`];
+    for (const f of sorted) {
+      const kind = f.type === "problem" ? "Problem" : "Idea";
+      const when = f.at ? dayLabel(f.at) : "";
+      const who = [when, f.name, f.version].filter(Boolean).join(", ");
+      const text = String(f.text).replace(/\s*\n\s*/g, " ");
+      lines.push(who ? `- ${kind}: ${text} (${who})` : `- ${kind}: ${text}`);
+    }
+    return lines.join("\n");
+  }
+
   // Export
   const FT = {
     shopMatches,
@@ -1652,7 +1676,9 @@
     BACKUP_VERB,
     backupDue,
     dayLabel,
-    lastBackupLabel
+    lastBackupLabel,
+    makeFeedback,
+    feedbackText
   };
 
   if (typeof module !== "undefined") {
