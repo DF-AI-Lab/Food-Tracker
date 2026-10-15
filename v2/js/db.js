@@ -87,6 +87,9 @@
     // Meal plans: one per meal on a day { id, day, mealId, skip: [names] }
     mealPlans: store("mealPlans"),
 
+    // Ideas & feedback (Settings): { text, type: "idea"|"problem", by, name, version, at }. Not in backups.
+    feedback: store("feedback"),
+
     // Printed fridge sheets: { code, printed, rows }
     sheets: store("sheets"),
 

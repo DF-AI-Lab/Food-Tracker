@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 // Demo first (Darren 2026-10-15): live v2/ gets it when it is swapped in — then add "v2" back here
-for (const dir of ["v2-next"]) {
+for (const dir of ["v2", "v2-next"]) {
   const FT = require(path.join(__dirname, "..", dir, "js", "logic.js"));
   const read = f => fs.readFileSync(path.join(__dirname, "..", dir, f), "utf8");
 

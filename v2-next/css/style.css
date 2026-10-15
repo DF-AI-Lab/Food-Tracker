@@ -492,6 +492,21 @@ body.has-addbar #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 80px)}
 .backup-ask-btns{display:flex;gap:8px}
 .backup-ask-btns .act{flex:1}
 #installBtn{width:100%}
+.installwrap{display:flex;align-items:center;gap:6px}
+.installwrap[hidden]{display:none}
+.installwrap #installBtn{flex:1;min-width:0}
+#installHide{width:40px;height:40px;min-width:40px;min-height:40px;color:var(--muted)}
+
+/* Search (fridge pages): one box, results in a card that replaces the page while typing */
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0 6px 0 14px;min-height:48px;color:var(--muted)}
+.search input{flex:1;min-width:0;background:none;border:0;color:var(--text);font:inherit;font-size:16px;outline:none;padding:12px 0}
+.search input::placeholder{color:var(--dim)}
+#searchClear{width:36px;height:36px;min-width:36px;min-height:36px;border-radius:10px;background:var(--surface-2);color:var(--text-2)}
+.row.srch{flex-direction:row;justify-content:space-between;align-items:center;gap:10px;text-align:left;font:inherit}
+.row.srch .rname{font-size:16px}
+.row.srch .when{font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap}
+.where{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:1px 6px}
+.srch-none{padding:14px 16px;color:var(--muted);font-size:14px}
 
 /* Sign in */
 .gatecard{min-height:calc(100dvh - 56px);padding-top:40px}
@@ -727,3 +742,6 @@ details.added[open] .chev{transform:rotate(180deg)}
 
 /* Top bar stays pinned while scrolling, so home, bell and settings are always one tap away (Darren 2026-10-14) */
 .topbar{position:sticky;top:0;z-index:40;background:var(--bg);margin-top:-16px;padding:calc(10px + env(safe-area-inset-top,0px)) 0 8px}
+
+/* type=search: hide the browser's own clear cross, we have our own ✕ */
+#fridgeSearch::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}

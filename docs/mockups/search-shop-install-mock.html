@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Search, shop, install mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--track:#1C2B26;--text:#E8EFEC;--text-2:#C9D6D1;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--warn:#F2B35B;--danger:#F08A7E;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:16px}
+.wrap{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.inst{display:flex;align-items:center;justify-content:center;position:relative;min-height:48px;font-weight:600;color:var(--text-2)}
+.inst .x{position:absolute;right:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0 6px 0 14px;min-height:48px}
+.search .ic{color:var(--muted)}.search input{flex:1;background:none;border:0;color:var(--text);font:inherit;font-size:16px;outline:none;min-width:0}
+.search .x{width:36px;height:36px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-2)}
+h1{margin:4px 0 0;font-size:30px;display:flex;justify-content:space-between;align-items:baseline}h1 small{font-size:15px;font-weight:400;color:var(--muted)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-top:1px solid var(--border)}.row:first-child{border-top:0}
+.nm{font-weight:600}.where{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:8px}
+.when{font-family:var(--mono);font-size:13px;color:var(--text-2)}
+.note{font-size:12px;color:var(--dim);text-align:center}
+.srow{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--border)}.srow:first-child{border-top:0}
+.box{width:22px;height:22px;border:2px solid var(--dim);border-radius:6px}
+.cnt{color:var(--muted);font-weight:400}.auto{font-size:12px;color:var(--danger)}
+.li{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-top:1px solid var(--border)}.li:first-child{border-top:0}
+.btn{border:1px solid var(--border);background:var(--surface-2);color:var(--accent);border-radius:12px;padding:10px 14px;font:inherit;font-weight:600}
+</style></head><body><div class="wrap">
+
+<div class="lbl">FRIDGE PAGE · INSTALL APP GETS AN ✕</div>
+<div class="card inst">Install app<span class="x">✕</span></div>
+<div class="search"><span class="ic">🔍</span><input placeholder="Search fridge, freezer, cupboard"></div>
+<h1>Fridge <small>21 items</small></h1>
+<div class="note">✕ hides Install app for good on this phone. It's still in Settings.</div>
+
+<div class="lbl">TYPING "chick" · ONLY MATCHES SHOW</div>
+<div class="search"><span class="ic">🔍</span><input value="chick"><span class="x">✕</span></div>
+<div class="card">
+ <div class="row"><span class="nm">Chicken thighs<span class="where">FRIDGE</span></span><span class="when">Fri 16 Oct</span></div>
+ <div class="row"><span class="nm">Chicken<span class="where">FREEZER</span></span><span class="when">12 days frozen</span></div>
+ <div class="row"><span class="nm">Chicken stock<span class="where">CUPBOARD</span></span><span class="when">Mar 2027</span></div>
+</div>
+<div class="note">Tap ✕ to clear and get the normal page back. Tap a row for its menu.</div>
+
+<div class="lbl">SHOPPING LIST · ONE LINE PER FOOD</div>
+<div class="card">
+ <div class="srow"><span class="box"></span><span>Chicken <span class="cnt">· 2 used</span></span></div>
+ <div class="srow"><span class="box"></span><span>Milk <span class="cnt">· 2</span></span></div>
+ <div class="srow"><span class="box"></span><span>Bread</span></div>
+</div>
+<div class="note">Used 2 chickens = one line "Chicken · 2 used". Type "Milk" when it's already there = "Milk · 2". Typing a food the app added replaces the auto line.</div>
+
+<div class="lbl">SETTINGS · APP</div>
+<div class="card">
+ <div class="li"><span>Install app</span><button class="btn">Install</button></div>
+</div>
+</div></body></html>

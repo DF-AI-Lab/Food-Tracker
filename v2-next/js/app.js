@@ -174,6 +174,7 @@
     } catch (e) {
       // try again next time the app starts
     }
+    await foldShop();
     bellEntries = await DB.activity.all();
     // Meal plans from days long gone drop off; the rest are brought up to date with the fridge
     dropExpiredMealPlans();
@@ -200,6 +201,7 @@
     mealPlans = await DB.mealPlans.all();
     feedback = await DB.feedback.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
+    await foldShop();
     bellEntries = await DB.activity.all();
   }
 
@@ -412,6 +414,13 @@
     document.getElementById('qfCamera').addEventListener('change', e => addPhotos(e.target.files, e.target));
     document.getElementById('qfPick').addEventListener('change', e => addPhotos(e.target.files, e.target));
     document.getElementById('qfShopTick').addEventListener('click', tickOffShopping);
+
+    // Search: every key redraws the results; ✕ clears the box and the fridge page comes back
+    document.getElementById('fridgeSearch').addEventListener('input', renderSearch);
+    document.getElementById('searchClear').addEventListener('click', () => {
+      document.getElementById('fridgeSearch').value = '';
+      renderSearch();
+    });
 
     // Shopping list
     document.getElementById('shopForm').addEventListener('submit', addTypedShopItem);
@@ -1085,6 +1094,68 @@
     document.getElementById('pageTitle').textContent = PAGE_TITLE[page];
     renderPageCount();
     renderAddBar();
+    syncSearch();
+  }
+
+  // ---- Search: fridge, freezer and cupboard (the bar shows on those pages only) ----
+  const SEARCH_PAGES = ['fridge', 'freezer', 'cupboard'];
+
+  // Leaving those pages clears the search; the bar shows only on them
+  function syncSearch() {
+    const on = SEARCH_PAGES.includes(currentPage());
+    const input = document.getElementById('fridgeSearch');
+    if (!on) input.value = '';
+    document.getElementById('fridgeSearchWrap').hidden = !on;
+    renderSearch();
+  }
+
+  // With text in the box, the results card replaces the fridge page; with none, the page is back
+  function renderSearch() {
+    const input = document.getElementById('fridgeSearch');
+    const text = input.value;
+    const active = text.trim() !== '';
+    document.getElementById('searchClear').hidden = text === '';
+    document.querySelector('[data-tab-pane="fridge"]').hidden = active;
+    const box = document.getElementById('searchResults');
+    box.hidden = !active;
+    if (!active || !packs) return;
+    box.innerHTML = '';
+    const hits = FT.searchPacks(packs, text);
+    if (hits.length === 0) {
+      const none = document.createElement('div');
+      none.className = 'srch-none';
+      none.textContent = 'Nothing found';
+      box.appendChild(none);
+      return;
+    }
+    for (const { pack, place } of hits) box.appendChild(searchRow(pack, place));
+  }
+
+  // One result: name, a place tag, and the date on the right (tap opens the pack)
+  function searchRow(pack, place) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'row srch';
+    const name = document.createElement('span');
+    name.className = 'rname';
+    name.textContent = pack.name;
+    const tag = document.createElement('span');
+    tag.className = 'where';
+    tag.textContent = place.toUpperCase();
+    name.appendChild(tag);
+    const when = document.createElement('span');
+    when.className = 'when';
+    if (place === 'Freezer' && pack.frozen) {
+      const age = FT.freezeAge(pack.frozen, today);
+      when.textContent = age === 'today' ? 'Frozen today' : age + ' frozen';
+    } else if (pack.date) {
+      when.textContent = LOOK.whenText(pack.date, today);
+    } else if (pack.added) {
+      when.textContent = FT.ageLabel(pack.added, today);
+    }
+    row.append(name, when);
+    row.addEventListener('click', () => showSheet(pack.id));
+    return row;
   }
 
   // Small line beside / above the title: item counts, the week, the month
@@ -3240,6 +3311,7 @@
       renderAddedToday();
     }
     renderPageCount();
+    syncSearch(); // also at start-up, where updateNav has not run yet
     renderBell();
     renderFeedback();
     refreshBackup();
@@ -3455,12 +3527,31 @@
     return item;
   }
 
-  // Add an item with a reason, unless it is already to get
+  // The item with this name that is still to get (not crossed out, not deleted), if any
+  function toGetItem(name) {
+    const key = name.toLowerCase();
+    return shop.find(i => !i.got && !i.del && i.name.toLowerCase() === key) || null;
+  }
+
+  // Same food again while it is still to get: one line, counted (auto null = the user typed it)
+  async function mergeShopItem(item, auto) {
+    Object.assign(item, FT.shopMerge(item, auto));
+    await saveShop(item);
+    renderShop();
+    return item;
+  }
+
+  // Add an item with a reason; a name already to get is counted instead (then returns null)
   async function autoAdd(name, auto) {
     const key = name.toLowerCase();
-    if (autoBusy.has(key) || onShopList(name)) return null;
+    if (autoBusy.has(key)) return null;
     autoBusy.add(key);
     try {
+      const have = toGetItem(name);
+      if (have) {
+        await mergeShopItem(have, auto);
+        return null; // not a new line: undo must not remove the user's line
+      }
       return await addShopItem(name, auto);
     } catch (e) {
       return null;
@@ -3488,13 +3579,16 @@
     const name = FT.tidyName(input.value);
     if (!name) return;
     input.value = '';
-    if (!onShopList(name)) await addShopItem(name);
+    const have = toGetItem(name);
+    if (have) await mergeShopItem(have, null);
+    else await addShopItem(name);
     renderShop();
   }
 
-  // Bought-before chip or Ideas "+": add it, or un-get it if it is crossed out
+  // Bought-before chip or Ideas "+": add it (or count it if it is already to get), or un-get it if it is crossed out
   async function tapShopName(name) {
-    if (onShopList(name)) return;
+    const have = toGetItem(name);
+    if (have) return mergeShopItem(have, null);
     const key = name.toLowerCase();
     const crossed = shop.find(i => !i.del && i.got && i.name.toLowerCase() === key);
     if (crossed) {
@@ -3503,6 +3597,25 @@
       renderShop();
     } else {
       await addShopItem(name);
+    }
+  }
+
+  // Old repeated lines (from before counting) become one line with a count; the extra lines are removed
+  async function foldShop() {
+    const f = FT.foldShopRepeats(shop);
+    for (const keep of f.keep) {
+      const item = shop.find(i => i.id === keep.id);
+      if (!item) continue;
+      item.count = keep.count;
+      await saveShop(item);
+    }
+    for (const id of f.remove) {
+      try {
+        await DB.shop.remove(id);
+      } catch (e) {
+        continue; // not removed: it is folded again at the next start
+      }
+      shop = shop.filter(i => i.id !== id);
     }
   }
 
@@ -3556,7 +3669,7 @@
     box.type = 'checkbox';
     box.checked = item.got;
     const label = document.createElement('label');
-    label.textContent = item.name;
+    label.textContent = FT.shopLabel(item);
     if (item.auto) {
       const auto = document.createElement('span');
       auto.className = 'auto';

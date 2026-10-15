@@ -2,7 +2,7 @@
 // F (the Firestore API) and db (the database) are passed in, so this file has no imports.
 
 // Lists read live into a mirror; foods is write-only (the memory of each food name)
-const LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans"];
+const LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans", "feedback"];
 const DEBOUNCE_MS = 100;
 
 // Copy in and out, so a caller changing an item does not change the stored one
@@ -281,6 +281,9 @@ export function makeCloudDB(F, db, householdId, uid, opts = {}) {
 
     // Meal plans: one per meal on a day { id, day, mealId, skip: [names] }
     mealPlans: store("mealPlans"),
+
+    // Ideas & feedback (Settings): { text, type: "idea"|"problem", by, name, version, at }. Not in backups.
+    feedback: store("feedback"),
 
     // Printed fridge sheets: { code, printed, rows }
     sheets: store("sheets"),
