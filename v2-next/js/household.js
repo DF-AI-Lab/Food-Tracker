@@ -3,6 +3,9 @@
 
 const DAY = 24 * 3600 * 1000;
 
+// The demo's own pointer, so live and demo can be in different households
+const KEY = "demoHouseholdId";
+
 // No 0/O or 1/I/L, so codes are easy to read out and type
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const SAME_MESSAGE = "That code is wrong or has run out";
@@ -46,7 +49,7 @@ export async function createHousehold(F, db, user, name) {
     names: { [user.uid]: user.displayName || "Someone" },
     created: F.Timestamp.now(),
   });
-  await F.setDoc(F.doc(db, "users", user.uid), { householdId: ref.id });
+  await F.setDoc(F.doc(db, "users", user.uid), { [KEY]: ref.id }, { merge: true });
   return ref.id;
 }
 
@@ -55,7 +58,12 @@ export async function myHousehold(F, db, uid) {
   const userSnap = await F.getDoc(F.doc(db, "users", uid));
   if (!userSnap.exists()) return null;
 
-  const id = userSnap.data().householdId;
+  let id = userSnap.data()[KEY];
+  if (!id && userSnap.data().householdId) {
+    // One-off move for demo users from before KEY: keep the household they already had
+    id = userSnap.data().householdId;
+    await F.setDoc(F.doc(db, "users", uid), { [KEY]: id }, { merge: true });
+  }
   if (!id) return null;
 
   let data;
@@ -112,7 +120,7 @@ export async function joinHousehold(F, db, user, code) {
     throw new Error(SAME_MESSAGE);
   }
 
-  await F.setDoc(F.doc(db, "users", user.uid), { householdId });
+  await F.setDoc(F.doc(db, "users", user.uid), { [KEY]: householdId }, { merge: true });
   return householdId;
 }
 
