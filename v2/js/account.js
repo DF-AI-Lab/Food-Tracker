@@ -89,12 +89,22 @@ async function start() {
     $("settings").hidden = true;
     $("signIn").hidden = false;
     $("joinPart").hidden = true;
+    $("gateSignOut").hidden = true;
     $("gateMsg").textContent = "";
     $("gate").hidden = false;
   }
 
   // With a join link, only the Join part shows (no making a new household)
   const invited = !!codeFromUrl(location.href);
+
+  // Signed in with an email that is not on the family list: say so, offer another account
+  function notOnList(email) {
+    $("signIn").hidden = true;
+    $("joinPart").hidden = true;
+    $("gateMsg").textContent = `${email} is not on the family list. Ask Darren to add it.`;
+    $("gateSignOut").hidden = false;
+    $("gate").hidden = false;
+  }
 
   function showJoin() {
     $("signIn").hidden = true;
@@ -108,6 +118,11 @@ async function start() {
   // Signed in: open the app if this user is in a household, else offer make or join
   async function enter(user) {
     try {
+      // The family list comes first: only people on it may use the app
+      const email = String(user.email || "").toLowerCase();
+      let onList = false;
+      try { onList = (await F.getDoc(F.doc(db, "allowed", email))).exists(); } catch (e) { onList = false; }
+      if (!onList) return notOnList(email);
       const h = await myHousehold(F, db, user.uid);
       if (!h) return showJoin();
       // Opened from an invite while already in another household: ask, then switch
@@ -151,7 +166,7 @@ async function start() {
       // Fake Google sign-in: the emulator accepts this JSON as the Google ID token
       const as = params.get("as") || "tester";
       const name = as.charAt(0).toUpperCase() + as.slice(1);
-      const token = JSON.stringify({ sub: as, email: as + "@example.com", name });
+      const token = JSON.stringify({ sub: as, email: as + "@example.com", email_verified: true, name });
       await AU.signInWithCredential(auth, AU.GoogleAuthProvider.credential(token));
       return;
     }
@@ -161,6 +176,13 @@ async function start() {
       if (e.code !== "auth/popup-blocked") throw e;
       await AU.signInWithRedirect(auth, new AU.GoogleAuthProvider());
     }
+  });
+
+  $("gateSignOut").onclick = onGate(async () => {
+    await AU.signOut(auth);
+    $("gateSignOut").hidden = true;
+    $("gateMsg").textContent = "";
+    $("signIn").hidden = false;
   });
 
   $("makeHH").onclick = onGate(async () => {

@@ -25,7 +25,7 @@ test.before(async () => {
 test.after(async () => env && env.cleanup());
 test.beforeEach(async () => {
   await env.clearFirestore();
-  await allow(env, ["alice", "bob", "eve"]);
+  await allow(env, ["alice", "bob", "eve", "x"]);
 });
 
 // ---------- pure helpers ----------
