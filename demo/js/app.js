@@ -20,7 +20,6 @@
   let askOpen = null;    // the asking sitting whose card is open (tap its top to open or close)
   const pastState = {};   // sitting -> 'ask' | 'use' | 'cost' | 'had'
   const hadPicked = {};   // sitting -> foods picked in "had" mode
-  let dinnerOpen = null;  // a day where "+ Dinner" was tapped, before anything is planned for it
   let selMeal = 'tea';    // which meal the picker adds to: 'dinner' | 'tea'
   let cleaning = false;   // guards dropExpiredPlans against re-entry
   // Shopping list state
@@ -2056,11 +2055,6 @@
     });
   }
 
-  // A day's dinner row shows when it has a dinner (or "+ Dinner" was tapped), unless it is being asked
-  function dinnerShown(day, asked = pastDays()) {
-    return (FT.hasDinner(packs, mealPlans, day) || dinnerOpen === day) && !asked.includes(FT.sitKey(day, 'dinner'));
-  }
-
   function inHad() {
     return !!askDay && pastState[askDay] === 'had';
   }
@@ -2089,7 +2083,7 @@
       openDay = day;
       selDay = day;
       selSlot = defaultSlot();
-      selMeal = dinnerOpen === day ? selMeal : 'tea';
+      selMeal = 'tea';
       pendingPlan = null;
     }
     renderMeals();
@@ -2098,8 +2092,6 @@
   function renderMeals() {
     dropExpiredPlans();
     dropExpiredMealPlans();
-    // "+ Dinner" lasts only while its day stays open
-    if (dinnerOpen !== null && dinnerOpen !== openDay) dinnerOpen = null;
     const pane = document.querySelector('[data-tab-pane="meals"]');
     const picker = document.getElementById('picker');
     const dayListEl = document.getElementById('dayList');
@@ -2117,8 +2109,7 @@
     nextSlot.hidden = selSlot === 'misc';
     nextSlot.textContent = NEXT_LABEL[selSlot] || 'Next: Sides';
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
-    const withMeal = dinnerShown(selDay, asked) ? (selMeal === 'dinner' ? ' · Dinner' : ' · Tea') : '';
-    document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay) + withMeal;
+    document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay) + (selMeal === 'dinner' ? ' · Dinner' : ' · Tea');
     renderWarnBar();
     renderPickList();
     renderMyMeals();
@@ -2543,13 +2534,18 @@
     openMealForm(null, saveMealNames(day, mealTime) || []);
   }
 
-  // Upcoming day card. Tea only: the chips in the head, as before. With a dinner: a DINNER row and
-  // a TEA row under the head, each with its chips.
+  // Name of a planned group on a day: a meal's name, a takeaway, or a single food's name
+  function groupName(g) {
+    if (g.type === 'meal') return g.view.name;
+    return g.pack.kind === 'takeaway' ? 'Takeaway' : g.pack.name;
+  }
+
+  // Upcoming day card. Open: Dinner | Tea buttons, the selected meal's foods, the picker, and the
+  // other meal as one quiet line. Closed: one line per meal that has food (no buttons).
   function dayCard(day, picker) {
     const isToday = day === today;
     const isOpen = day === openDay && !inHad();
     const asked = pastDays();
-    const showDinner = dinnerShown(day, asked);
     const card = document.createElement('div');
     card.className = 'day' + (isOpen ? ' open' : '') + (isToday ? ' today' : '');
 
@@ -2564,38 +2560,6 @@
       tl.className = 'tl';
       tl.textContent = 'Today';
       head.appendChild(tl);
-    }
-
-    const blocks = [];
-    if (showDinner) {
-      for (const meal of ['dinner', 'tea']) {
-        const row = document.createElement('div');
-        row.className = 'sit' + (isOpen && selMeal === meal ? ' sel' : '');
-        row.dataset.meal = meal;
-        const lbl = document.createElement('button');
-        lbl.type = 'button';
-        lbl.className = 'sit-lbl';
-        lbl.textContent = meal === 'dinner' ? 'DINNER' : 'TEA';
-        lbl.addEventListener('click', e => {
-          e.stopPropagation();
-          finishHad();
-          addingDay = null;
-          askOpen = null;
-          pendingPlan = null;
-          if (openDay !== day) {
-            openDay = day;
-            selSlot = defaultSlot();
-          }
-          selDay = day;
-          selMeal = meal;
-          renderMeals();
-        });
-        row.appendChild(lbl);
-        const rowBlocks = mealChips(row, day, meal, false);
-        blocks.push(row, ...rowBlocks);
-      }
-    } else {
-      blocks.push(...mealChips(head, day, 'tea', false));
     }
     if (FT.dayGroups(packs, mealPlans, recipes, day).length === 0) {
       const hint = document.createElement('span');
@@ -2612,32 +2576,78 @@
       }
     });
     card.appendChild(head);
-    blocks.forEach(b => card.appendChild(b));
 
     if (isOpen) {
-      const body = document.createElement('div');
-      body.className = 'dbody';
-      if (!showDinner && !asked.includes(FT.sitKey(day, 'dinner'))) {
-        const addDinner = document.createElement('button');
-        addDinner.type = 'button';
-        addDinner.className = 'add-dinner';
-        addDinner.textContent = '+ Dinner';
-        addDinner.addEventListener('click', e => {
-          e.stopPropagation();
-          dinnerOpen = day;
-          selMeal = 'dinner';
+      const seg = document.createElement('div');
+      seg.className = 'meal-seg';
+      for (const meal of ['dinner', 'tea']) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.meal = meal;
+        const on = selMeal === meal;
+        b.className = on ? 'on' : '';
+        b.setAttribute('aria-pressed', String(on));
+        b.append(meal === 'dinner' ? 'Dinner' : 'Tea');
+        const n = FT.dayGroups(packs, mealPlans, recipes, day, meal).length;
+        if (n) {
+          const count = document.createElement('span');
+          count.className = 'n';
+          count.textContent = '· ' + n;
+          b.appendChild(count);
+        }
+        b.addEventListener('click', () => {
+          selMeal = meal;
+          selSlot = defaultSlot(); // a new meal starts its picker on the first slot
+          pendingPlan = null;
           renderMeals();
         });
-        body.appendChild(addDinner);
+        seg.appendChild(b);
       }
+      card.appendChild(seg);
+
+      const now = document.createElement('div');
+      now.className = 'meal-now';
+      const line = document.createElement('div');
+      line.className = 'meal-line';
+      now.append(line, ...mealChips(line, day, selMeal, false));
+      card.appendChild(now);
+
+      const body = document.createElement('div');
+      body.className = 'dbody';
       body.appendChild(picker);
       picker.hidden = false;
       card.appendChild(body);
+
+      const other = selMeal === 'dinner' ? 'tea' : 'dinner';
+      const names = asked.includes(FT.sitKey(day, other))
+        ? []
+        : FT.dayGroups(packs, mealPlans, recipes, day, other).map(groupName);
+      if (names.length) {
+        const line2 = document.createElement('div');
+        line2.className = 'other-meal';
+        line2.textContent = (other === 'dinner' ? 'Dinner' : 'Tea') + ': ' + names.join(', ');
+        card.appendChild(line2);
+      }
+    } else {
+      for (const meal of ['dinner', 'tea']) {
+        if (asked.includes(FT.sitKey(day, meal))) continue; // being asked on its own card
+        if (FT.dayGroups(packs, mealPlans, recipes, day, meal).length === 0) continue;
+        const line = document.createElement('div');
+        line.className = 'sit';
+        line.dataset.meal = meal;
+        const lbl = document.createElement('span');
+        lbl.className = 'sit-lbl';
+        lbl.textContent = meal === 'dinner' ? 'DINNER' : 'TEA';
+        line.appendChild(lbl);
+        const blocks = mealChips(line, day, meal, false);
+        card.appendChild(line);
+        blocks.forEach(b => card.appendChild(b));
+      }
     }
     return card;
   }
 
-  // The chips of one meal on a day, into el (the head or a row). Save as meal when it has only
+  // The chips of one meal on a day, into el (a line of the card). Save as meal when it has only
   // single foods. Returns the blocks of the meal plans that are open.
   function mealChips(el, day, mealTime, noX) {
     const blocks = appendDayChips(el, day, noX, mealTime);
@@ -2722,11 +2732,8 @@
         text.textContent = askText;
         const yes = button('had-yes mini', 'Yes', () => { addingDay = null; answerYes(key); });
         const no = button('had-no mini', 'No', () => { addingDay = null; answerNo(key); });
-        row.append(text, yes, no);
 
         const adding = addingDay === key;
-        const extra = document.createElement('div');
-        extra.className = 'askrow ans';
         const add = button('had-add mini', '', () => {
           addingDay = adding ? null : key;
           openDay = null; // only one picker: close any other open day
@@ -2742,8 +2749,8 @@
         const saved = FT.dayGroups(packs, mealPlans, recipes, day, mealTime).some(g => g.type === 'meal');
         const meal = button('mini day-meal', saved ? 'Saved ✓' : 'Save as meal', () => openMealFromDay(day, mealTime));
         meal.disabled = saved;
-        extra.append(add, meal);
-        body.append(row, extra);
+        row.append(text, yes, no, add, meal);
+        body.append(row);
         if (adding) {
           body.appendChild(picker);
           picker.hidden = false;
@@ -3195,11 +3202,6 @@
         return;
       }
     }
-    const days = FT.mealDays(today);
-    selDay = days[(days.indexOf(day) + 1) % 7];
-    openDay = selDay;
-    selSlot = defaultSlot();
-    selMeal = 'tea';
     pendingPlan = null;
     renderMeals();
   }
