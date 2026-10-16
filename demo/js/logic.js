@@ -189,21 +189,24 @@
     return { ...pack, status: "in_fridge", date: nextDay, dateType: "use_by", frozen: null };
   }
 
-  // Delete (a mistake): not saved as used or wasted. Kept for Undo until yesterday.
-  function markDeleted(pack, today) {
-    return { ...pack, status: "deleted", del: today };
+  // Delete (a mistake): not saved as used or wasted. Kept for Undo for 1 hour (Darren 2026-10-16).
+  // del is the time it was deleted (ms); older data has a date string, which counts as gone.
+  function markDeleted(pack, today, now = Date.now()) {
+    return { ...pack, status: "deleted", del: now };
   }
 
-  // Deleted today or yesterday: shown in the Fridge list with Undo
-  function deletedList(packs, today) {
+  const DELETE_KEEP_MS = 3600000;
+
+  // Deleted in the last hour: shown in the Fridge list with Undo, newest first
+  function deletedList(packs, today, now = Date.now()) {
     return packs
-      .filter(p => p.status === "deleted" && daysLeft(p.del, today) >= -1)
-      .sort((a, b) => b.del.localeCompare(a.del));
+      .filter(p => p.status === "deleted" && typeof p.del === "number" && now - p.del < DELETE_KEEP_MS)
+      .sort((a, b) => b.del - a.del);
   }
 
-  // Deleted before yesterday: remove from the database for good
-  function expiredDeletes(packs, today) {
-    return packs.filter(p => p.status === "deleted" && daysLeft(p.del, today) < -1);
+  // Deleted over an hour ago (or under the old day rule): remove from the database for good
+  function expiredDeletes(packs, today, now = Date.now()) {
+    return packs.filter(p => p.status === "deleted" && !(typeof p.del === "number" && now - p.del < DELETE_KEEP_MS));
   }
 
   // Remembered "no date" per food: the latest pack (not deleted) of that name decides

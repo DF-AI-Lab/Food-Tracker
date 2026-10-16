@@ -1956,7 +1956,7 @@
       nameEl.textContent = pack.name + (pack.date ? ' · ' + FT.formatDate(pack.date) : '');
       const tagEl = document.createElement('span');
       tagEl.className = 'gonetag';
-      tagEl.textContent = 'Deleted · gone tomorrow';
+      tagEl.textContent = 'Deleted · gone in ' + FT.shopGoneIn(pack) + ' min';
       const undoEl = document.createElement('button');
       undoEl.className = 'undo';
       undoEl.textContent = 'Undo';
