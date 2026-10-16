@@ -73,35 +73,8 @@ function startStatic() {
     await until(async () => assert.equal(await navShown(), true));
   });
 
-  await step("typing a food: the Add bar moves to the top, over the header; done typing: back at the bottom", async () => {
-    await page.click('[data-tab="add"]');
-    await page.click('[data-sub="fridge"]');
-    await page.locator("#name").tap();
-    await page.locator("#name").fill("Test");
-    await until(async () => assert.ok(await page.locator("#addBar").isVisible()));
-    const bar = await page.locator("#addBar").boundingBox();
-    const head = await page.locator("#top").boundingBox();
-    assert.ok(bar.y <= head.y + 4, `bar at the top (${bar.y}px)`);
-    assert.ok(bar.y + bar.height >= head.y + head.height - 4, "bar covers the header");
-    await page.locator("#name").blur();
-    await until(async () => assert.ok((await page.locator("#addBar").boundingBox()).y > 400, "back at the bottom"));
-    await page.locator("#name").fill("");
-    await page.locator("#name").blur();
-    await until(async () => assert.equal(await navShown(), true));
-  });
-
-  await step("✕ on the left of the Add bar cancels: clears the food, closes the bar, adds nothing", async () => {
-    await page.locator("#name").tap();
-    await page.locator("#name").fill("Cancel me");
-    await until(async () => assert.ok(await page.locator("#barCancel").isVisible()));
-    const [x, txt] = [await page.locator("#barCancel").boundingBox(), await page.locator("#abName").boundingBox()];
-    assert.ok(x.x < txt.x, "✕ is on the left");
-    await page.locator("#barCancel").tap();
-    await until(async () => assert.equal(await page.locator("#addBar").isVisible(), false));
-    assert.equal(await page.locator("#name").inputValue(), "");
-    assert.doesNotMatch(await page.locator("#addMsg").innerText(), /Cancel me/);
-    await until(async () => assert.equal(await navShown(), true));
-  });
+  // (The Add bar at the top while typing, and its ✕, are now covered by tests/add-steps.check.js:
+  //  on a phone, adding a food is done in 3 steps.)
 
   await step("ticking a box does not hide the bottom icons", async () => {
     await page.click('[data-tab="shop"]');
