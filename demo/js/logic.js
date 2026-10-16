@@ -839,10 +839,12 @@
     return b.added.localeCompare(a.added) || byId(b, a);
   }
 
-  function shopOrder(items, today) {
+  function shopOrder(items, today, now = Date.now()) {
     const toGet = items.filter(i => !i.got && !i.del).sort(byNewest);
     const got = items.filter(i => i.got && !i.del).sort(byNewest);
-    const gone = items.filter(i => i.del && daysLeft(i.del, today) >= -1).sort(byNewest);
+    const gone = items.filter(i => i.del && (typeof i.del === "number"
+      ? now - i.del < SHOP_DEL_MS
+      : daysLeft(i.del, today) >= -1)).sort(byNewest);
     return [...toGet, ...got, ...gone];
   }
 
@@ -920,9 +922,21 @@
     return pack.dateType === "best_before" ? "BB" : "UB";
   }
 
-  // Deleted before yesterday: remove from the database for good
-  function expiredShopDeletes(items, today) {
-    return items.filter(i => i.del && daysLeft(i.del, today) < -1);
+  // A deleted shopping item stays for 1 hour (del is a ms timestamp), then goes for good.
+  // Old data (del is a YYYY-MM-DD string) counts as gone straight away.
+  const SHOP_DEL_MS = 3600 * 1000;
+  function expiredShopDeletes(items, today, now = Date.now()) {
+    return items.filter(i => {
+      if (!i.del) return false;
+      if (typeof i.del === "number") return now - i.del >= SHOP_DEL_MS;
+      return true;
+    });
+  }
+
+  // Whole minutes left before a deleted shopping item goes (at least 1); 0 for old date-style deletes
+  function shopGoneIn(item, now = Date.now()) {
+    if (typeof item.del !== "number") return 0;
+    return Math.max(1, Math.ceil((item.del + SHOP_DEL_MS - now) / 60000));
   }
 
   // Packs with this name (not deleted, not takeaway), any kind
@@ -1748,6 +1762,7 @@
     recipeShopList,
     shopOrder,
     expiredShopDeletes,
+    shopGoneIn,
     timesBought,
     boughtBefore,
     ideas,
