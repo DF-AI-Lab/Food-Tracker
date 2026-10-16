@@ -311,6 +311,7 @@ body.kb-open .addbar{bottom:var(--kb)}
 body.typing .addbar{top:var(--vvtop,0px);bottom:auto;z-index:70;border-top:0;border-bottom:1px solid var(--active);padding-top:calc(8px + env(safe-area-inset-top,0px))}
 body.kb-open .bnav,body.kb-open .verbar{display:none}
 body.typing .bnav{display:none}
+.ab-x{width:40px;height:40px;flex:none;margin-left:-8px;border-radius:12px;border:0;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .ab-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 #abName{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #abSum{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

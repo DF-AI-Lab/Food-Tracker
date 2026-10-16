@@ -90,6 +90,19 @@ function startStatic() {
     await until(async () => assert.equal(await navShown(), true));
   });
 
+  await step("✕ on the left of the Add bar cancels: clears the food, closes the bar, adds nothing", async () => {
+    await page.locator("#name").tap();
+    await page.locator("#name").fill("Cancel me");
+    await until(async () => assert.ok(await page.locator("#barCancel").isVisible()));
+    const [x, txt] = [await page.locator("#barCancel").boundingBox(), await page.locator("#abName").boundingBox()];
+    assert.ok(x.x < txt.x, "✕ is on the left");
+    await page.locator("#barCancel").tap();
+    await until(async () => assert.equal(await page.locator("#addBar").isVisible(), false));
+    assert.equal(await page.locator("#name").inputValue(), "");
+    assert.doesNotMatch(await page.locator("#addMsg").innerText(), /Cancel me/);
+    await until(async () => assert.equal(await navShown(), true));
+  });
+
   await step("ticking a box does not hide the bottom icons", async () => {
     await page.click('[data-tab="shop"]');
     await page.click('[data-tab="fridge"]');
