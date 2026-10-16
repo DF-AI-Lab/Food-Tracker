@@ -117,3 +117,9 @@ test("prompt keeps the cut over a short app name, and veg type only when the pac
   assert.match(p, /"Pork chipolatas", not "Sausages"/);
   assert.match(p, /only when the packet/i);
 });
+
+test("V4 answer key accepts Cheese snacks (p16) and Tropical fruit juice drink (p41)", () => {
+  const v4 = JSON.parse(fs.readFileSync(path.join(dir, "expected-v4.json"), "utf8"));
+  assert.equal(scoreOne(v4["p16.jpg"], { name: "Cheese snacks" }).name, true);
+  assert.equal(scoreOne(v4["p41.jpg"], { name: "Tropical fruit juice drink" }).name, true);
+});
