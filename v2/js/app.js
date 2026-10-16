@@ -936,21 +936,30 @@
     quickFillItems[index] = item;
     const rowEl = buildQuickFillRow(item, index, !!old.querySelector('.qf-new'));
     quickFillBoxes[index].checked = item.ok && (wasTicked || !wasOk);
+    if (old.nextElementSibling && old.nextElementSibling.classList.contains('qf-datein')) old.nextElementSibling.remove();
     old.replaceWith(rowEl);
     quickFillRowEls[index] = rowEl;
   }
 
-  // Tap a date (or Add date): a date box opens in the row
+  // Tap a date (or Add date): a date box opens just under the row. It sits beside the row, not
+  // inside it, because the row is a <label> and the label swallows taps on the native calendar.
   function openQfDate(index, rowEl) {
-    if (rowEl.querySelector('.qf-datein')) return;
+    const next = rowEl.nextElementSibling;
+    if (next && next.classList.contains('qf-datein')) return;
     const input = document.createElement('input');
     input.type = 'date';
     input.className = 'qf-datein';
     input.value = (quickFillItems[index] && quickFillItems[index].date) || '';
-    input.addEventListener('change', () => {
-      if (input.value) setQfDate(index, input.value);
-    });
-    rowEl.appendChild(input);
+    let done = false;
+    const commit = () => {
+      if (done || !input.value) return;
+      done = true;
+      setQfDate(index, input.value);
+    };
+    input.addEventListener('change', commit);
+    input.addEventListener('input', commit);
+    input.addEventListener('click', e => e.stopPropagation());
+    rowEl.after(input);
     try { input.showPicker(); } catch (e) { input.focus(); }
   }
 
@@ -1233,6 +1242,28 @@
     document.body.classList.toggle('kb-open', open);
     document.documentElement.style.setProperty('--kb', open ? kb + 'px' : '0px');
   }
+
+  // Typing on a phone: hide the bottom icons while a text box has focus, so they do not sit over
+  // the keyboard. Checkboxes, date inputs and buttons do not count.
+  const TYPING_TYPES = ['text', 'search', 'email', 'number', 'tel', 'url', 'password'];
+  function isTextTarget(el) {
+    if (!el) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName !== 'INPUT') return false;
+    const type = (el.getAttribute('type') || 'text').toLowerCase();
+    return TYPING_TYPES.includes(type);
+  }
+  function refreshTyping() {
+    const typing = isTextTarget(document.activeElement) && window.matchMedia('(pointer: coarse)').matches;
+    document.body.classList.toggle('typing', typing);
+  }
+  document.addEventListener('focusin', e => {
+    if (isTextTarget(e.target) && window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('typing');
+  });
+  document.addEventListener('focusout', () => {
+    // Short wait, then re-check: moving from one text box to another does not flash the icons back
+    setTimeout(refreshTyping, 150);
+  });
 
   function setupAddBar() {
     ['name', 'ddmm', 'days'].forEach(id => document.getElementById(id).addEventListener('input', renderAddBar));
@@ -3693,7 +3724,7 @@
     if (gone) {
       const tag = document.createElement('span');
       tag.className = 'gonetag';
-      tag.textContent = FT.daysLeft(item.del, today) === 0 ? 'gone tomorrow' : 'gone today';
+      tag.textContent = 'gone in ' + FT.shopGoneIn(item) + ' min';
       row.appendChild(tag);
     }
     if (gone || item.got) {
@@ -3714,7 +3745,7 @@
       del.innerHTML = ICON('trash', 17);
       del.setAttribute('aria-label', 'Delete ' + item.name + ' (not counted as bought)');
       del.addEventListener('click', async () => {
-        item.del = today;
+        item.del = Date.now();
         await saveShop(item);
         renderShop();
       });
@@ -3746,6 +3777,12 @@
   }
 
   function renderShop() {
+    // Deleted items whose hour is up go for good
+    const expiredNow = FT.expiredShopDeletes(shop, today);
+    if (expiredNow.length) {
+      shop = shop.filter(i => !expiredNow.includes(i));
+      for (const item of expiredNow) DB.shop.remove(item.id).catch(() => {});
+    }
     const listEl = document.getElementById('shopList');
     listEl.innerHTML = '';
     // Two sections: To buy, then Got (ticked, and deleted ones still showing Undo)
