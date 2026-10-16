@@ -82,3 +82,31 @@ test("name-photos: renames Drive files to p01.jpg… and skips unknown ones", ()
   assert.deepEqual(plan.moves, [["968.jpg", "p01.jpg"], ["a(0).jpg", "p02.jpg"]]);
   assert.deepEqual(plan.unknown, ["other.jpg"]);
 });
+
+test("V4 answer key accepts Gammon (p01) and Sour cream dip (p40)", () => {
+  const v4 = JSON.parse(fs.readFileSync(path.join(dir, "expected-v4.json"), "utf8"));
+  assert.equal(scoreOne(v4["p01.jpg"], { name: "Gammon" }).name, true);
+  assert.equal(scoreOne(v4["p40.jpg"], { name: "Sour cream dip" }).name, true);
+});
+
+test("prompt keeps the veg type and drops product names", () => {
+  const p = buildPrompt(["Potatoes"], 2026, "prompt-v4.txt");
+  assert.match(p, /Baking potatoes/);
+  assert.match(p, /Yoghurts/);
+  assert.match(p, /Yoghurt corner/);
+});
+
+test("score.js reads a run-api results file (results inside { settings, cost, results })", () => {
+  const os = require("node:os");
+  const { main } = require("../tools/photo-test/score.js");
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "score-"));
+  const exp = path.join(tmp, "e.json");
+  const res = path.join(tmp, "r.json");
+  fs.writeFileSync(exp, JSON.stringify({ "a.jpg": { name: "Beef mince", date: "2026-10-18" } }));
+  fs.writeFileSync(res, JSON.stringify({ settings: {}, cost: {}, results: { "a.jpg": { name: "Beef mince", date: "2026-10-18" } } }));
+  const lines = [];
+  const log = console.log;
+  console.log = (s) => lines.push(String(s));
+  try { assert.equal(main([exp, res]), 0); } finally { console.log = log; }
+  assert.match(lines[0], /right 1 .*names 1\/1/);
+});
