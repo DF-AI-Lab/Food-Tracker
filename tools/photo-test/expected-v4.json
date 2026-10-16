@@ -294,5 +294,83 @@
     "sub": "Asda free range 6 medium eggs",
     "date": "2026-10-21",
     "bb": true
+  },
+  "p36.jpg": {
+    "name": [
+      "Smoked thick cut bacon",
+      "Thick cut bacon",
+      "Smoked back bacon",
+      "Thick cut back bacon",
+      "Smoked thick cut back bacon",
+      "Smoked bacon",
+      "Back bacon"
+    ],
+    "sub": "Asda smoked 12 thick cut back bacon rashers",
+    "date": "2026-10-22"
+  },
+  "p37.jpg": {
+    "name": [
+      "Southern fried chicken tenders",
+      "Chicken tenders",
+      "Southern fried chicken"
+    ],
+    "sub": "M&S Smokin' southern fried chicken tenders",
+    "date": "2026-10-16"
+  },
+  "p38.jpg": {
+    "name": [
+      "Grated cheese",
+      "Four cheese blend",
+      "Grated four cheese blend",
+      "Grated four cheese"
+    ],
+    "sub": "Asda grated four cheese blend",
+    "date": "2026-11-14",
+    "bb": true
+  },
+  "p39.jpg": {
+    "name": [
+      "Dauphinoise potatoes",
+      "Dauphinoise"
+    ],
+    "sub": "Asda Exceptional dauphinoise potatoes",
+    "date": "2026-10-19"
+  },
+  "p40.jpg": {
+    "name": [
+      "Sour cream and chive dip",
+      "Sour cream & chive dip",
+      "Sour cream and chive",
+      "Sour cream & chive"
+    ],
+    "sub": "Asda sour cream & chive dip 200g",
+    "date": "2026-10-28"
+  },
+  "p41.jpg": {
+    "name": [
+      "Tropical juice",
+      "Tropical fruits juice drink",
+      "Tropical juice drink",
+      "Tropical fruit juice"
+    ],
+    "sub": "Asda tropical fruits juice drink 2L"
+  },
+  "p42.jpg": {
+    "name": [
+      "Apple juice"
+    ],
+    "sub": "Asda apple juice from concentrate",
+    "date": "2026-12-15",
+    "bb": true
+  },
+  "p43.jpg": {
+    "name": [
+      "Red pepper",
+      "Red peppers",
+      "Peppers",
+      "Pepper"
+    ],
+    "sub": "Loose red pepper",
+    "kind": "veg"
   }
 }

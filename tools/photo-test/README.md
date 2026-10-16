@@ -21,9 +21,13 @@ Note: ❌ wrong is the number that must be 0.
 
 ## V4 names test (shopping match)
 
-Same 35 photos, new naming rule (main food + cut, no shop/brand). Prompt: `prompt-v4.txt`. Answer key: `expected-v4.json` (a list of OK names per photo).
+43 photos (the V3 35 + 8 new), new naming rule (main food + cut, no shop/brand). Prompt: `prompt-v4.txt`. Answer key: `expected-v4.json` (a list of OK names per photo).
 
-`node tools/photo-test/run-api.js tools/photo-test/photos --prompt prompt-v4.txt --expected tools/photo-test/expected-v4.json`
+Photos live in the Drive folder **Food test photos** (df.ai.lab.hq). `pack-facts.json` holds everything printed on each one (read once by Claude), so answer keys can be rebuilt without the photos.
+
+1. Download the Drive folder into `tools/photo-test/photos`
+2. `node tools/photo-test/name-photos.js tools/photo-test/photos` (renames to p01.jpg… and lists any new photos Claude hasn't read yet)
+3. `node tools/photo-test/run-api.js tools/photo-test/photos --prompt prompt-v4.txt --expected tools/photo-test/expected-v4.json`
 
 - Look at **names** and **no brand** on the score line. 🏷 lines show names that didn't match.
 - Dates must still be ❌ 0.

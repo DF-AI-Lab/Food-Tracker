@@ -48,15 +48,37 @@ test("run-api takes --prompt", () => {
   assert.equal(parseArgs(["photos"]).prompt, "prompt.txt");
 });
 
-test("V4 answer key: same photos as V3, new names, no brands", () => {
+test("V4 answer key: V3 photos plus new ones, new names, no brands", () => {
   const v3 = JSON.parse(fs.readFileSync(path.join(dir, "expected.json"), "utf8"));
   const v4 = JSON.parse(fs.readFileSync(path.join(dir, "expected-v4.json"), "utf8"));
-  assert.deepEqual(Object.keys(v4), Object.keys(v3));
+  for (const file of Object.keys(v3)) assert.ok(v4[file], `${file} kept`);
   for (const [file, e] of Object.entries(v4)) {
     const names = [].concat(e.name);
     for (const n of names) assert.equal(scoreOne(e, { name: n }).brandFree, true, `${file}: ${n}`);
-    assert.equal(e.date, v3[file].date, `${file}: date unchanged`);
+    if (v3[file]) assert.equal(e.date, v3[file].date, `${file}: date unchanged`);
   }
   assert.deepEqual([].concat(v4["p05.jpg"].name)[0], "Whole chicken");
   assert.deepEqual([].concat(v4["p02.jpg"].name)[0], "Beef mince");
+});
+
+test("pack facts: one entry per V4 photo, with its Drive name and the same answer", () => {
+  const v4 = JSON.parse(fs.readFileSync(path.join(dir, "expected-v4.json"), "utf8"));
+  const { photos } = JSON.parse(fs.readFileSync(path.join(dir, "pack-facts.json"), "utf8"));
+  assert.deepEqual(Object.keys(photos).sort(), Object.keys(v4).sort());
+  const drives = new Set();
+  for (const [file, f] of Object.entries(photos)) {
+    assert.ok(f.drive && f.printed, `${file}: drive + printed`);
+    assert.deepEqual(f.answer, v4[file], `${file}: answer matches key`);
+    drives.add(f.drive);
+  }
+  assert.equal(drives.size, Object.keys(photos).length, "each Drive photo used once");
+});
+
+test("name-photos: renames Drive files to p01.jpg… and skips unknown ones", () => {
+  const os = require("node:os");
+  const { renamePlan } = require("../tools/photo-test/name-photos.js");
+  const facts = { photos: { "p01.jpg": { drive: "968.jpg" }, "p02.jpg": { drive: "a(0).jpg" } } };
+  const plan = renamePlan(["968.jpg", "a(0).jpg", "other.jpg"], facts);
+  assert.deepEqual(plan.moves, [["968.jpg", "p01.jpg"], ["a(0).jpg", "p02.jpg"]]);
+  assert.deepEqual(plan.unknown, ["other.jpg"]);
 });
