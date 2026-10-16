@@ -137,7 +137,7 @@ test("costUSD uses price per million tokens", () => {
 
 test("test photos and results are git-ignored", () => {
   const root = path.join(__dirname, "..");
-  for (const p of ["tools/photo-test/photos/a.jpg", "tools/photo-test/out/1000/a.jpg"]) {
+  for (const p of ["tools/photo-test/photos/a.jpg", "tools/photo-test/out/1000/a.jpg", "Food test photos/968.jpg", "Food test photos/results-api-x.json"]) {
     try {
       execFileSync("git", ["check-ignore", "-q", "--no-index", p], { cwd: root });
     } catch {
