@@ -3858,7 +3858,7 @@
     if (gone) {
       const tag = document.createElement('span');
       tag.className = 'gonetag';
-      tag.textContent = FT.daysLeft(item.del, today) === 0 ? 'gone tomorrow' : 'gone today';
+      tag.textContent = 'gone in ' + FT.shopGoneIn(item) + ' min';
       row.appendChild(tag);
     }
     if (gone || item.got) {
@@ -3879,7 +3879,7 @@
       del.innerHTML = ICON('trash', 17);
       del.setAttribute('aria-label', 'Delete ' + item.name + ' (not counted as bought)');
       del.addEventListener('click', async () => {
-        item.del = today;
+        item.del = Date.now();
         await saveShop(item);
         renderShop();
       });
@@ -3911,6 +3911,12 @@
   }
 
   function renderShop() {
+    // Deleted items whose hour is up go for good
+    const expiredNow = FT.expiredShopDeletes(shop, today);
+    if (expiredNow.length) {
+      shop = shop.filter(i => !expiredNow.includes(i));
+      for (const item of expiredNow) DB.shop.remove(item.id).catch(() => {});
+    }
     const listEl = document.getElementById('shopList');
     listEl.innerHTML = '';
     // Two sections: To buy, then Got (ticked, and deleted ones still showing Undo)
