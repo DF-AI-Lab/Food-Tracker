@@ -79,6 +79,23 @@ function startStatic() {
     assert.equal(await navShown(), true);
   });
 
+  await step("search sits on the title line, between 'Fridge' and the item count", async () => {
+    await page.click('[data-tab="fridge"]');
+    await until(async () => assert.ok(await page.locator("#fridgeSearch").isVisible()));
+    assert.equal(await page.locator(".titlerow #fridgeSearchWrap").count(), 1, "inside the title row");
+    const [t, s, c] = [await page.locator("#pageTitle").boundingBox(), await page.locator("#fridgeSearchWrap").boundingBox(), await page.locator("#pageCount").boundingBox()];
+    assert.ok(t.x + t.width <= s.x + 1 && s.x + s.width <= c.x + 1, "title | search | count, left to right");
+    assert.ok(Math.abs((t.y + t.height / 2) - (s.y + s.height / 2)) < 30, "same line");
+    assert.match(await page.locator("#fridgeSearch").getAttribute("placeholder"), /^Search$/);
+    await page.locator("#fridgeSearch").fill("chick");
+    await until(async () => assert.ok(await page.locator("#searchResults").isVisible()));
+    await page.locator("#fridgeSearch").fill("");
+    await page.setViewportSize({ width: 320, height: 700 });
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(over <= 0, `no sideways scroll at 320px (${over}px)`);
+    await page.setViewportSize({ width: 390, height: 844 });
+  });
+
   await step("no page errors", async () => {
     assert.deepEqual(errors, []);
   });
