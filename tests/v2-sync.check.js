@@ -4,6 +4,7 @@
 //   npm run check:sync
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
+const { allowRest } = require("./allowed-list");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -34,6 +35,8 @@ function startStatic() {
 (async () => {
   await fetch("http://127.0.0.1:8085/emulator/v1/projects/demo-food-tracker/databases/(default)/documents", { method: "DELETE" });
   await fetch("http://127.0.0.1:9099/emulator/v1/projects/demo-food-tracker/accounts", { method: "DELETE" });
+  // The family list: these test people may use the app (zoe is not on it)
+  await allowRest(["alice", "bob"]);
 
   const server = await startStatic();
   const browser = await chromium.launch();

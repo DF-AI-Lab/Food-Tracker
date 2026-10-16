@@ -10,7 +10,8 @@ const F = require("firebase/firestore");
 
 let env, makeCloudDB;
 const H = "home1";
-const as = uid => env.authenticatedContext(uid).firestore();
+const { asUser, allow } = require("./allowed-list");
+const as = uid => asUser(env, uid);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 // Retry an assertion for up to 5s (the other phone sees changes a moment later)
 async function until(fn) {
@@ -35,6 +36,7 @@ test.beforeEach(async () => {
     await F.setDoc(F.doc(ctx.firestore(), "households", H),
       { name: "Home", members: ["alice", "bob"], names: { alice: "Alice", bob: "Bob" } });
   });
+  await allow(env, ["alice", "bob", "eve"]);
 });
 
 async function openAs(uid) {
