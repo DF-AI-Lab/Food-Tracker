@@ -247,7 +247,7 @@
       el.classList.add('stale');
       return;
     }
-    el.textContent = [(v.prefix || 'v') + (v.label || v.n), shortDate(v.date)].filter(Boolean).join(' · ');
+    el.textContent = (v.prefix || 'v') + (v.label || v.n);
   }
 
   function applyTheme(theme) {
@@ -1336,6 +1336,11 @@
   document.addEventListener('focusin', e => {
     if (isTextTarget(e.target) && window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('typing');
     syncStepTop();
+    // Phone add steps: keep the steps at the very top when the keyboard opens
+    if (STEPS_ON && onFridgeAdd() && isTextTarget(e.target)) {
+      window.scrollTo(0, 0);
+      setTimeout(() => window.scrollTo(0, 0), 250);
+    }
   });
   document.addEventListener('focusout', () => {
     // Short wait, then re-check: moving from one text box to another does not flash the icons back

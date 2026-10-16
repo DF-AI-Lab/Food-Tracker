@@ -64,6 +64,11 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible,summary:focus
 .sync{font-size:12px;color:var(--dim);white-space:nowrap}
 .sync:not(:empty)::before{content:"·";margin:0 5px}
 .sync:empty{display:none}
+/* Version sits next to the date in the header; "Synced" is not shown, only Offline / waiting (Darren 2026-10-16) */
+.homesub .ver{font:inherit;color:inherit;text-align:left}
+.homesub .ver:not(:empty)::before{content:"·";margin:0 5px}
+.homesub .ver.stale{color:var(--warn);white-space:normal}
+.sync[data-state="ok"]{display:none}
 .sync[data-state="wait"]{color:var(--warn)}
 .sync[data-state="off"]{color:var(--danger)}
 .pal{display:flex;align-items:center;height:var(--tap);background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex:none}
@@ -772,3 +777,6 @@ details.added[open] .chev{transform:rotate(180deg)}
 
 /* type=search: hide the browser's own clear cross, we have our own ✕ */
 #fridgeSearch::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
+/* Phone add steps: step bar pinned at the top; quick-pick chips hide while typing your own food */
+.pane.af.stepped .addsteps{position:sticky;top:var(--vvtop,0px);z-index:30;background:var(--bg)}
+body.typing .pane.af.stepped #usuals{display:none}

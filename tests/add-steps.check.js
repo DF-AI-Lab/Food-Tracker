@@ -72,6 +72,16 @@ function startStatic() {
     assert.ok(box.y < 200, `steps near the top (${box.y}px)`);
   });
 
+  await step("typing: quick-pick chips hide, page at the very top, step bar pinned", async () => {
+    // a quick-pick chip, as if foods had been added before
+    await page.evaluate(() => { const b = document.createElement("button"); b.className = "chip"; b.textContent = "Bacon"; document.getElementById("usuals").appendChild(b); });
+    await page.locator("#name").blur();
+    await page.locator("#name").tap();
+    await until(async () => assert.equal(await page.locator("#usuals").isVisible(), false));
+    assert.equal(await page.evaluate(() => window.scrollY), 0);
+    assert.ok((await page.locator("#addSteps").boundingBox()).y < 60);
+  });
+
   await step("Next sits at the end of the name row (above the keyboard)", async () => {
     assert.ok(Math.abs(await midY("#stepNext") - await midY("#name")) < 8, "same row as the name");
     assert.ok((await page.locator("#stepNext").boundingBox()).y < 300, "near the top");
