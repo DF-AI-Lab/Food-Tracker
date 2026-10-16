@@ -1225,10 +1225,29 @@
   function onFridgeAdd() {
     return currentPage() === 'add' && document.querySelector('[data-sub].on')?.dataset.sub === 'fridge';
   }
-  // The header (and its title row and sub tabs) goes while a food is being typed in, so the steps sit at the top
+  // On a phone's steps the header and title row go, so the steps sit at the top. The Quick fill / One item tabs
+  // stay only on step 1 while the name is empty and nothing is being typed.
   function syncStepTop() {
-    const on = STEPS_ON && document.body.classList.contains('typing') && onFridgeAdd();
-    document.body.classList.toggle('add-steps-top', !!on);
+    const stepped = STEPS_ON && onFridgeAdd();
+    const typed = document.getElementById('name').value.trim();
+    const tabs = stepped && addStep === 1 && !typed && !document.body.classList.contains('typing');
+    document.body.classList.toggle('add-steps-top', stepped);
+    document.body.classList.toggle('add-steps-tabs', !!tabs);
+  }
+  // Moves the Next button into the row of the field it continues, and the "No date" pill into the date header
+  function placeStepParts(pane, addSteps) {
+    const next = document.getElementById('stepNext');
+    const noDate = document.getElementById('noDate').closest('label');
+    const quick = document.getElementById('quick');
+    if (!addSteps) {
+      pane.insertBefore(next, pane.querySelector('.st-3'));
+      if (quick && noDate && noDate.parentNode !== quick) quick.prepend(noDate);
+      return;
+    }
+    if (addStep === 1) pane.querySelector('.st-1 .sform').appendChild(next);
+    else if (addStep === 2) pane.querySelector('.st-2 .sform.date-line').appendChild(next);
+    else pane.insertBefore(next, pane.querySelector('.st-3'));
+    pane.querySelector('.st-2 .rowhead').appendChild(noDate);
   }
   function renderSteps() {
     const bar = document.getElementById('addSteps');
@@ -1241,6 +1260,7 @@
       bar.hidden = true;
       next.hidden = true;
       pane.classList.remove('stepped', 'step-1', 'step-2', 'step-3');
+      if (STEPS_ON) placeStepParts(pane, false);
       syncStepTop();
       return;
     }
@@ -1254,9 +1274,20 @@
     document.getElementById('stepBack').hidden = addStep <= 1;
     document.getElementById('stepName').textContent = addStep > 1 ? typed : '';
     next.hidden = addStep === 3;
-    next.textContent = addStep === 1 ? 'Next: Date →' : 'Next: Add →';
+    next.textContent = 'Next →';
     next.disabled = addStep === 1 && !typed;
+    placeStepParts(pane, true);
     syncStepTop();
+  }
+
+  // Next: the step button, and the keyboard's Next / Enter key on the typing boxes
+  function nextStep() {
+    if (addStep === 1 && !document.getElementById('name').value.trim()) return;
+    addStep = Math.min(3, addStep + 1);
+    renderSteps();
+    renderAddBar();
+    if (addStep === 2) document.getElementById('ddmm').focus();
+    if (addStep === 3 && document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
   function renderAddBar() {
@@ -1315,13 +1346,8 @@
   });
 
   function setupAddBar() {
-    document.getElementById('stepNext').addEventListener('click', () => {
-      addStep = Math.min(3, addStep + 1);
-      renderSteps();
-      renderAddBar();
-      if (addStep === 2) document.getElementById('ddmm').focus();
-      if (addStep === 3 && document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    });
+    document.getElementById('stepNext').addEventListener('click', nextStep);
+    if (STEPS_ON) ['name', 'ddmm', 'days'].forEach(id => { document.getElementById(id).enterKeyHint = 'next'; });
     document.getElementById('stepBack').addEventListener('click', () => {
       addStep = Math.max(1, addStep - 1);
       renderSteps();
@@ -1342,6 +1368,11 @@
     });
     // Enter on the keyboard does the same as Add
     ['name', 'ddmm', 'days'].forEach(id => document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter' && STEPS_ON && onFridgeAdd() && addStep < 3) {
+        e.preventDefault();
+        nextStep();
+        return;
+      }
       if (e.key === 'Enter' && document.getElementById('name').value.trim()) {
         e.preventDefault();
         addPacks();

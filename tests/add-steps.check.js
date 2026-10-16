@@ -48,8 +48,13 @@ function startStatic() {
   await page.click('[data-tab="add"]');
   await page.click('[data-sub="fridge"]');
 
+  const midY = async sel => { const b = await page.locator(sel).boundingBox(); return b.y + b.height / 2; };
+
   await step("phone, step 1 (Food): name + what it is; date and packs hidden; Next waits for a name", async () => {
     await until(async () => assert.ok(await shown("#addSteps")));
+    assert.ok(await shown("#subTabs"), "Quick fill / One item still reachable before starting");
+    assert.equal(await shown("#top"), false, "header hidden on the steps");
+    assert.equal(await page.locator(".st-1 .lbl").first().isVisible(), false, "no 'What is it?' label");
     await onStep(1);
     assert.ok(await shown("#name"));
     assert.ok(await shown('[data-kind="main"]'));
@@ -67,14 +72,22 @@ function startStatic() {
     assert.ok(box.y < 200, `steps near the top (${box.y}px)`);
   });
 
-  await step("Next -> step 2 (Date): date boxes only, the name shows in the step bar", async () => {
+  await step("Next sits at the end of the name row (above the keyboard)", async () => {
+    assert.ok(Math.abs(await midY("#stepNext") - await midY("#name")) < 8, "same row as the name");
+    assert.ok((await page.locator("#stepNext").boundingBox()).y < 300, "near the top");
+  });
+
+  await step("the keyboard's Enter/Next key moves on (step 1 -> 2)", async () => {
     await page.locator('[data-kind="side"]').tap();
-    await page.locator("#stepNext").tap();
+    await page.locator("#name").press("Enter");
     await until(async () => onStep(2));
     assert.ok(await shown("#ddmm"));
     assert.ok(await shown("#days"));
     assert.equal(await shown("#name"), false);
     assert.match(await page.locator("#addSteps").innerText(), /Chicken thighs/);
+    assert.equal(await page.locator(".st-2 .lbl").first().isVisible(), false, "no 'Date' label");
+    assert.ok(Math.abs(await midY("#stepNext") - await midY("#ddmm")) < 8, "Next on the date row");
+    assert.ok(Math.abs(await midY("label.noDate") - await midY('[data-dt="use_by"]')) < 8, "No date next to Use by");
   });
 
   await step("Next -> step 3 (Add): packs, freezer, and the Add bar", async () => {
@@ -85,6 +98,11 @@ function startStatic() {
     assert.ok(await shown("#addBtn"));
     assert.equal(await shown("#ddmm"), false);
     assert.match(await page.locator("#abSum").innerText(), /20 Oct/);
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.waitForTimeout(300);
+    assert.equal(await shown("#top"), false, "header still hidden on step 3 (keyboard closed)");
+    assert.equal(await shown(".titlerow"), false);
+    assert.ok((await page.locator("#addSteps").boundingBox()).y < 80, "steps fixed at the top");
   });
 
   await step("Back goes one step back, and forward again", async () => {
@@ -111,6 +129,18 @@ function startStatic() {
     await until(async () => onStep(1));
     assert.equal(await page.locator("#name").inputValue(), "");
     assert.doesNotMatch(await page.locator("#addMsg").innerText(), /Cancel me/);
+  });
+
+  await step("✕ cancels from step 3 too, and Quick fill / One item come back", async () => {
+    await page.locator("#name").fill("Pie");
+    await page.locator("#stepNext").tap();
+    await page.locator("#stepNext").tap();
+    await until(async () => onStep(3));
+    await page.locator("#stepCancel").tap();
+    await until(async () => onStep(1));
+    assert.equal(await page.locator("#name").inputValue(), "");
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await until(async () => assert.ok(await shown("#subTabs")));
   });
 
   await step("320px: no sideways scroll", async () => {

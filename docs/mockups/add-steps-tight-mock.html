@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Add steps tight mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--on:#0A1210;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:#050807;color:var(--text);font-family:var(--font);padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;max-width:1100px;margin:0 auto}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--accent);margin-bottom:8px}
+.phone{height:560px;border:1px solid var(--border);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.panel{padding:8px 12px 10px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.bar{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-height:32px}
+.ic{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:17px}
+.bar b{font-weight:600;white-space:nowrap}.bar b.on{color:var(--accent)}
+.nm{margin-left:auto;font-weight:700;color:var(--text)}
+.kinds{display:flex;gap:6px;overflow-x:auto}
+.k{flex:none;border:1px solid var(--border);border-radius:9px;padding:6px 10px;font-size:13px;color:var(--muted)}
+.k.on{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:700}
+.row{display:flex;gap:6px;align-items:center}
+.in{flex:1;min-width:0;border:1px solid var(--accent);border-radius:11px;padding:10px 12px;font-size:16px;background:var(--surface-2)}
+.in.ph{color:var(--dim);border-color:var(--border)}
+.in.sm{flex:0 0 70px}
+.sq{width:44px;height:44px;flex:none;border:1px solid var(--border);border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.next{flex:none;height:44px;padding:0 14px;border-radius:11px;background:var(--accent);color:var(--on);font-weight:700;font-size:15px;display:flex;align-items:center}
+.or{color:var(--muted);font-size:13px}
+.prev{font-size:13px;color:var(--muted)}
+.card{border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;font-size:15px}
+.page{flex:1}
+.kb{height:46%;background:#1C1F1E;display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:8px}
+.kb span{background:#2E3331;border-radius:5px}
+.addbar{display:flex;align-items:center;gap:8px;border-top:1px solid #2E4A3F;background:var(--surface);padding:8px 10px}
+.addbar .t{flex:1;font-size:13px}.addbar .t b{display:block;font-size:15px}
+.add{height:42px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--on);font-weight:700;display:flex;align-items:center}
+.cap{font-size:13px;color:var(--dim);line-height:1.5;margin-top:8px}
+</style></head><body><div class="grid">
+
+<div><div class="lbl">STEP 1 · FOOD</div>
+<div class="phone">
+ <div class="panel">
+  <div class="bar"><span class="ic">✕</span><b class="on">1 Food</b>·<b>2 Date</b>·<b>3 Add</b></div>
+  <div class="kinds"><span class="k on">Main</span><span class="k">Side</span><span class="k">Veg</span><span class="k">Other</span><span class="k">Cupboard</span></div>
+  <div class="row"><div class="in">Test|</div><span class="sq">🎤</span><span class="next">Next →</span></div>
+ </div>
+ <div class="page"></div>
+ <div class="kb"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+<div class="cap">No header, no "What is it?" label. Next sits at the end of the name row, above the keyboard.</div></div>
+
+<div><div class="lbl">STEP 2 · DATE</div>
+<div class="phone">
+ <div class="panel">
+  <div class="bar"><span class="ic">✕</span><span class="ic">‹</span><b>1 Food</b>·<b class="on">2 Date</b>·<b>3 Add</b><span class="nm">Test</span></div>
+  <div class="kinds"><span class="k on">Use by</span><span class="k">Best before</span><span class="k">No date</span></div>
+  <div class="row"><div class="in">1810|</div><span class="or">or</span><div class="in sm ph">Days</div><span class="next">Next →</span></div>
+  <div class="prev">● Sun 18 Oct · 2 days left</div>
+ </div>
+ <div class="page"></div>
+ <div class="kb"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+<div class="cap">No "Date" label. No date is a pill next to Use by / Best before. The keyboard's own Next key does the same.</div></div>
+
+<div><div class="lbl">STEP 3 · ADD</div>
+<div class="phone">
+ <div class="panel">
+  <div class="bar"><span class="ic">✕</span><span class="ic">‹</span><b>1 Food</b>·<b>2 Date</b>·<b class="on">3 Add</b><span class="nm">Test</span></div>
+  <div class="card"><span>Packs</span><span>− &nbsp;1&nbsp; +</span></div>
+  <div class="card"><span>Straight to freezer</span><span>○</span></div>
+ </div>
+ <div class="page"></div>
+ <div class="addbar"><div class="t"><b>Test</b>Sun 18 Oct · 1 pack · Fridge</div><span class="add">✓ Add</span></div>
+</div>
+<div class="cap">Header and "Add food" title stay hidden on all 3 steps, so it all sits at the top.</div></div>
+
+</div></body></html>
