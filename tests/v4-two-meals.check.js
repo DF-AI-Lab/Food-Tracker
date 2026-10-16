@@ -45,6 +45,13 @@ function startStatic() {
   const sit = (card, meal) => card.locator(`.sit[data-meal="${meal}"]`);
   const past = meal => page.locator(`#dayList .day.past[data-meal="${meal}"]`);
   const pick = name => page.locator("#pickList .item", { hasText: name }).first().click();
+  // Change the clock hour without a reload (test mode keeps its data in memory only),
+  // then redraw the Meals page by switching tabs
+  const setHour = async (today, hour) => {
+    await page.evaluate(u => history.replaceState(null, "", u), url(today, hour));
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-tab="meals"]');
+  };
   const openAsk = async card => {
     if (await card.locator(".had-yes").isVisible()) return;
     await card.locator(".dh").click();
@@ -104,8 +111,7 @@ function startStatic() {
   });
 
   await step("2pm: dinner asked on its own card; tea still planned on today's card", async () => {
-    await page.goto(url("2026-10-20", 15));
-    await page.click('[data-tab="meals"]');
+    await setHour("2026-10-20", 15);
     await until(async () => assert.equal(await past("dinner").count(), 1));
     assert.equal(await past("tea").count(), 0);
     const d = await past("dinner").innerText();
@@ -126,8 +132,7 @@ function startStatic() {
   });
 
   await step("5pm: tea asked; nothing else on today", async () => {
-    await page.goto(url("2026-10-20", 18));
-    await page.click('[data-tab="meals"]');
+    await setHour("2026-10-20", 18);
     await until(async () => assert.equal(await past("tea").count(), 1));
     assert.equal(await past("dinner").count(), 0);
     assert.match(await past("tea").innerText(), /Chicken/);
@@ -152,8 +157,7 @@ function startStatic() {
     await until(async () => assert.match(await sit(todayCard(), "dinner").innerText(), /Takeaway/));
     assert.doesNotMatch(await sit(todayCard(), "tea").innerText(), /Takeaway/);
 
-    await page.goto(url("2026-10-21", 15));
-    await page.click('[data-tab="meals"]');
+    await setHour("2026-10-21", 15);
     await until(async () => assert.equal(await past("dinner").count(), 1));
     await openAsk(past("dinner"));
     await past("dinner").locator(".had-yes").click();

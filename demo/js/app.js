@@ -14,11 +14,14 @@
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
   let feedback = [];      // ideas & feedback (Settings), saved in DB.feedback
-  let askDay = null;      // past day in "What did you have?" (or cost) mode
-  let addingDay = null;  // an asking day whose picker is open (+ Add); tonight after 5pm too
-  let askOpen = null;    // the asking day whose card is open (tap its top to open or close)
-  const pastState = {};   // past day -> 'ask' | 'use' | 'cost' | 'had'
-  const hadPicked = {};   // past day -> foods picked in "had" mode
+  // A "sitting" is a day's meal: its key is the day (tea) or day|dinner (FT.sitKey)
+  let askDay = null;      // sitting in "What did you have?" (or cost) mode
+  let addingDay = null;  // an asking sitting whose picker is open (+ Add); tonight after 5pm too
+  let askOpen = null;    // the asking sitting whose card is open (tap its top to open or close)
+  const pastState = {};   // sitting -> 'ask' | 'use' | 'cost' | 'had'
+  const hadPicked = {};   // sitting -> foods picked in "had" mode
+  let dinnerOpen = null;  // a day where "+ Dinner" was tapped, before anything is planned for it
+  let selMeal = 'tea';    // which meal the picker adds to: 'dinner' | 'tea'
   let cleaning = false;   // guards dropExpiredPlans against re-entry
   // Shopping list state
   let shop = [];          // shopping items, saved in DB.shop
@@ -395,6 +398,7 @@
       selDay = days[(days.indexOf(selDay) + 1) % 7];
       openDay = selDay;
       selSlot = defaultSlot();
+      selMeal = 'tea';
       pendingPlan = null;
       renderMeals();
     });
@@ -2040,11 +2044,21 @@
     }
   }
 
-  // "Had this meal?" is asked for past days with a plan still waiting, plus askDay while it is open
+  // Sitting keys to ask about: past sittings and today's once due, dinner before tea, plus askDay
   function pastDays() {
-    const days = new Set(FT.pastToAsk(packs, today, getHour()));
-    if (askDay) days.add(askDay);
-    return [...days].sort();
+    const keys = new Set(FT.mealsToAsk(packs, today, getHour()).map(s => FT.sitKey(s.day, s.mealTime)));
+    if (askDay) keys.add(askDay);
+    return [...keys].sort((a, b) => {
+      const x = FT.sitOf(a);
+      const y = FT.sitOf(b);
+      if (x.day !== y.day) return x.day < y.day ? -1 : 1;
+      return x.mealTime === y.mealTime ? 0 : x.mealTime === 'dinner' ? -1 : 1;
+    });
+  }
+
+  // A day's dinner row shows when it has a dinner (or "+ Dinner" was tapped), unless it is being asked
+  function dinnerShown(day, asked = pastDays()) {
+    return (FT.hasDinner(packs, mealPlans, day) || dinnerOpen === day) && !asked.includes(FT.sitKey(day, 'dinner'));
   }
 
   function inHad() {
@@ -2054,13 +2068,14 @@
   // Close a "What did you have?" question early (another day was tapped): keep what was picked
   function finishHad() {
     if (!askDay) return;
-    const day = askDay;
-    const takeaway = pastState[day] === 'cost';
-    const picked = hadPicked[day] || [];
-    if (takeaway || picked.length) persistAll([saveMeal(FT.mealRecord(day, picked, { takeaway }))]);
+    const key = askDay;
+    const { day, mealTime } = FT.sitOf(key);
+    const takeaway = pastState[key] === 'cost';
+    const picked = hadPicked[key] || [];
+    if (takeaway || picked.length) persistAll([saveMeal(FT.mealRecord(day, picked, { takeaway, mealTime }))]);
     askDay = null;
-    delete pastState[day];
-    delete hadPicked[day];
+    delete pastState[key];
+    delete hadPicked[key];
   }
 
   // Tap a day header: open that day (closing any other), or close it if already open
@@ -2074,6 +2089,7 @@
       openDay = day;
       selDay = day;
       selSlot = defaultSlot();
+      selMeal = dinnerOpen === day ? selMeal : 'tea';
       pendingPlan = null;
     }
     renderMeals();
@@ -2082,6 +2098,8 @@
   function renderMeals() {
     dropExpiredPlans();
     dropExpiredMealPlans();
+    // "+ Dinner" lasts only while its day stays open
+    if (dinnerOpen !== null && dinnerOpen !== openDay) dinnerOpen = null;
     const pane = document.querySelector('[data-tab-pane="meals"]');
     const picker = document.getElementById('picker');
     const dayListEl = document.getElementById('dayList');
@@ -2091,7 +2109,7 @@
     dayListEl.innerHTML = '';
 
     const asked = pastDays();
-    asked.forEach(day => dayListEl.appendChild(pastCard(day, picker)));
+    asked.forEach(key => dayListEl.appendChild(pastCard(key, picker)));
     FT.mealDays(today).filter(day => !asked.includes(day)).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
     document.getElementById('nextDay').hidden = inHad() || (addingDay && asked.includes(addingDay));
@@ -2099,7 +2117,8 @@
     nextSlot.hidden = selSlot === 'misc';
     nextSlot.textContent = NEXT_LABEL[selSlot] || 'Next: Sides';
     document.querySelectorAll('#mtabs .sb').forEach(t => t.classList.toggle('on', t.dataset.s === selSlot));
-    document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay);
+    const withMeal = dinnerShown(selDay, asked) ? (selMeal === 'dinner' ? ' · Dinner' : ' · Tea') : '';
+    document.getElementById('pickFor').textContent = 'Adding to ' + FT.formatDate(selDay) + withMeal;
     renderWarnBar();
     renderPickList();
     renderMyMeals();
@@ -2138,9 +2157,9 @@
     return writes;
   }
 
-  // A day finished: its meal plans come off
-  function dropPlansOn(day) {
-    return mealPlans.filter(pl => pl.day === day).flatMap(dropPlan);
+  // A sitting finished: its meal plans come off (the other meal of the day stays)
+  function dropPlansOn(day, mealTime) {
+    return mealPlans.filter(pl => pl.day === day && FT.mealTimeOf(pl) === mealTime).flatMap(dropPlan);
   }
 
   // Meal plans more than 3 days old drop off, with their foods
@@ -2188,6 +2207,7 @@
   // are offered for the shopping list.
   async function planMealFor(day, meal) {
     const plan = { day, mealId: meal.id, skip: [] };
+    if (selMeal === 'dinner') plan.mealTime = 'dinner';
     try {
       plan.id = await DB.mealPlans.add(plan);
     } catch (e) {
@@ -2196,8 +2216,8 @@
     }
     mealPlans.push(plan);
     // Planning tonight after 5pm keeps today's picker open, as with a single food
-    if (day === today) addingDay = today;
-    await persistAll(FT.planMeal(meal, packs, day, plan.id).map(p => setPack(p)));
+    if (day === today) addingDay = FT.sitKey(day, selMeal);
+    await persistAll(FT.planMeal(meal, packs, day, plan.id, [], selMeal).map(p => setPack(p)));
     renderMeals();
     renderAll();
     const view = FT.mealPlanView(plan, meal, packs);
@@ -2206,7 +2226,8 @@
 
   // "What did you have?": the meal's foods are eaten now, marked used as picking each one would
   function hadMeal(meal) {
-    return Promise.all(FT.planMeal(meal, packs, askDay, null).map(p => hadPick(p)));
+    const { day, mealTime } = FT.sitOf(askDay);
+    return Promise.all(FT.planMeal(meal, packs, day, null, [], mealTime).map(p => hadPick(p)));
   }
 
   // The shopping offer after a meal is planned: missing foods ticked, then the cupboard items
@@ -2510,21 +2531,25 @@
 
   // Single planned foods on a day (not takeaways), when the day has no meal: the names that
   // "Save as meal" starts from. Null when there are none or a meal is planned.
-  function saveMealNames(day) {
-    const groups = FT.dayGroups(packs, mealPlans, recipes, day);
+  function saveMealNames(day, mealTime) {
+    const groups = FT.dayGroups(packs, mealPlans, recipes, day, mealTime);
     if (groups.some(g => g.type === 'meal')) return null;
     const names = groups.filter(g => g.type === 'pack' && g.pack.kind !== 'takeaway').map(g => g.pack.name);
     return names.length ? names : null;
   }
 
-  // "Save as meal" on a day: a new meal starting with that day's foods
-  function openMealFromDay(day) {
-    openMealForm(null, saveMealNames(day) || []);
+  // "Save as meal" on a day: a new meal starting with that meal's foods
+  function openMealFromDay(day, mealTime) {
+    openMealForm(null, saveMealNames(day, mealTime) || []);
   }
 
+  // Upcoming day card. Tea only: the chips in the head, as before. With a dinner: a DINNER row and
+  // a TEA row under the head, each with its chips.
   function dayCard(day, picker) {
     const isToday = day === today;
     const isOpen = day === openDay && !inHad();
+    const asked = pastDays();
+    const showDinner = dinnerShown(day, asked);
     const card = document.createElement('div');
     card.className = 'day' + (isOpen ? ' open' : '') + (isToday ? ' today' : '');
 
@@ -2541,20 +2566,42 @@
       head.appendChild(tl);
     }
 
-    const mealBlocks = appendDayChips(head, day);
+    const blocks = [];
+    if (showDinner) {
+      for (const meal of ['dinner', 'tea']) {
+        const row = document.createElement('div');
+        row.className = 'sit' + (isOpen && selMeal === meal ? ' sel' : '');
+        row.dataset.meal = meal;
+        const lbl = document.createElement('button');
+        lbl.type = 'button';
+        lbl.className = 'sit-lbl';
+        lbl.textContent = meal === 'dinner' ? 'DINNER' : 'TEA';
+        lbl.addEventListener('click', e => {
+          e.stopPropagation();
+          finishHad();
+          addingDay = null;
+          askOpen = null;
+          pendingPlan = null;
+          if (openDay !== day) {
+            openDay = day;
+            selSlot = defaultSlot();
+          }
+          selDay = day;
+          selMeal = meal;
+          renderMeals();
+        });
+        row.appendChild(lbl);
+        const rowBlocks = mealChips(row, day, meal, false);
+        blocks.push(row, ...rowBlocks);
+      }
+    } else {
+      blocks.push(...mealChips(head, day, 'tea', false));
+    }
     if (FT.dayGroups(packs, mealPlans, recipes, day).length === 0) {
       const hint = document.createElement('span');
       hint.className = 'hint';
       hint.innerHTML = ICON('add', 14, 2.2) + 'Plan';
       head.appendChild(hint);
-    }
-    if (saveMealNames(day)) {
-      const meal = document.createElement('button');
-      meal.type = 'button';
-      meal.className = 'day-meal';
-      meal.textContent = 'Save as meal';
-      meal.addEventListener('click', e => { e.stopPropagation(); openMealFromDay(day); });
-      head.appendChild(meal);
     }
     head.addEventListener('click', () => toggleDay(day));
     head.addEventListener('keydown', e => {
@@ -2565,11 +2612,24 @@
       }
     });
     card.appendChild(head);
-    mealBlocks.forEach(b => card.appendChild(b));
+    blocks.forEach(b => card.appendChild(b));
 
     if (isOpen) {
       const body = document.createElement('div');
       body.className = 'dbody';
+      if (!showDinner && !asked.includes(FT.sitKey(day, 'dinner'))) {
+        const addDinner = document.createElement('button');
+        addDinner.type = 'button';
+        addDinner.className = 'add-dinner';
+        addDinner.textContent = '+ Dinner';
+        addDinner.addEventListener('click', e => {
+          e.stopPropagation();
+          dinnerOpen = day;
+          selMeal = 'dinner';
+          renderMeals();
+        });
+        body.appendChild(addDinner);
+      }
       body.appendChild(picker);
       picker.hidden = false;
       card.appendChild(body);
@@ -2577,18 +2637,41 @@
     return card;
   }
 
+  // The chips of one meal on a day, into el (the head or a row). Save as meal when it has only
+  // single foods. Returns the blocks of the meal plans that are open.
+  function mealChips(el, day, mealTime, noX) {
+    const blocks = appendDayChips(el, day, noX, mealTime);
+    if (saveMealNames(day, mealTime)) {
+      const meal = document.createElement('button');
+      meal.type = 'button';
+      meal.className = 'day-meal';
+      meal.textContent = 'Save as meal';
+      meal.addEventListener('click', e => { e.stopPropagation(); openMealFromDay(day, mealTime); });
+      el.appendChild(meal);
+    }
+    return blocks;
+  }
+
   // A past day with a plan still waiting: "Had this meal?" then how much was used, or the takeaway cost
-  function pastCard(day, picker) {
-    const state = pastState[day] || 'ask';
+  function pastCard(key, picker) {
+    const { day, mealTime } = FT.sitOf(key);
+    const state = pastState[key] || 'ask';
     // A closed asking card: no ✕ on its chips, just the quiet tag; tap its top to open it
-    const closed = state === 'ask' && askOpen !== day && addingDay !== day;
+    const closed = state === 'ask' && askOpen !== key && addingDay !== key;
     const card = document.createElement('div');
     card.className = 'day past';
+    card.dataset.meal = mealTime;
 
     const head = document.createElement('div');
     head.className = 'dh';
     head.appendChild(dayName(day));
-    const mealBlocks = appendDayChips(head, day, closed);
+    if (mealTime === 'dinner' || FT.hasDinner(packs, mealPlans, day)) {
+      const tag = document.createElement('span');
+      tag.className = 'sit-tag';
+      tag.textContent = mealTime === 'dinner' ? 'Dinner' : 'Tea';
+      head.appendChild(tag);
+    }
+    const mealBlocks = appendDayChips(head, day, closed, mealTime);
     card.appendChild(head);
     mealBlocks.forEach(b => card.appendChild(b));
 
@@ -2616,11 +2699,11 @@
 
     if (state === 'ask') {
       card.classList.add('asking');
-      const askText = LOOK.askText(FT.dayMeals(packs, day));
+      const askText = LOOK.askText(FT.dayMeals(packs, day, mealTime));
       head.setAttribute('role', 'button');
       head.setAttribute('aria-expanded', String(!closed));
       head.addEventListener('click', () => {
-        askOpen = closed ? day : null;
+        askOpen = closed ? key : null;
         addingDay = null;
         openDay = null; // only one card open: close any other day
         renderMeals();
@@ -2637,17 +2720,18 @@
         const text = document.createElement('span');
         text.className = 'q-sm';
         text.textContent = askText;
-        const yes = button('had-yes mini', 'Yes', () => { addingDay = null; answerYes(day); });
-        const no = button('had-no mini', 'No', () => { addingDay = null; answerNo(day); });
+        const yes = button('had-yes mini', 'Yes', () => { addingDay = null; answerYes(key); });
+        const no = button('had-no mini', 'No', () => { addingDay = null; answerNo(key); });
         row.append(text, yes, no);
 
-        const adding = addingDay === day;
+        const adding = addingDay === key;
         const extra = document.createElement('div');
         extra.className = 'askrow ans';
         const add = button('had-add mini', '', () => {
-          addingDay = adding ? null : day;
+          addingDay = adding ? null : key;
           openDay = null; // only one picker: close any other open day
           selDay = day;
+          selMeal = mealTime;
           selSlot = defaultSlot();
           pendingPlan = null;
           renderMeals();
@@ -2655,8 +2739,8 @@
         add.innerHTML = ICON(adding ? 'close' : 'add', 14, 2.2) + (adding ? 'Done' : 'Add');
         add.setAttribute('aria-expanded', String(adding));
         // A meal already planned on the day: nothing to save, so "Saved ✓"
-        const saved = FT.dayGroups(packs, mealPlans, recipes, day).some(g => g.type === 'meal');
-        const meal = button('mini day-meal', saved ? 'Saved ✓' : 'Save as meal', () => openMealFromDay(day));
+        const saved = FT.dayGroups(packs, mealPlans, recipes, day, mealTime).some(g => g.type === 'meal');
+        const meal = button('mini day-meal', saved ? 'Saved ✓' : 'Save as meal', () => openMealFromDay(day, mealTime));
         meal.disabled = saved;
         extra.append(add, meal);
         body.append(row, extra);
@@ -2667,8 +2751,8 @@
       }
     } else if (state === 'use') {
       q('How much did you use?');
-      const planned = FT.dayMeals(packs, day).filter(p => p.kind !== 'takeaway');
-      const partIds = FT.partDefaults(packs, mealPlans, recipes, day);
+      const planned = FT.dayMeals(packs, day, mealTime).filter(p => p.kind !== 'takeaway');
+      const partIds = FT.partDefaults(packs, mealPlans, recipes, day, mealTime);
       planned.forEach(pack => {
         const row = document.createElement('div');
         row.className = 'use-row';
@@ -2701,7 +2785,7 @@
           pack: planned.find(p => String(p.id) === el.dataset.id),
           part: el.querySelector('.part').classList.contains('on')
         }));
-        finishUse(day, rows);
+        finishUse(key, rows);
       }));
     } else if (state === 'cost') {
       q('How much was it?');
@@ -2713,13 +2797,13 @@
       body.appendChild(input);
       const row = btns();
       row.append(
-        button('cost-skip', 'Skip', () => finishCost(day, null)),
-        button('cost-save', 'Save', () => finishCost(day, input.value)));
+        button('cost-skip', 'Skip', () => finishCost(key, null)),
+        button('cost-save', 'Save', () => finishCost(key, input.value)));
     } else if (state === 'had') {
       q('What did you have?');
       body.appendChild(picker);
       picker.hidden = false;
-      const picked = (hadPicked[day] || []).length;
+      const picked = (hadPicked[key] || []).length;
       btns().appendChild(button('had-skip', picked ? 'Done' : 'Skip', endHad));
     }
 
@@ -2729,9 +2813,9 @@
 
   // Planned foods on a day as chips: one chip per meal plan, single foods as before. Returns the
   // blocks of foods for the open meals, to go under the card head.
-  function appendDayChips(head, day, noX) {
+  function appendDayChips(head, day, noX, mealTime) {
     const blocks = [];
-    for (const g of FT.dayGroups(packs, mealPlans, recipes, day)) {
+    for (const g of FT.dayGroups(packs, mealPlans, recipes, day, mealTime)) {
       if (g.type === 'meal') {
         head.appendChild(mealPlanChip(g, day, noX));
         if (openPlans.has(g.plan.id)) blocks.push(mealIngs(g.view, day));
@@ -2891,7 +2975,7 @@
     bar.hidden = !pendingPlan;
     if (!pendingPlan) return;
 
-    const { pack, day, slot } = pendingPlan;
+    const { pack, day, slot, mealTime } = pendingPlan;
     const n = FT.outByDay(pack, day);
     const text = document.createElement('span');
     text.textContent = `${pack.name} will be ${n} day${n > 1 ? 's' : ''} out by ${shortDay(day)}`;
@@ -2902,7 +2986,7 @@
     yes.className = 'act alt';
     yes.id = 'wYes';
     yes.textContent = 'Add anyway';
-    yes.addEventListener('click', () => planMeal(pack, day, slot));
+    yes.addEventListener('click', () => planMeal(pack, day, slot, mealTime));
     const no = document.createElement('button');
     no.className = 'act ghost';
     no.id = 'wNo';
@@ -2982,22 +3066,25 @@
   }
 
   // Past card, "Yes": a takeaway goes to the cost question, anything else to how much was used
-  function answerYes(day) {
+  function answerYes(key) {
     finishHad();
-    const hasTakeaway = FT.dayMeals(packs, day).some(p => p.kind === 'takeaway');
-    pastState[day] = hasTakeaway ? 'cost' : 'use';
+    const { day, mealTime } = FT.sitOf(key);
+    const hasTakeaway = FT.dayMeals(packs, day, mealTime).some(p => p.kind === 'takeaway');
+    pastState[key] = hasTakeaway ? 'cost' : 'use';
     renderMeals();
   }
 
-  // Past card, "No": the plans come off the day, and the picker asks what was eaten instead
-  function answerNo(day) {
+  // Past card, "No": the sitting's plans come off, and the picker asks what was eaten instead
+  function answerNo(key) {
     finishHad();
-    const writes = dropPlansOn(day);
-    writes.push(...FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p)))));
-    askDay = day;
-    pastState[day] = 'had';
-    hadPicked[day] = [];
+    const { day, mealTime } = FT.sitOf(key);
+    const writes = dropPlansOn(day, mealTime);
+    writes.push(...FT.dayMeals(packs, day, mealTime).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p)))));
+    askDay = key;
+    pastState[key] = 'had';
+    hadPicked[key] = [];
     selDay = day;
+    selMeal = mealTime;
     selSlot = defaultSlot();
     pendingPlan = null;
     renderMeals();
@@ -3006,7 +3093,8 @@
   }
 
   // Past card, "Done" on use: all used goes on the shopping list if needed, part used stays in the fridge
-  function finishUse(day, rows) {
+  function finishUse(key, rows) {
+    const { day, mealTime } = FT.sitOf(key);
     const planned = rows.map(r => r.pack).filter(Boolean);
     const writes = [];
     for (const { pack, part } of rows) {
@@ -3018,23 +3106,24 @@
         writes.push(setPack(updated), autoAddFinished(updated, 'used'));
       }
     }
-    delete pastState[day];
-    writes.push(...dropPlansOn(day));
-    writes.push(saveMeal(FT.mealRecord(day, planned)));
+    delete pastState[key];
+    writes.push(...dropPlansOn(day, mealTime));
+    writes.push(saveMeal(FT.mealRecord(day, planned, { mealTime })));
     renderMeals();
     renderAll();
     return persistAll(writes);
   }
 
-  // Takeaway cost: the takeaway goes, any other plans on the day come off, and the meal is kept
-  function finishCost(day, cost) {
-    const picked = hadPicked[day] || [];
-    const writes = dropPlansOn(day);
-    writes.push(...FT.dayMeals(packs, day).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p)))));
-    writes.push(saveMeal(FT.mealRecord(day, picked, { takeaway: true, cost })));
-    delete pastState[day];
-    delete hadPicked[day];
-    if (askDay === day) askDay = null;
+  // Takeaway cost: the takeaway goes, the sitting's other plans come off, and the meal is kept
+  function finishCost(key, cost) {
+    const { day, mealTime } = FT.sitOf(key);
+    const picked = hadPicked[key] || [];
+    const writes = dropPlansOn(day, mealTime);
+    writes.push(...FT.dayMeals(packs, day, mealTime).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p)))));
+    writes.push(saveMeal(FT.mealRecord(day, picked, { takeaway: true, cost, mealTime })));
+    delete pastState[key];
+    delete hadPicked[key];
+    if (askDay === key) askDay = null;
     renderMeals();
     renderAll();
     return persistAll(writes);
@@ -3042,10 +3131,10 @@
 
   // "Had" mode: a food picked is eaten now (marked used), and the slot moves on as in planning
   function hadPick(pack) {
-    const day = askDay;
+    const key = askDay;
     const slot = selSlot;
     const updated = FT.markUsed(pack, today);
-    hadPicked[day] = [...(hadPicked[day] || []), { ...updated, slot }];
+    hadPicked[key] = [...(hadPicked[key] || []), { ...updated, slot }];
     renderMeals();
     renderAll();
     return persistAll([setPack(updated), autoAddFinished(updated, 'used')]);
@@ -3057,6 +3146,7 @@
     selDay = today;
     openDay = today;
     selSlot = defaultSlot();
+    selMeal = 'tea';
     pendingPlan = null;
     renderMeals();
   }
@@ -3065,19 +3155,19 @@
   async function choosePick(pack) {
     if (inHad()) return hadPick(pack);
     if (FT.outByDay(pack, selDay) > 0) {
-      pendingPlan = { pack, day: selDay, slot: selSlot };
+      pendingPlan = { pack, day: selDay, slot: selSlot, mealTime: selMeal };
       renderMeals();
       return;
     }
-    await planMeal(pack, selDay, selSlot);
+    await planMeal(pack, selDay, selSlot, selMeal);
   }
 
-  async function planMeal(pack, day, slot) {
+  async function planMeal(pack, day, slot, mealTime) {
     pendingPlan = null;
     // Planning tonight after 5pm turns today's card into "Used?": keep its picker open until Done
-    if (day === today) addingDay = today;
+    if (day === today) addingDay = FT.sitKey(day, mealTime);
     try {
-      await savePack(FT.planPack(pack, day, slot));
+      await savePack(FT.planPack(pack, day, slot, mealTime));
     } catch (e) {
       // not saved: leave the picker as it was
       renderMeals();
@@ -3095,9 +3185,9 @@
       return;
     }
     const day = selDay;
-    if (!FT.dayMeals(packs, day).some(p => p.kind === 'takeaway')) {
+    if (!FT.dayMeals(packs, day, selMeal).some(p => p.kind === 'takeaway')) {
       try {
-        const takeaway = FT.makeTakeaway(day);
+        const takeaway = FT.makeTakeaway(day, selMeal);
         takeaway.id = await DB.add(takeaway);
         packs.push(takeaway);
       } catch (e) {
@@ -3109,6 +3199,7 @@
     selDay = days[(days.indexOf(day) + 1) % 7];
     openDay = selDay;
     selSlot = defaultSlot();
+    selMeal = 'tea';
     pendingPlan = null;
     renderMeals();
   }
