@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Two meals asking mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--accent-border:#2E4A3F;--warn:#F2B35B;--red:#F28B82;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:16px}
+.wrap{max-width:412px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+h1{font-size:28px;margin:0 0 6px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:14px}
+.day{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.day.ask{border-color:#5A4A2A}
+.top{display:flex;align-items:center;gap:10px}
+.d{font-weight:700;font-size:18px}.dt{font-family:var(--mono);color:var(--dim);font-size:15px}
+.plan{margin-left:auto;color:var(--accent)}
+.meal{display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--border)}
+.line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.when{width:52px;flex:none;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-2);border-radius:10px;padding:5px 9px;font-size:15px}
+.chip small{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.chip.out{border-color:var(--red);color:var(--red)}
+.used{margin-left:auto;font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:2px 7px}
+.btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-left:60px}
+.btns .q{color:var(--muted);font-size:13px;margin-right:2px}
+.b{min-height:30px;padding:0 14px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text);font:inherit;font-weight:600;font-size:13px}
+.b.yes{border-color:var(--accent-border);color:var(--accent)}
+.b.dash{border-style:dashed;color:#C9D6D1}
+.done{margin-left:auto;font-size:12px;font-weight:700;color:var(--accent)}
+.cap{font-size:13px;color:var(--dim);line-height:1.5}
+</style></head><body><div class="wrap">
+<h1>Meals</h1>
+
+<div class="lbl">1 · BOTH MEALS WAITING · ONE CARD, CLOSED</div>
+<div class="day ask">
+ <div class="top"><span class="d">Fri</span><span class="dt">16 Oct</span></div>
+ <div class="meal"><div class="line"><span class="when">DINNER</span><span class="chip out"><small>MAIN</small>Fishcakes</span><span class="chip out"><small>SIDE</small>Salad</span><span class="used">Used?</span></div></div>
+ <div class="meal"><div class="line"><span class="when">TEA</span><span class="chip"><small>MAIN</small>Chicken</span><span class="chip"><small>SIDE</small>Dauphinoise potatoes</span><span class="chip"><small>VEG</small>Carrots</span><span class="used">Used?</span></div></div>
+</div>
+<div class="cap">One card per day. Each meal is its own line with its own "Used?".</div>
+
+<div class="lbl">2 · TAP DINNER · ITS BUTTONS OPEN UNDER IT</div>
+<div class="day ask">
+ <div class="top"><span class="d">Fri</span><span class="dt">16 Oct</span></div>
+ <div class="meal"><div class="line"><span class="when">DINNER</span><span class="chip out"><small>MAIN</small>Fishcakes</span><span class="chip out"><small>SIDE</small>Salad</span></div>
+  <div class="btns"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button><button class="b dash">+ Add</button><button class="b dash">Save as meal</button></div></div>
+ <div class="meal"><div class="line"><span class="when">TEA</span><span class="chip"><small>MAIN</small>Chicken</span><span class="chip"><small>SIDE</small>Dauphinoise potatoes</span><span class="chip"><small>VEG</small>Carrots</span><span class="used">Used?</span></div></div>
+</div>
+<div class="cap">Only one meal open at a time. Tap Tea to open its buttons instead.</div>
+
+<div class="lbl">3 · DINNER ANSWERED · TEA STILL WAITING</div>
+<div class="day ask">
+ <div class="top"><span class="d">Fri</span><span class="dt">16 Oct</span></div>
+ <div class="meal"><div class="line"><span class="when">TEA</span><span class="chip"><small>MAIN</small>Chicken</span><span class="chip"><small>SIDE</small>Dauphinoise potatoes</span><span class="chip"><small>VEG</small>Carrots</span><span class="used">Used?</span></div></div>
+</div>
+<div class="cap">An answered meal drops off the card. The card goes once both are answered.</div>
+
+<div class="day"><div class="top"><span class="d">Sat</span><span class="dt">17 Oct</span><span class="plan">+ Plan</span></div></div>
+</div></body></html>
