@@ -14,6 +14,7 @@ To plan into versions together. Nothing here is built yet.
 - **Improvements section** in the app: a place to note problems, errors and Claude misreads to talk through.
 
 ## Smaller
+- **(V5) Add people to the family list from the app:** the admin types an email when inviting, and the app adds it to `allowed` (today Darren adds it by hand in the Firebase console, since v3.19).
 - **Home button.**
 - **Added history:** keep "Added today" as a history to look back on.
 - **Precise shopping match:** tell "Whole chicken" from "Chicken fillets" when ticking off the shopping list.
