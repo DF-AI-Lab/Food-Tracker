@@ -1,0 +1,803 @@
+{
+  "_about": "Everything printed on each test photo, read once by Claude (2026-10-16). Photos: Drive folder 'Food test photos' (df.ai.lab.hq). 'drive' = file name there; 'answer' = what the app should get (same as expected-v4.json).",
+  "photos": {
+    "p01.jpg": {
+      "drive": "968.jpg",
+      "printed": "Unsmoked Gammon Joint · Just Essentials by Asda",
+      "brand": "Asda Just Essentials",
+      "food": "gammon",
+      "cut": "unsmoked joint",
+      "size": "1.256kg",
+      "dateLabel": "Use by",
+      "dateText": "21 OCT",
+      "price": 5.39,
+      "extra": "£4.29/kg, roasting time 2 Hrs 37 Mins",
+      "answer": {
+        "name": [
+          "Gammon joint",
+          "Unsmoked gammon joint",
+          "Unsmoked gammon"
+        ],
+        "sub": "Asda Just Essentials unsmoked gammon joint",
+        "date": "2026-10-21",
+        "price": 5.39
+      }
+    },
+    "p02.jpg": {
+      "drive": "969.jpg",
+      "printed": "Asda Quality Checked Beef Steak Mince 15% Fat",
+      "brand": "Asda",
+      "food": "beef",
+      "cut": "steak mince",
+      "size": "500g",
+      "dateLabel": "Use by",
+      "dateText": "18 OCT",
+      "extra": "Irish beef; 'Mix & match any 3 for £12' sticker (not a price)",
+      "answer": {
+        "name": [
+          "Beef mince",
+          "Beef steak mince",
+          "Steak mince"
+        ],
+        "sub": "Asda beef steak mince 15% fat",
+        "date": "2026-10-18"
+      }
+    },
+    "p03.jpg": {
+      "drive": "970.jpg",
+      "printed": "Asda Hand Trimmed Smoked 10 Back Bacon Rashers",
+      "brand": "Asda",
+      "food": "bacon",
+      "cut": "smoked back rashers",
+      "size": "310g, 10 rashers",
+      "dateLabel": "Use by",
+      "dateText": "23 OCT",
+      "extra": "freezable",
+      "answer": {
+        "name": [
+          "Smoked back bacon",
+          "Smoked bacon",
+          "Back bacon",
+          "Smoked bacon rashers",
+          "Smoked back bacon rashers"
+        ],
+        "sub": "Asda smoked back bacon rashers",
+        "date": "2026-10-23"
+      }
+    },
+    "p04.jpg": {
+      "drive": "971.jpg",
+      "printed": "Asda Hand Trimmed Smoked 10 Back Bacon Rashers",
+      "brand": "Asda",
+      "food": "bacon",
+      "cut": "smoked back rashers",
+      "size": "310g, 10 rashers",
+      "dateLabel": "Use by",
+      "dateText": "21 OCT",
+      "extra": "freezable; dark photo",
+      "answer": {
+        "name": [
+          "Smoked back bacon",
+          "Smoked bacon",
+          "Back bacon",
+          "Smoked bacon rashers",
+          "Smoked back bacon rashers"
+        ],
+        "sub": "Asda smoked back bacon rashers",
+        "date": "2026-10-21"
+      }
+    },
+    "p05.jpg": {
+      "drive": "972.jpg",
+      "printed": "Asda Extra Tasty Large Chicken · Basted British Chicken · Roast in the bag",
+      "brand": "Asda",
+      "food": "chicken",
+      "cut": "whole (large)",
+      "size": "1.600kg, serves 5",
+      "dateLabel": "Use by",
+      "dateText": "10OCT",
+      "extra": "squashed date; bacon pack and '2 for £3' sticker in shot",
+      "answer": {
+        "name": [
+          "Whole chicken",
+          "Large whole chicken",
+          "Large chicken"
+        ],
+        "sub": "Asda extra tasty large chicken",
+        "date": "2026-10-10"
+      }
+    },
+    "p06.jpg": {
+      "drive": "977.jpg",
+      "printed": "Asda British Maris Piper Potatoes",
+      "brand": "Asda",
+      "food": "potatoes",
+      "cut": "Maris Piper",
+      "packs": 2,
+      "extra": "2 bags in shot; veg, no date",
+      "answer": {
+        "name": [
+          "Potatoes",
+          "Maris piper potatoes"
+        ],
+        "sub": "Asda British Maris Piper potatoes",
+        "packs": 2,
+        "kind": "veg"
+      }
+    },
+    "p07.jpg": {
+      "drive": "973.jpg",
+      "printed": "Asda Exceptional 20 Classic Pork Chipolata Sausages with a pinch of classic spices",
+      "brand": "Asda Exceptional",
+      "food": "sausages",
+      "cut": "pork chipolatas",
+      "size": "625g, 20 sausages",
+      "dateLabel": "Use by",
+      "dateText": "13 OCT",
+      "extra": "90% pork, British",
+      "answer": {
+        "name": [
+          "Pork chipolatas",
+          "Chipolatas",
+          "Chipolata sausages",
+          "Pork chipolata sausages",
+          "Pork sausages"
+        ],
+        "sub": "Asda Exceptional 20 classic pork chipolata sausages",
+        "date": "2026-10-13"
+      }
+    },
+    "p08.jpg": {
+      "drive": "974.jpg",
+      "printed": "Jus-Rol Puff Pastry · Ready rolled puff pastry sheet",
+      "brand": "Jus-Rol",
+      "food": "puff pastry",
+      "cut": "ready rolled sheet",
+      "dateLabel": "Use by",
+      "dateText": "30 OCT 2026",
+      "extra": "year printed",
+      "answer": {
+        "name": [
+          "Puff pastry",
+          "Puff pastry sheet",
+          "Ready rolled puff pastry"
+        ],
+        "sub": "Jus-Rol ready rolled puff pastry sheet",
+        "date": "2026-10-30"
+      }
+    },
+    "p09.jpg": {
+      "drive": "975.jpg",
+      "printed": "Asda Fresh Egg Tagliatelle",
+      "brand": "Asda",
+      "food": "tagliatelle",
+      "cut": "fresh egg",
+      "size": "500g, serves 4",
+      "dateLabel": "Use by",
+      "dateText": "3 NOV",
+      "extra": "made in Italy, freezable",
+      "answer": {
+        "name": [
+          "Tagliatelle",
+          "Egg tagliatelle",
+          "Fresh tagliatelle",
+          "Fresh egg tagliatelle"
+        ],
+        "sub": "Asda fresh egg tagliatelle",
+        "date": "2026-11-03"
+      }
+    },
+    "p10.jpg": {
+      "drive": "976.jpg",
+      "printed": "Asda British Milk Semi Skimmed",
+      "brand": "Asda",
+      "food": "milk",
+      "cut": "semi-skimmed",
+      "dateLabel": "Use by",
+      "dateText": "14 OCT",
+      "extra": "dot-matrix date",
+      "answer": {
+        "name": [
+          "Semi-skimmed milk",
+          "Semi skimmed milk"
+        ],
+        "sub": "Asda British semi skimmed milk",
+        "date": "2026-10-14"
+      }
+    },
+    "p11.jpg": {
+      "drive": "982.jpg",
+      "printed": "Asda Smooth Orange Juice From Concentrate",
+      "brand": "Asda",
+      "food": "orange juice",
+      "cut": "smooth",
+      "size": "1 litre",
+      "dateLabel": "Best before",
+      "dateText": "09/DEC/26",
+      "extra": "year printed; carton held in hand",
+      "answer": {
+        "name": [
+          "Orange juice",
+          "Smooth orange juice"
+        ],
+        "sub": "Asda smooth orange juice from concentrate 1L",
+        "date": "2026-12-09",
+        "bb": true
+      }
+    },
+    "p12.jpg": {
+      "drive": "978.jpg",
+      "printed": "Asda British Maris Piper Potatoes",
+      "brand": "Asda",
+      "food": "potatoes",
+      "cut": "Maris Piper",
+      "packs": 2,
+      "extra": "same 2 bags as p06, other angle",
+      "answer": {
+        "name": [
+          "Potatoes",
+          "Maris piper potatoes"
+        ],
+        "sub": "Asda British Maris Piper potatoes",
+        "packs": 2,
+        "kind": "veg"
+      }
+    },
+    "p13.jpg": {
+      "drive": "979.jpg",
+      "printed": "Asda British 4 Baking Potatoes · Perfect for jackets",
+      "brand": "Asda",
+      "food": "potatoes",
+      "cut": "baking",
+      "size": "4 pack",
+      "trap": "'J 2' lot code is not a date",
+      "answer": {
+        "name": "Baking potatoes",
+        "sub": "Asda British 4 baking potatoes",
+        "kind": "veg"
+      }
+    },
+    "p14.jpg": {
+      "drive": "980.jpg",
+      "printed": "Asda British Carrots",
+      "brand": "Asda",
+      "food": "carrots",
+      "trap": "'I 23' lot code is not a date",
+      "answer": {
+        "name": "Carrots",
+        "sub": "Asda British carrots",
+        "kind": "veg"
+      }
+    },
+    "p15.jpg": {
+      "drive": "981.jpg",
+      "printed": "Asda Sweet Potatoes · Perfect for wedges",
+      "brand": "Asda",
+      "food": "sweet potatoes",
+      "extra": "Egypt",
+      "answer": {
+        "name": "Sweet potatoes",
+        "sub": "Asda sweet potatoes",
+        "kind": "veg"
+      }
+    },
+    "p16.jpg": {
+      "drive": "20261010_140058.jpg",
+      "printed": "Dairylea Dunkers",
+      "brand": "Dairylea",
+      "food": "dunkers",
+      "dateText": "28 01 2027",
+      "extra": "date printed with no label; year printed; box in hand",
+      "answer": {
+        "name": [
+          "Dunkers",
+          "Cheese dunkers",
+          "Cheese and breadsticks"
+        ],
+        "sub": "Dairylea Dunkers",
+        "date": "2027-01-28"
+      }
+    },
+    "p17.jpg": {
+      "drive": "20261010_135903.jpg",
+      "printed": "M&S Food Melt in the Middle 2 Smoked Haddock Fillet Fishcakes with a creamy cheese sauce centre",
+      "brand": "M&S",
+      "food": "fishcakes",
+      "cut": "smoked haddock",
+      "size": "2 fishcakes",
+      "dateLabel": "Use by",
+      "dateText": "14 10 2026",
+      "extra": "numbers date, year printed; freezable",
+      "answer": {
+        "name": [
+          "Smoked haddock fishcakes",
+          "Haddock fishcakes",
+          "Fishcakes"
+        ],
+        "sub": "M&S 2 smoked haddock fillet fishcakes",
+        "date": "2026-10-14"
+      }
+    },
+    "p18.jpg": {
+      "drive": "20261010_135916.jpg",
+      "printed": "Warburtons 6 Hotdog Rolls · Soft & sliced · BBQ ready",
+      "brand": "Warburtons",
+      "food": "hot dog rolls",
+      "size": "6 rolls",
+      "dateLabel": "Best before",
+      "dateText": "13 OCT",
+      "extra": "photo upside down",
+      "answer": {
+        "name": [
+          "Hot dog rolls",
+          "Hotdog rolls"
+        ],
+        "sub": "Warburtons 6 hotdog rolls",
+        "date": "2026-10-13",
+        "bb": true
+      }
+    },
+    "p19.jpg": {
+      "drive": "20261010_140048.jpg",
+      "printed": "Asda Pork Sausage Rolls · Ready to eat · 6 tasty rolls",
+      "brand": "Asda",
+      "food": "sausage rolls",
+      "cut": "pork",
+      "size": "6 rolls",
+      "dateLabel": "Use by",
+      "dateText": "20 OCT",
+      "answer": {
+        "name": [
+          "Sausage rolls",
+          "Pork sausage rolls"
+        ],
+        "sub": "Asda 6 pork sausage rolls",
+        "date": "2026-10-20"
+      }
+    },
+    "p20.jpg": {
+      "drive": "20261010_140051.jpg",
+      "printed": "Asda Pork Sausage Rolls · Ready to eat · 6 tasty rolls",
+      "brand": "Asda",
+      "food": "sausage rolls",
+      "cut": "pork",
+      "size": "6 rolls",
+      "dateLabel": "Use by",
+      "dateText": "20 OCT",
+      "trap": "Dairylea box edge with '28 01 202..' in shot",
+      "answer": {
+        "name": [
+          "Sausage rolls",
+          "Pork sausage rolls"
+        ],
+        "sub": "Asda 6 pork sausage rolls",
+        "date": "2026-10-20"
+      }
+    },
+    "p21.jpg": {
+      "drive": "20261010_140304.jpg",
+      "printed": "Asda Exceptional Golden Kiwi · Hand picked · SunGold",
+      "brand": "Asda Exceptional",
+      "food": "kiwi",
+      "cut": "golden",
+      "size": "4 pack",
+      "trap": "'J 17' lot code is not a date",
+      "extra": "New Zealand, Zespri",
+      "answer": {
+        "name": [
+          "Golden kiwi",
+          "Golden kiwis",
+          "Kiwi",
+          "Kiwis"
+        ],
+        "sub": "Asda Exceptional golden kiwi 4 pack",
+        "kind": "veg"
+      }
+    },
+    "p22.jpg": {
+      "drive": "20261010_140153.jpg",
+      "printed": "Asda Cumberland Scotch Eggs with a pinch of pepper · Ready to eat · 2 tasty eggs",
+      "brand": "Asda",
+      "food": "scotch eggs",
+      "cut": "Cumberland",
+      "size": "226g, 2 eggs",
+      "dateLabel": "Use by",
+      "dateText": "16 OCT",
+      "answer": {
+        "name": [
+          "Scotch eggs",
+          "Cumberland scotch eggs"
+        ],
+        "sub": "Asda 2 Cumberland scotch eggs",
+        "date": "2026-10-16"
+      }
+    },
+    "p23.jpg": {
+      "drive": "20261010_140222.jpg",
+      "printed": "Asda Extra Tasty Small Chicken · Basted British Chicken · Roast in the bag",
+      "brand": "Asda",
+      "food": "chicken",
+      "cut": "whole (small)",
+      "size": "1.250kg, serves 3",
+      "dateLabel": "Use by",
+      "dateText": "16OCT",
+      "extra": "squashed date; sideways",
+      "answer": {
+        "name": [
+          "Whole chicken",
+          "Small whole chicken",
+          "Small chicken"
+        ],
+        "sub": "Asda extra tasty small chicken",
+        "date": "2026-10-16"
+      }
+    },
+    "p24.jpg": {
+      "drive": "20261010_140228.jpg",
+      "printed": "Asda Extra Tasty Small Chicken · Basted British Chicken · Roast in the bag",
+      "brand": "Asda",
+      "food": "chicken",
+      "cut": "whole (small)",
+      "size": "1.250kg",
+      "dateLabel": "Use by",
+      "dateText": "16OCT",
+      "extra": "same as p23, other angle",
+      "answer": {
+        "name": [
+          "Whole chicken",
+          "Small whole chicken",
+          "Small chicken"
+        ],
+        "sub": "Asda extra tasty small chicken",
+        "date": "2026-10-16"
+      }
+    },
+    "p25.jpg": {
+      "drive": "20261010_140301.jpg",
+      "printed": "Asda British Carrots",
+      "brand": "Asda",
+      "food": "carrots",
+      "size": "1kg",
+      "trap": "'J 16' lot code is not a date",
+      "answer": {
+        "name": "Carrots",
+        "sub": "Asda British carrots",
+        "kind": "veg"
+      }
+    },
+    "p26.jpg": {
+      "drive": "20261010_135859.jpg",
+      "printed": "Peppery Baby Leaf Salad · Washed & ready to eat · Strong",
+      "food": "salad",
+      "cut": "peppery baby leaf",
+      "dateLabel": "Use by",
+      "dateText": "13 OCT",
+      "extra": "salad bowl with a date = normal item, not veg",
+      "answer": {
+        "name": [
+          "Baby leaf salad",
+          "Peppery baby leaf salad",
+          "Salad"
+        ],
+        "sub": "Peppery baby leaf salad",
+        "date": "2026-10-13"
+      }
+    },
+    "p27.jpg": {
+      "drive": "983.jpg",
+      "printed": "Asda Smooth Orange Juice From Concentrate",
+      "brand": "Asda",
+      "food": "orange juice",
+      "cut": "smooth",
+      "size": "1 litre",
+      "dateLabel": "Best before",
+      "dateText": "09/DEC/26",
+      "extra": "same carton as p11",
+      "answer": {
+        "name": [
+          "Orange juice",
+          "Smooth orange juice"
+        ],
+        "sub": "Asda smooth orange juice from concentrate 1L",
+        "date": "2026-12-09",
+        "bb": true
+      }
+    },
+    "p28.jpg": {
+      "drive": "20261010_135845.jpg",
+      "printed": "Closed Cup Mushrooms",
+      "food": "mushrooms",
+      "cut": "closed cup",
+      "size": "400g",
+      "trap": "'Display until 15 Oct' is not a use by",
+      "extra": "UK, Class I; skewers in shot",
+      "answer": {
+        "name": [
+          "Closed cup mushrooms",
+          "Mushrooms"
+        ],
+        "sub": "Closed cup mushrooms 400g",
+        "kind": "veg"
+      }
+    },
+    "p29.jpg": {
+      "drive": "20261010_135849.jpg",
+      "printed": "Select & Go 10 Chicken Satay Skewers · Ready to eat",
+      "brand": "Select & Go",
+      "food": "chicken",
+      "cut": "satay skewers",
+      "size": "10 skewers",
+      "dateLabel": "Use by",
+      "dateText": "26 OCT",
+      "extra": "freezable",
+      "answer": {
+        "name": [
+          "Chicken satay skewers",
+          "Satay chicken skewers",
+          "Chicken skewers"
+        ],
+        "sub": "10 chicken satay skewers",
+        "date": "2026-10-26"
+      }
+    },
+    "p30.jpg": {
+      "drive": "20261010_135856.jpg",
+      "printed": "Golden Delicious Apples",
+      "food": "apples",
+      "cut": "Golden Delicious",
+      "size": "6 fruits, 750g",
+      "extra": "Italy; skewers in shot",
+      "answer": {
+        "name": [
+          "Golden delicious apples",
+          "Apples"
+        ],
+        "sub": "Golden Delicious apples",
+        "kind": "veg"
+      }
+    },
+    "p31.jpg": {
+      "drive": "20261010_140458.jpg",
+      "printed": "Müller Corner Vanilla Chocolate Balls x3 · Banana Chocolate Flakes x3",
+      "brand": "Müller",
+      "food": "yoghurts",
+      "cut": "corner",
+      "size": "6 pots",
+      "dateText": "11 NOV",
+      "extra": "photo upside down",
+      "answer": {
+        "name": [
+          "Yoghurts",
+          "Yoghurt",
+          "Corner yoghurts"
+        ],
+        "sub": "Muller Corner vanilla chocolate balls & banana chocolate flakes",
+        "date": "2026-11-11"
+      }
+    },
+    "p32.jpg": {
+      "drive": "20261010_140516.jpg",
+      "printed": "Slow Cooked Smoky BBQ Pork Rack of Ribs",
+      "food": "pork ribs",
+      "cut": "rack, smoky BBQ",
+      "size": "600g",
+      "dateLabel": "Use by",
+      "dateText": "01 NOV",
+      "trap": "pizza box in shot with 'Oct 26 2:30 PM' (not this item)",
+      "extra": "photo upside down",
+      "answer": {
+        "name": [
+          "Pork ribs",
+          "Bbq pork ribs",
+          "Pork rack of ribs",
+          "Rack of ribs",
+          "Ribs"
+        ],
+        "sub": "Slow cooked smoky BBQ pork rack of ribs",
+        "date": "2026-11-01"
+      }
+    },
+    "p33.jpg": {
+      "drive": "20261010_140309.jpg",
+      "printed": "M&S Food British Classic Scotch Eggs · 2 large · Free range egg · Outdoor bred pork",
+      "brand": "M&S",
+      "food": "scotch eggs",
+      "size": "2 large",
+      "dateLabel": "Use by",
+      "dateText": "17/10/2026",
+      "extra": "photo upside down",
+      "answer": {
+        "name": "Scotch eggs",
+        "sub": "M&S British classic scotch eggs",
+        "date": "2026-10-17"
+      }
+    },
+    "p34.jpg": {
+      "drive": "20261010_140321.jpg",
+      "printed": "M&S Food British Classic Scotch Eggs · 2 large",
+      "brand": "M&S",
+      "food": "scotch eggs",
+      "size": "2 large",
+      "dateLabel": "Use by",
+      "dateText": "17/10/2026",
+      "extra": "same as p33, right way up",
+      "answer": {
+        "name": "Scotch eggs",
+        "sub": "M&S British classic scotch eggs",
+        "date": "2026-10-17"
+      }
+    },
+    "p35.jpg": {
+      "drive": "20261010_140355.jpg",
+      "printed": "Asda Free Range 6 Medium Eggs · British · Class A",
+      "brand": "Asda",
+      "food": "eggs",
+      "size": "6 medium",
+      "dateLabel": "Best before",
+      "dateText": "21OCT",
+      "trap": "'Display until 14OCT' printed next to it",
+      "answer": {
+        "name": [
+          "Eggs",
+          "Medium eggs"
+        ],
+        "sub": "Asda free range 6 medium eggs",
+        "date": "2026-10-21",
+        "bb": true
+      }
+    },
+    "p36.jpg": {
+      "drive": "20261010_140108.jpg",
+      "printed": "Asda Hand Trimmed Smoked 12 Thick Cut Back Bacon Rashers",
+      "brand": "Asda",
+      "food": "bacon",
+      "cut": "smoked thick cut back rashers",
+      "size": "500g, 12 rashers",
+      "dateLabel": "Use by",
+      "dateText": "22 OCT",
+      "extra": "freezable",
+      "answer": {
+        "name": [
+          "Smoked thick cut bacon",
+          "Thick cut bacon",
+          "Smoked back bacon",
+          "Thick cut back bacon",
+          "Smoked thick cut back bacon",
+          "Smoked bacon",
+          "Back bacon"
+        ],
+        "sub": "Asda smoked 12 thick cut back bacon rashers",
+        "date": "2026-10-22"
+      }
+    },
+    "p37.jpg": {
+      "drive": "20261010_140114.jpg",
+      "printed": "M&S Food Smokin' Southern Fried Chicken Tenders · Mini chicken breast fillets",
+      "brand": "M&S",
+      "food": "chicken",
+      "cut": "southern fried tenders",
+      "size": "serves 2",
+      "dateLabel": "Use by",
+      "dateText": "16/10/2026",
+      "extra": "needs cooking, freezable, British chicken",
+      "answer": {
+        "name": [
+          "Southern fried chicken tenders",
+          "Chicken tenders",
+          "Southern fried chicken"
+        ],
+        "sub": "M&S Smokin' southern fried chicken tenders",
+        "date": "2026-10-16"
+      }
+    },
+    "p38.jpg": {
+      "drive": "20261010_140127.jpg",
+      "printed": "Asda Grated Four Cheese Blend (mozzarella, Cheddar, Double Gloucester, Monterey Jack)",
+      "brand": "Asda",
+      "food": "cheese",
+      "cut": "grated four cheese blend",
+      "dateLabel": "Best before",
+      "dateText": "14/11/2026",
+      "extra": "vegetarian",
+      "answer": {
+        "name": [
+          "Grated cheese",
+          "Four cheese blend",
+          "Grated four cheese blend",
+          "Grated four cheese"
+        ],
+        "sub": "Asda grated four cheese blend",
+        "date": "2026-11-14",
+        "bb": true
+      }
+    },
+    "p39.jpg": {
+      "drive": "20261010_140136.jpg",
+      "printed": "Asda Exceptional Dauphinoise Potatoes · Extra mature Cheddar and British double cream",
+      "brand": "Asda Exceptional",
+      "food": "dauphinoise potatoes",
+      "size": "400g, serves 2",
+      "dateLabel": "Use by",
+      "dateText": "19 OCT",
+      "answer": {
+        "name": [
+          "Dauphinoise potatoes",
+          "Dauphinoise"
+        ],
+        "sub": "Asda Exceptional dauphinoise potatoes",
+        "date": "2026-10-19"
+      }
+    },
+    "p40.jpg": {
+      "drive": "20261010_140142.jpg",
+      "printed": "Asda Sour Cream & Chive · Cool and creamy",
+      "brand": "Asda",
+      "food": "sour cream and chive dip",
+      "size": "200g",
+      "dateLabel": "Use by",
+      "dateText": "28 OCT",
+      "extra": "vegetarian",
+      "answer": {
+        "name": [
+          "Sour cream and chive dip",
+          "Sour cream & chive dip",
+          "Sour cream and chive",
+          "Sour cream & chive"
+        ],
+        "sub": "Asda sour cream & chive dip 200g",
+        "date": "2026-10-28"
+      }
+    },
+    "p41.jpg": {
+      "drive": "20261010_141114(0).jpg",
+      "printed": "Asda Tropical Fruits Juice Drink · Added vitamin C · No added sugar",
+      "brand": "Asda",
+      "food": "tropical juice drink",
+      "size": "2 litres",
+      "extra": "date not in the photo (just not shown) — Claude should leave date out",
+      "answer": {
+        "name": [
+          "Tropical juice",
+          "Tropical fruits juice drink",
+          "Tropical juice drink",
+          "Tropical fruit juice"
+        ],
+        "sub": "Asda tropical fruits juice drink 2L"
+      }
+    },
+    "p42.jpg": {
+      "drive": "20261010_141255.jpg",
+      "printed": "Asda Apple Juice From Concentrate",
+      "brand": "Asda",
+      "food": "apple juice",
+      "dateLabel": "Best before",
+      "dateText": "15/DEC/26",
+      "extra": "year printed",
+      "answer": {
+        "name": [
+          "Apple juice"
+        ],
+        "sub": "Asda apple juice from concentrate",
+        "date": "2026-12-15",
+        "bb": true
+      }
+    },
+    "p43.jpg": {
+      "drive": "20261010_141309.jpg",
+      "printed": "(no packaging) loose red pepper",
+      "food": "pepper",
+      "cut": "red",
+      "extra": "held in hand; Aldi bag in background (not this item's brand)",
+      "answer": {
+        "name": [
+          "Red pepper",
+          "Red peppers",
+          "Peppers",
+          "Pepper"
+        ],
+        "sub": "Loose red pepper",
+        "kind": "veg"
+      }
+    }
+  }
+}
