@@ -1244,6 +1244,8 @@
     const open = kb > 80;
     document.body.classList.toggle('kb-open', open);
     document.documentElement.style.setProperty('--kb', open ? kb + 'px' : '0px');
+    // Where the visible screen starts (the phone may scroll the page up for the keyboard)
+    document.documentElement.style.setProperty('--vvtop', (vv ? Math.max(0, vv.offsetTop) : 0) + 'px');
   }
 
   // Typing on a phone: hide the bottom icons while a text box has focus, so they do not sit over
