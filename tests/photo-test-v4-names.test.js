@@ -33,9 +33,20 @@ test("scoreRun counts brand-free names", () => {
 test("prompt keeps the cut in the name and the brand out", () => {
   const p = buildPrompt(["Chicken"], 2026, "prompt-v4.txt");
   assert.doesNotMatch(p, /No brand, size, "fillets"/);
-  assert.match(p, /Chicken fillets/);
-  assert.match(p, /Whole chicken/);
+  assert.match(p, /Chicken thighs/);
   assert.match(p, /never the shop or brand/i);
+});
+
+// Examples that quote a test answer would teach Claude the answer key
+test("prompt examples don't quote any answer from the test key", () => {
+  const key = JSON.parse(fs.readFileSync(path.join(dir, "expected-v4.json"), "utf8"));
+  const answers = new Set(Object.values(key).flatMap((e) => [].concat(e.name)).map((n) => n.toLowerCase()));
+  const lines = fs.readFileSync(path.join(dir, "prompt-v4.txt"), "utf8").split("\n")
+    .filter((l) => /Examples:|, not "|add a type|plain bag|product or range/.test(l));
+  assert.ok(lines.length >= 4, "found the example lines");
+  for (const l of lines)
+    for (const [, q] of l.matchAll(/"([^"]+)"/g))
+      assert.ok(!answers.has(q.toLowerCase()), `example "${q}" is a test answer`);
 });
 
 test("V3 prompt is still the default", () => {
@@ -91,9 +102,8 @@ test("V4 answer key accepts Gammon (p01) and Sour cream dip (p40)", () => {
 
 test("prompt keeps the veg type and drops product names", () => {
   const p = buildPrompt(["Potatoes"], 2026, "prompt-v4.txt");
-  assert.match(p, /Baking potatoes/);
-  assert.match(p, /Yoghurts/);
-  assert.match(p, /Yoghurt corner/);
+  assert.match(p, /Red onions/);
+  assert.match(p, /Drop product or range names/);
 });
 
 test("score.js reads a run-api results file (results inside { settings, cost, results })", () => {
@@ -113,8 +123,8 @@ test("score.js reads a run-api results file (results inside { settings, cost, re
 
 test("prompt keeps the cut over a short app name, and veg type only when the packet says it", () => {
   const p = buildPrompt(["Bacon", "Sausages", "Potatoes"], 2026, "prompt-v4.txt");
-  assert.match(p, /"Smoked back bacon", not "Bacon"/);
-  assert.match(p, /"Pork chipolatas", not "Sausages"/);
+  assert.match(p, /"Unsmoked streaky bacon", not "Bacon"/);
+  assert.match(p, /"Cumberland pork sausages", not "Sausages"/);
   assert.match(p, /only when the packet/i);
 });
 

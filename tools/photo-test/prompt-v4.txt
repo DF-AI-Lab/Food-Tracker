@@ -6,14 +6,14 @@ Return ONLY one JSON object, no other text:
 
 Fields (leave out any field you don't have; never write null):
 - name: the main food plus its cut or type, never the shop or brand.
-  Examples: "Whole chicken", "Chicken fillets", "Chicken thighs", "Beef mince", "Smoked bacon", "Semi-skimmed milk".
+  Examples: "Chicken thighs", "Chicken drumsticks", "Lamb mince", "Diced beef", "Pork loin steaks", "Whole milk".
   Keep a word only if you'd write it on a shopping list. Leave out shop, brand, size, weight, pack count,
   "British", "Free range", "Finest", "Organic" and "% fat" (those go in sub).
   Keep the cut or type the packet prints, even if a shorter name is in the app list:
-  "Smoked back bacon", not "Bacon"; "Pork chipolatas", not "Sausages".
-  For veg and fruit, add a type only when the packet sells it as that type ("Baking potatoes",
-  "Sweet potatoes"). A plain bag of potatoes is "Potatoes".
-  Drop product or range names: a "Yoghurt corner" is "Yoghurts", a "Frube" is "Yoghurts".
+  "Unsmoked streaky bacon", not "Bacon"; "Cumberland pork sausages", not "Sausages".
+  For veg and fruit, add a type only when the packet sells it as that type ("Red onions",
+  "New potatoes"). A plain bag of onions is "Onions".
+  Drop product or range names: a "Petits Filous" is "Fromage frais", a "Fruit Shoot" is "Fruit drink".
   Capital first letter, rest lower case. Plural when that's how you'd say it ("Sausages", "Eggs").
   Names already in the app: {{NAMES}}
   Use one of those only if it is exactly the same food, cut and type ("Chicken" is not "Whole chicken"). A similar food is NOT the same:
