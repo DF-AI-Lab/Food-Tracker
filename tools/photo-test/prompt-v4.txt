@@ -9,6 +9,8 @@ Fields (leave out any field you don't have; never write null):
   Examples: "Whole chicken", "Chicken fillets", "Chicken thighs", "Beef mince", "Smoked bacon", "Semi-skimmed milk".
   Keep a word only if you'd write it on a shopping list. Leave out shop, brand, size, weight, pack count,
   "British", "Free range", "Finest", "Organic" and "% fat" (those go in sub).
+  Keep the type of veg or fruit: "Baking potatoes", "Sweet potatoes", "Cherry tomatoes", not just "Potatoes".
+  Drop product or range names: a "Yoghurt corner" is "Yoghurts", a "Frube" is "Yoghurts".
   Capital first letter, rest lower case. Plural when that's how you'd say it ("Sausages", "Eggs").
   Names already in the app: {{NAMES}}
   Use one of those only if it is exactly the same food, cut and type ("Chicken" is not "Whole chicken"). A similar food is NOT the same:

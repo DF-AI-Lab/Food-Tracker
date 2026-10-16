@@ -16,7 +16,10 @@ function main(args) {
   const expected = JSON.parse(fs.readFileSync(expFile, "utf8"));
   let failed = false;
   for (const file of resFiles) {
-    const t = scoreRun(expected, JSON.parse(fs.readFileSync(file, "utf8")));
+    const data = JSON.parse(fs.readFileSync(file, "utf8"));
+    // run-api.js saves { settings, cost, results }; older files are the results object itself.
+    const run = data && typeof data.results === "object" && data.results !== null ? data.results : data;
+    const t = scoreRun(expected, run);
     const T = t.total;
     console.log(`${path.basename(file)}  ✅ right ${t.right}  ⚪ blank ${t.blank}  ❌ WRONG ${t.wrong}  names ${t.nameRight}/${T}  no brand ${t.brandFreeRight}/${T}  veg ${t.kindRight}/${T}  bb ${t.bbRight}/${T}  price ${t.priceRight}/${T}`);
     for (const r of t.rows) {
