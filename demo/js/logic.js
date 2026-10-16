@@ -751,12 +751,28 @@
       .sort((a, b) => byKey(a.pack, b.pack));
   }
 
-  function planPack(pack, dayIso, slot) {
-    return { ...pack, plannedFor: dayIso, slot };
+  // A planned pack or meal plan is "dinner" (midday) only when marked so; anything else is "tea"
+  function mealTimeOf(x) {
+    return x && x.mealTime === "dinner" ? "dinner" : "tea";
+  }
+
+  // The key a day's sitting is stored under: tea keeps the plain day, dinner gets its own
+  function sitKey(day, mealTime) {
+    return mealTime === "dinner" ? day + "|dinner" : day;
+  }
+
+  // Back from a sitting key to { day, mealTime }
+  function sitOf(key) {
+    const [day, part] = String(key).split("|");
+    return { day, mealTime: part === "dinner" ? "dinner" : "tea" };
+  }
+
+  function planPack(pack, dayIso, slot, mealTime = "tea") {
+    return { ...pack, plannedFor: dayIso, slot, mealTime };
   }
 
   function unplanPack(pack) {
-    return { ...pack, plannedFor: null, slot: null, mealId: null, mealName: null, mealPlanId: null };
+    return { ...pack, plannedFor: null, slot: null, mealId: null, mealName: null, mealPlanId: null, mealTime: null };
   }
 
   // Days a pack is out of date on a planned day (0 if fine or undated)
@@ -765,15 +781,17 @@
     return Math.max(0, daysLeft(dayIso, pack.date));
   }
 
-  function makeTakeaway(dayIso) {
+  function makeTakeaway(dayIso, mealTime = "tea") {
     return { name: "Takeaway", kind: "takeaway", status: "plan", plannedFor: dayIso, slot: "main",
-      date: null, dateType: null, added: dayIso, left: null, frozen: null };
+      date: null, dateType: null, added: dayIso, left: null, frozen: null, mealTime };
   }
 
-  // A day's plan: planned fridge packs and takeaways, main then side then veg
-  function dayMeals(packs, dayIso) {
+  // A day's plan: planned fridge packs and takeaways, main then side then veg.
+  // With a mealTime, only that sitting (dinner or tea); without one, the whole day
+  function dayMeals(packs, dayIso, mealTime) {
     return packs
       .filter(p => p.plannedFor === dayIso &&
+        (mealTime === undefined || mealTimeOf(p) === mealTime) &&
         (p.status === "in_fridge" || (p.kind === "takeaway" && p.status === "plan")))
       .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
   }
@@ -986,6 +1004,33 @@
 
   // From this hour, today's waiting plan is asked "Had this meal?" too
   const TONIGHT_HOUR = 17;
+  // From this hour today's dinner (midday) is asked "Had this meal?" too
+  const DINNER_HOUR = 14;
+
+  // Each sitting that still has a waiting plan and is due to be asked: days 1-3 ago, and today's
+  // dinner from DINNER_HOUR and tea from TONIGHT_HOUR. Oldest day first, dinner before tea
+  function mealsToAsk(packs, today, hour) {
+    const seen = new Map();
+    for (const p of packs) {
+      if (!isWaitingPlan(p)) continue;
+      const left = daysLeft(p.plannedFor, today);
+      const mealTime = mealTimeOf(p);
+      const past = left >= -3 && left <= -1;
+      const tonight = left === 0 && hour != null &&
+        (mealTime === "dinner" ? hour >= DINNER_HOUR : hour >= TONIGHT_HOUR);
+      if (past || tonight) seen.set(sitKey(p.plannedFor, mealTime), { day: p.plannedFor, mealTime });
+    }
+    return [...seen.values()].sort((a, b) => {
+      if (a.day !== b.day) return a.day < b.day ? -1 : 1;
+      return a.mealTime === b.mealTime ? 0 : a.mealTime === "dinner" ? -1 : 1;
+    });
+  }
+
+  // Whether a day already has a dinner: a dinner food planned, or a dinner meal plan
+  function hasDinner(packs, mealPlans, dayIso) {
+    return (packs || []).some(p => isWaitingPlan(p) && p.plannedFor === dayIso && mealTimeOf(p) === "dinner") ||
+      (mealPlans || []).some(pl => pl.day === dayIso && mealTimeOf(pl) === "dinner");
+  }
 
   // Days 1-3 ago that still have a waiting plan, and today's once it is TONIGHT_HOUR (oldest first)
   function pastToAsk(packs, today, hour) {
@@ -1019,13 +1064,15 @@
   }
 
   // What was eaten on a day (for the meals history)
-  function mealRecord(day, packs, { takeaway = false, cost = null } = {}) {
-    return {
+  function mealRecord(day, packs, { takeaway = false, cost = null, mealTime } = {}) {
+    const record = {
       day,
       items: packs.map(p => ({ name: p.name, slot: p.slot })),
       takeaway,
       cost: parsePrice(cost)
     };
+    if (mealTime === "dinner") record.mealTime = "dinner";
+    return record;
   }
 
   // Takeaways this month: count, and total cost (unknown costs count as 0)
@@ -1474,13 +1521,13 @@
   }
 
   // New planned pack objects for a meal on a day: the soonest free pack per fresh food, not skipped
-  function planMeal(meal, packs, dayIso, planId, skip = []) {
+  function planMeal(meal, packs, dayIso, planId, skip = [], mealTime = "tea") {
     const m = normMeal(meal) || { fresh: [] };
     const skipKeys = new Set((skip || []).map(keyOf));
     const names = m.fresh.map(f => f.name).filter(n => !skipKeys.has(keyOf(n)));
     const { picks } = pickFoods(names, packs || []);
     return picks.map(({ pack }) => ({
-      ...pack, plannedFor: dayIso, slot: slotFor(pack.kind), mealPlanId: planId
+      ...pack, plannedFor: dayIso, slot: slotFor(pack.kind), mealPlanId: planId, mealTime
     }));
   }
 
@@ -1503,7 +1550,7 @@
     }
 
     const missing = wanted.filter(n => !kept.has(keyOf(n)));
-    const planned = planMeal({ fresh: missing.map(name => ({ name })) }, packs, plan.day, plan.id);
+    const planned = planMeal({ fresh: missing.map(name => ({ name })) }, packs, plan.day, plan.id, [], mealTimeOf(plan));
     return { plan: planned, unplan };
   }
 
@@ -1543,17 +1590,18 @@
 
   // Meal groups for a day (one per meal plan whose meal exists, in plan order), then single foods
   // that are not part of one of those groups
-  function dayGroups(packs, mealPlans, meals, dayIso) {
+  function dayGroups(packs, mealPlans, meals, dayIso, mealTime) {
     const day = dayIso;
     const groups = [];
     const planIds = new Set();
-    for (const plan of (mealPlans || []).filter(pl => pl.day === day)) {
+    for (const plan of (mealPlans || []).filter(pl => pl.day === day &&
+        (mealTime === undefined || mealTimeOf(pl) === mealTime))) {
       const meal = (meals || []).find(m => String(m.id) === String(plan.mealId));
       if (!meal) continue;
       planIds.add(plan.id);
       groups.push({ type: "meal", plan, view: mealPlanView(plan, meal, packs) });
     }
-    const singles = dayMeals(packs, day)
+    const singles = dayMeals(packs, day, mealTime)
       .filter(p => !(p.mealPlanId != null && planIds.has(p.mealPlanId)))
       .map(p => ({ type: "pack", pack: p }));
     return [...groups, ...singles];
@@ -1571,10 +1619,11 @@
   }
 
   // Pack ids of the day's "some" foods (they start as part used on "How much did you use?")
-  function partDefaults(packs, mealPlans, meals, dayIso) {
+  function partDefaults(packs, mealPlans, meals, dayIso, mealTime) {
     const out = new Set();
     for (const p of packs || []) {
       if (p.plannedFor !== dayIso || p.mealPlanId == null) continue;
+      if (mealTime !== undefined && mealTimeOf(p) !== mealTime) continue;
       const plan = (mealPlans || []).find(pl => String(pl.id) === String(p.mealPlanId));
       if (!plan) continue;
       const meal = normMeal((meals || []).find(m => String(m.id) === String(plan.mealId)));
@@ -1706,6 +1755,12 @@
     autoOutOfDate,
     mealDays,
     TONIGHT_HOUR,
+    DINNER_HOUR,
+    mealTimeOf,
+    sitKey,
+    sitOf,
+    hasDinner,
+    mealsToAsk,
     pastToAsk,
     expiredPlans,
     partUse,
