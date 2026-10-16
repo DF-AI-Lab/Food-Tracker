@@ -30,13 +30,13 @@
   </div>
   <div id="installWrap" class="installwrap" hidden><button id="installBtn" class="act ghost" hidden>Install app</button><button type="button" id="installHide" class="ib" aria-label="Hide install"><i data-icon="close" data-size="16"></i></button></div>
 
-  <!-- Search the fridge, freezer and cupboard (fridge pages only; app.js shows the results card) -->
-  <div class="search" id="fridgeSearchWrap" hidden><i data-icon="search" data-size="18"></i><input id="fridgeSearch" type="search" placeholder="Search fridge, freezer, cupboard" autocomplete="off" aria-label="Search fridge, freezer and cupboard"><button type="button" id="searchClear" class="ib" aria-label="Clear search" hidden><i data-icon="close" data-size="18"></i></button></div>
   <div id="searchResults" class="card rows" hidden></div>
 
   <!-- Page title: set by app.js for each page -->
   <div class="titlerow">
     <div class="titlecol"><div id="pageKicker" class="kicker" hidden></div><h1 id="pageTitle">Fridge</h1></div>
+    <!-- Search the fridge, freezer and cupboard (fridge pages only; app.js shows the results card) -->
+    <div class="search" id="fridgeSearchWrap" hidden><i data-icon="search" data-size="18"></i><input id="fridgeSearch" type="search" placeholder="Search" autocomplete="off" aria-label="Search fridge, freezer and cupboard"><button type="button" id="searchClear" class="ib" aria-label="Clear search" hidden><i data-icon="close" data-size="18"></i></button></div>
     <div id="pageCount" class="count"></div>
   </div>
 

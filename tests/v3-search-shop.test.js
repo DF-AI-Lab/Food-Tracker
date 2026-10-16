@@ -49,7 +49,13 @@ for (const dir of ["v2", "v2-next"]) {
   test(`${dir}: page has the search bar, Install ✕ and Install in Settings`, () => {
     const html = read("index.html");
     assert.ok(html.indexOf('id="installBtn"') < html.indexOf('id="fridgeSearch"'));
-    assert.ok(html.indexOf('id="fridgeSearch"') < html.indexOf('id="pageTitle"'));
+    if (dir === "v2") {
+      // Live v3.20 (Darren 2026-10-16): search sits on the title line, between the title and the count
+      assert.ok(html.indexOf('id="pageTitle"') < html.indexOf('id="fridgeSearch"'));
+      assert.ok(html.indexOf('id="fridgeSearch"') < html.indexOf('id="pageCount"'));
+    } else {
+      assert.ok(html.indexOf('id="fridgeSearch"') < html.indexOf('id="pageTitle"'));
+    }
     for (const id of ["searchClear", "searchResults", "installHide", "settingsInstall"]) assert.match(html, new RegExp(`id="${id}"`), id);
     const app = read("js/app.js");
     assert.match(app, /FT\.searchPacks\(/);

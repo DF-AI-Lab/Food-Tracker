@@ -81,6 +81,13 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible,summary:focus
 .kicker{font-size:13px;color:var(--muted);letter-spacing:.02em}
 h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.1;text-wrap:balance}
 .count{font-size:13px;color:var(--dim);white-space:nowrap}
+.titlerow>.titlecol,.titlerow>.count{flex:none}
+/* Search on the title line (fridge pages): sits between the title and the count, centred on that line */
+.titlerow:has(.search:not([hidden])){align-items:center}
+.titlerow .search{flex:1;min-width:0;min-height:40px;border-radius:12px}
+@media (max-width:400px){
+  .titlerow .search{gap:6px;padding-left:10px}
+}
 body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 
 /* ---- Panes ---- */
@@ -301,6 +308,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
 .addbar{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--safe-b));z-index:60;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 16px;background:var(--surface);border-top:1px solid var(--active)}
 body.kb-open .addbar{bottom:var(--kb)}
 body.kb-open .bnav,body.kb-open .verbar{display:none}
+body.typing .bnav{display:none}
 .ab-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 #abName{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #abSum{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -329,7 +337,7 @@ details>summary{cursor:pointer;font-size:13px;color:var(--muted);min-height:32px
 .qf-row input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
 .qf-kindtag{flex:none;width:38px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .qf-date{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap;border-bottom:1px dashed var(--dim);cursor:pointer}
-.qf-datein{flex-basis:100%;min-height:40px;border-radius:10px;border:1px solid var(--accent);background:var(--surface-2);color:var(--text);font:inherit;font-size:14px;padding:0 10px;color-scheme:inherit}
+.qf-datein{display:block;width:100%;margin:6px 0;flex-basis:100%;min-height:40px;border-radius:10px;border:1px solid var(--accent);background:var(--surface-2);color:var(--text);font:inherit;font-size:14px;padding:0 10px;color-scheme:inherit}
 .qf-check{flex:none;font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
 .qf-steps li.done::before{background:var(--surface-2);color:var(--accent)}
 .qf-steps li:not(.on):not(.done) b{color:var(--dim)}
