@@ -36,6 +36,9 @@ h1{font-size:28px;margin:0 0 6px}
 .b.dash{border-style:dashed;color:#C9D6D1;font-size:14px;min-height:40px}
 .b.main{background:var(--accent);color:var(--bg);border:0}
 .extra{display:flex;gap:8px}
+.ask4 .used,.ask4 .extra{gap:6px;flex-wrap:wrap}
+.ask4 .b{flex:none;min-height:30px;padding:0 14px;border-radius:9px;font-size:13px}
+.ask4 .b.dash{min-height:30px;font-size:13px}
 .tag{font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid var(--border);border-radius:6px;padding:2px 6px;color:var(--muted)}
 .cap{font-size:13px;color:var(--dim);line-height:1.5}
 </style></head><body><div class="wrap">
@@ -86,11 +89,10 @@ h1{font-size:28px;margin:0 0 6px}
 <div class="cap">Opening a day starts on Tea (as now). Dinner is still optional: just leave it empty.</div>
 
 <div class="lbl">4 · ASKING · ONE CARD PER MEAL, LABELLED</div>
-<div class="day open">
+<div class="day open ask4">
  <div class="top"><span class="d">Fri</span><span class="dt">16 Oct</span><span class="tag">DINNER</span></div>
  <div class="line"><span class="chip"><small>MAIN</small>Fishcakes</span><span class="chip"><small>SIDE</small>Chips</span></div>
- <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button></div>
- <div class="extra"><button class="b dash">+ Add</button><button class="b dash">Save as meal</button></div>
+ <div class="used"><span class="q">Used?</span><button class="b yes">Yes</button><button class="b">No</button><button class="b dash">+ Add</button><button class="b dash">Save as meal</button></div>
 </div>
 <div class="cap">Dinner asked from 2pm, tea from 5pm, as agreed.</div>
 </div></body></html>
