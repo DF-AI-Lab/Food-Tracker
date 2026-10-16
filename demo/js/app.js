@@ -2101,7 +2101,13 @@
     dayListEl.innerHTML = '';
 
     const asked = pastDays();
-    asked.forEach(key => dayListEl.appendChild(pastCard(key, picker)));
+    // One asking card per day, its waiting meals in it (asked is sorted: dinner before tea)
+    const askDays = new Map();
+    for (const key of asked) {
+      const { day } = FT.sitOf(key);
+      askDays.set(day, [...(askDays.get(day) || []), key]);
+    }
+    for (const [day, keys] of askDays) dayListEl.appendChild(askCard(day, keys, picker));
     FT.mealDays(today).filter(day => !asked.includes(day)).forEach(day => dayListEl.appendChild(dayCard(day, picker)));
 
     document.getElementById('nextDay').hidden = inHad() || (addingDay && asked.includes(addingDay));
@@ -2662,69 +2668,105 @@
     return blocks;
   }
 
-  // A past day with a plan still waiting: "Had this meal?" then how much was used, or the takeaway cost
-  function pastCard(key, picker) {
-    const { day, mealTime } = FT.sitOf(key);
-    const state = pastState[key] || 'ask';
-    // A closed asking card: no ✕ on its chips, just the quiet tag; tap its top to open it
-    const closed = state === 'ask' && askOpen !== key && addingDay !== key;
+  // Asking: one card per day. Each waiting meal is a block in it (dinner first); its line opens its
+  // buttons, one block at a time. The head opens or closes the first block still asking.
+  function askCard(day, keys, picker) {
     const card = document.createElement('div');
-    card.className = 'day past';
-    card.dataset.meal = mealTime;
+    card.className = 'day past' + (keys.some(k => (pastState[k] || 'ask') === 'ask') ? ' asking' : '');
 
     const head = document.createElement('div');
     head.className = 'dh';
     head.appendChild(dayName(day));
-    if (mealTime === 'dinner' || FT.hasDinner(packs, mealPlans, day)) {
-      const tag = document.createElement('span');
-      tag.className = 'sit-tag';
-      tag.textContent = mealTime === 'dinner' ? 'Dinner' : 'Tea';
-      head.appendChild(tag);
-    }
-    const mealBlocks = appendDayChips(head, day, closed, mealTime);
-    card.appendChild(head);
-    mealBlocks.forEach(b => card.appendChild(b));
-
-    const body = document.createElement('div');
-    body.className = 'dbody past-body';
-    const q = text => {
-      const el = document.createElement('div');
-      el.className = 'q';
-      el.textContent = text;
-      body.appendChild(el);
-    };
-    const button = (cls, label, onClick) => {
-      const b = document.createElement('button');
-      b.className = 'act ' + cls;
-      b.textContent = label;
-      b.addEventListener('click', onClick);
-      return b;
-    };
-    const btns = () => {
-      const row = document.createElement('div');
-      row.className = 'btns';
-      body.appendChild(row);
-      return row;
-    };
-
-    if (state === 'ask') {
-      card.classList.add('asking');
-      const askText = LOOK.askText(FT.dayMeals(packs, day, mealTime));
+    const first = keys.find(k => (pastState[k] || 'ask') === 'ask');
+    if (first) {
+      const closed = askOpen !== first && addingDay !== first;
       head.setAttribute('role', 'button');
       head.setAttribute('aria-expanded', String(!closed));
       head.addEventListener('click', () => {
-        askOpen = closed ? key : null;
+        askOpen = closed ? first : null;
         addingDay = null;
         openDay = null; // only one card open: close any other day
         renderMeals();
       });
-      if (closed) {
-        const tag = document.createElement('span');
-        tag.className = 'ask-tag';
-        tag.textContent = askText;
-        head.appendChild(tag);
-      } else {
-        // Yes / No, then + Add (this day's picker, until Done) and Save as meal
+    }
+    card.appendChild(head);
+    keys.forEach(key => askBlock(key, picker).forEach(el => card.appendChild(el)));
+    return card;
+  }
+
+  // One waiting meal on a day: its line (label, chips, and "Used?" when closed), then its buttons
+  // or question when open. Returns the elements to put in the card.
+  function askBlock(key, picker) {
+    const { day, mealTime } = FT.sitOf(key);
+    const state = pastState[key] || 'ask';
+    // A closed asking meal: no ✕ on its chips, just the quiet tag; tap its line to open it
+    const closed = state === 'ask' && askOpen !== key && addingDay !== key;
+    const askText = LOOK.askText(FT.dayMeals(packs, day, mealTime));
+
+    const block = document.createElement('div');
+    block.className = 'ask-meal';
+    block.dataset.meal = mealTime;
+
+    const line = document.createElement('div');
+    line.className = 'ask-line';
+    const lbl = document.createElement('span');
+    lbl.className = 'sit-lbl';
+    lbl.textContent = mealTime === 'dinner' ? 'DINNER' : 'TEA';
+    line.appendChild(lbl);
+    const mealBlocks = appendDayChips(line, day, closed, mealTime);
+    if (closed) {
+      const tag = document.createElement('span');
+      tag.className = 'ask-tag';
+      tag.textContent = askText;
+      line.appendChild(tag);
+    }
+    if (state === 'ask') {
+      line.setAttribute('role', 'button');
+      line.setAttribute('aria-expanded', String(!closed));
+      line.tabIndex = 0;
+      const toggle = () => {
+        askOpen = closed ? key : null;
+        addingDay = null;
+        openDay = null; // only one card open: close any other day
+        renderMeals();
+      };
+      line.addEventListener('click', toggle);
+      line.addEventListener('keydown', e => {
+        if (e.target !== line) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    }
+    block.appendChild(line);
+    mealBlocks.forEach(b => block.appendChild(b));
+
+    if (!closed) {
+      const body = document.createElement('div');
+      body.className = 'dbody past-body';
+      const q = text => {
+        const el = document.createElement('div');
+        el.className = 'q';
+        el.textContent = text;
+        body.appendChild(el);
+      };
+      const button = (cls, label, onClick) => {
+        const b = document.createElement('button');
+        b.className = 'act ' + cls;
+        b.textContent = label;
+        b.addEventListener('click', onClick);
+        return b;
+      };
+      const btns = () => {
+        const row = document.createElement('div');
+        row.className = 'btns';
+        body.appendChild(row);
+        return row;
+      };
+
+      if (state === 'ask') {
+        // Yes / No, then + Add (this meal's picker, until Done) and Save as meal
         const row = document.createElement('div');
         row.className = 'askrow ans';
         const text = document.createElement('span');
@@ -2755,67 +2797,66 @@
           body.appendChild(picker);
           picker.hidden = false;
         }
-      }
-    } else if (state === 'use') {
-      q('How much did you use?');
-      const planned = FT.dayMeals(packs, day, mealTime).filter(p => p.kind !== 'takeaway');
-      const partIds = FT.partDefaults(packs, mealPlans, recipes, day, mealTime);
-      planned.forEach(pack => {
-        const row = document.createElement('div');
-        row.className = 'use-row';
-        row.dataset.id = pack.id;
-        const name = document.createElement('b');
-        name.textContent = pack.name;
-        const seg = document.createElement('div');
-        seg.className = 'seg';
-        const startPart = partIds.has(pack.id);
-        const all = document.createElement('button');
-        all.type = 'button';
-        all.className = startPart ? 'all' : 'all on';
-        all.textContent = 'All used';
-        const part = document.createElement('button');
-        part.type = 'button';
-        part.className = startPart ? 'part on' : 'part';
-        part.textContent = 'Part used';
-        all.addEventListener('click', () => { all.classList.add('on'); part.classList.remove('on'); });
-        part.addEventListener('click', () => { part.classList.add('on'); all.classList.remove('on'); });
-        seg.append(all, part);
-        row.append(name, seg);
-        body.appendChild(row);
-      });
-      const note = document.createElement('div');
-      note.className = 'note';
-      note.textContent = 'Part used stays in the fridge · use within 3 days';
-      body.appendChild(note);
-      btns().appendChild(button('had-done', 'Done', () => {
-        const rows = [...body.querySelectorAll('.use-row')].map(el => ({
-          pack: planned.find(p => String(p.id) === el.dataset.id),
-          part: el.querySelector('.part').classList.contains('on')
+      } else if (state === 'use') {
+        q('How much did you use?');
+        const planned = FT.dayMeals(packs, day, mealTime).filter(p => p.kind !== 'takeaway');
+        const partIds = FT.partDefaults(packs, mealPlans, recipes, day, mealTime);
+        planned.forEach(pack => {
+          const row = document.createElement('div');
+          row.className = 'use-row';
+          row.dataset.id = pack.id;
+          const name = document.createElement('b');
+          name.textContent = pack.name;
+          const seg = document.createElement('div');
+          seg.className = 'seg';
+          const startPart = partIds.has(pack.id);
+          const all = document.createElement('button');
+          all.type = 'button';
+          all.className = startPart ? 'all' : 'all on';
+          all.textContent = 'All used';
+          const part = document.createElement('button');
+          part.type = 'button';
+          part.className = startPart ? 'part on' : 'part';
+          part.textContent = 'Part used';
+          all.addEventListener('click', () => { all.classList.add('on'); part.classList.remove('on'); });
+          part.addEventListener('click', () => { part.classList.add('on'); all.classList.remove('on'); });
+          seg.append(all, part);
+          row.append(name, seg);
+          body.appendChild(row);
+        });
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = 'Part used stays in the fridge · use within 3 days';
+        body.appendChild(note);
+        btns().appendChild(button('had-done', 'Done', () => {
+          const rows = [...body.querySelectorAll('.use-row')].map(el => ({
+            pack: planned.find(p => String(p.id) === el.dataset.id),
+            part: el.querySelector('.part').classList.contains('on')
+          }));
+          finishUse(key, rows);
         }));
-        finishUse(key, rows);
-      }));
-    } else if (state === 'cost') {
-      q('How much was it?');
-      const input = document.createElement('input');
-      input.className = 'cost-in';
-      input.type = 'text';
-      input.inputMode = 'decimal';
-      input.placeholder = '£';
-      body.appendChild(input);
-      const row = btns();
-      row.append(
-        button('cost-skip', 'Skip', () => finishCost(key, null)),
-        button('cost-save', 'Save', () => finishCost(key, input.value)));
-    } else if (state === 'had') {
-      q('What did you have?');
-      body.appendChild(picker);
-      picker.hidden = false;
-      const picked = (hadPicked[key] || []).length;
-      btns().appendChild(button('had-skip', picked ? 'Done' : 'Skip', endHad));
+      } else if (state === 'cost') {
+        q('How much was it?');
+        const input = document.createElement('input');
+        input.className = 'cost-in';
+        input.type = 'text';
+        input.inputMode = 'decimal';
+        input.placeholder = '£';
+        body.appendChild(input);
+        const row = btns();
+        row.append(
+          button('cost-skip', 'Skip', () => finishCost(key, null)),
+          button('cost-save', 'Save', () => finishCost(key, input.value)));
+      } else if (state === 'had') {
+        q('What did you have?');
+        body.appendChild(picker);
+        picker.hidden = false;
+        const picked = (hadPicked[key] || []).length;
+        btns().appendChild(button('had-skip', picked ? 'Done' : 'Skip', endHad));
+      }
+      block.appendChild(body);
     }
-
-    card.appendChild(body);
-    return card;
+    return [block];
   }
 
   // Planned foods on a day as chips: one chip per meal plan, single foods as before. Returns the
