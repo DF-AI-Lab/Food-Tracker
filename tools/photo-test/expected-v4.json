@@ -1,0 +1,298 @@
+{
+  "p01.jpg": {
+    "name": [
+      "Gammon joint",
+      "Unsmoked gammon joint",
+      "Unsmoked gammon"
+    ],
+    "sub": "Asda Just Essentials unsmoked gammon joint",
+    "date": "2026-10-21",
+    "price": 5.39
+  },
+  "p02.jpg": {
+    "name": [
+      "Beef mince",
+      "Beef steak mince",
+      "Steak mince"
+    ],
+    "sub": "Asda beef steak mince 15% fat",
+    "date": "2026-10-18"
+  },
+  "p03.jpg": {
+    "name": [
+      "Smoked back bacon",
+      "Smoked bacon",
+      "Back bacon",
+      "Smoked bacon rashers",
+      "Smoked back bacon rashers"
+    ],
+    "sub": "Asda smoked back bacon rashers",
+    "date": "2026-10-23"
+  },
+  "p04.jpg": {
+    "name": [
+      "Smoked back bacon",
+      "Smoked bacon",
+      "Back bacon",
+      "Smoked bacon rashers",
+      "Smoked back bacon rashers"
+    ],
+    "sub": "Asda smoked back bacon rashers",
+    "date": "2026-10-21"
+  },
+  "p05.jpg": {
+    "name": [
+      "Whole chicken",
+      "Large whole chicken",
+      "Large chicken"
+    ],
+    "sub": "Asda extra tasty large chicken",
+    "date": "2026-10-10"
+  },
+  "p06.jpg": {
+    "name": [
+      "Potatoes",
+      "Maris piper potatoes"
+    ],
+    "sub": "Asda British Maris Piper potatoes",
+    "packs": 2,
+    "kind": "veg"
+  },
+  "p07.jpg": {
+    "name": [
+      "Pork chipolatas",
+      "Chipolatas",
+      "Chipolata sausages",
+      "Pork chipolata sausages",
+      "Pork sausages"
+    ],
+    "sub": "Asda Exceptional 20 classic pork chipolata sausages",
+    "date": "2026-10-13"
+  },
+  "p08.jpg": {
+    "name": [
+      "Puff pastry",
+      "Puff pastry sheet",
+      "Ready rolled puff pastry"
+    ],
+    "sub": "Jus-Rol ready rolled puff pastry sheet",
+    "date": "2026-10-30"
+  },
+  "p09.jpg": {
+    "name": [
+      "Tagliatelle",
+      "Egg tagliatelle",
+      "Fresh tagliatelle",
+      "Fresh egg tagliatelle"
+    ],
+    "sub": "Asda fresh egg tagliatelle",
+    "date": "2026-11-03"
+  },
+  "p10.jpg": {
+    "name": [
+      "Semi-skimmed milk",
+      "Semi skimmed milk"
+    ],
+    "sub": "Asda British semi skimmed milk",
+    "date": "2026-10-14"
+  },
+  "p11.jpg": {
+    "name": [
+      "Orange juice",
+      "Smooth orange juice"
+    ],
+    "sub": "Asda smooth orange juice from concentrate 1L",
+    "date": "2026-12-09",
+    "bb": true
+  },
+  "p12.jpg": {
+    "name": [
+      "Potatoes",
+      "Maris piper potatoes"
+    ],
+    "sub": "Asda British Maris Piper potatoes",
+    "packs": 2,
+    "kind": "veg"
+  },
+  "p13.jpg": {
+    "name": "Baking potatoes",
+    "sub": "Asda British 4 baking potatoes",
+    "kind": "veg"
+  },
+  "p14.jpg": {
+    "name": "Carrots",
+    "sub": "Asda British carrots",
+    "kind": "veg"
+  },
+  "p15.jpg": {
+    "name": "Sweet potatoes",
+    "sub": "Asda sweet potatoes",
+    "kind": "veg"
+  },
+  "p16.jpg": {
+    "name": [
+      "Dunkers",
+      "Cheese dunkers",
+      "Cheese and breadsticks"
+    ],
+    "sub": "Dairylea Dunkers",
+    "date": "2027-01-28"
+  },
+  "p17.jpg": {
+    "name": [
+      "Smoked haddock fishcakes",
+      "Haddock fishcakes",
+      "Fishcakes"
+    ],
+    "sub": "M&S 2 smoked haddock fillet fishcakes",
+    "date": "2026-10-14"
+  },
+  "p18.jpg": {
+    "name": [
+      "Hot dog rolls",
+      "Hotdog rolls"
+    ],
+    "sub": "Warburtons 6 hotdog rolls",
+    "date": "2026-10-13",
+    "bb": true
+  },
+  "p19.jpg": {
+    "name": [
+      "Sausage rolls",
+      "Pork sausage rolls"
+    ],
+    "sub": "Asda 6 pork sausage rolls",
+    "date": "2026-10-20"
+  },
+  "p20.jpg": {
+    "name": [
+      "Sausage rolls",
+      "Pork sausage rolls"
+    ],
+    "sub": "Asda 6 pork sausage rolls",
+    "date": "2026-10-20"
+  },
+  "p21.jpg": {
+    "name": [
+      "Golden kiwi",
+      "Golden kiwis",
+      "Kiwi",
+      "Kiwis"
+    ],
+    "sub": "Asda Exceptional golden kiwi 4 pack",
+    "kind": "veg"
+  },
+  "p22.jpg": {
+    "name": [
+      "Scotch eggs",
+      "Cumberland scotch eggs"
+    ],
+    "sub": "Asda 2 Cumberland scotch eggs",
+    "date": "2026-10-16"
+  },
+  "p23.jpg": {
+    "name": [
+      "Whole chicken",
+      "Small whole chicken",
+      "Small chicken"
+    ],
+    "sub": "Asda extra tasty small chicken",
+    "date": "2026-10-16"
+  },
+  "p24.jpg": {
+    "name": [
+      "Whole chicken",
+      "Small whole chicken",
+      "Small chicken"
+    ],
+    "sub": "Asda extra tasty small chicken",
+    "date": "2026-10-16"
+  },
+  "p25.jpg": {
+    "name": "Carrots",
+    "sub": "Asda British carrots",
+    "kind": "veg"
+  },
+  "p26.jpg": {
+    "name": [
+      "Baby leaf salad",
+      "Peppery baby leaf salad",
+      "Salad"
+    ],
+    "sub": "Peppery baby leaf salad",
+    "date": "2026-10-13"
+  },
+  "p27.jpg": {
+    "name": [
+      "Orange juice",
+      "Smooth orange juice"
+    ],
+    "sub": "Asda smooth orange juice from concentrate 1L",
+    "date": "2026-12-09",
+    "bb": true
+  },
+  "p28.jpg": {
+    "name": [
+      "Closed cup mushrooms",
+      "Mushrooms"
+    ],
+    "sub": "Closed cup mushrooms 400g",
+    "kind": "veg"
+  },
+  "p29.jpg": {
+    "name": [
+      "Chicken satay skewers",
+      "Satay chicken skewers",
+      "Chicken skewers"
+    ],
+    "sub": "10 chicken satay skewers",
+    "date": "2026-10-26"
+  },
+  "p30.jpg": {
+    "name": [
+      "Golden delicious apples",
+      "Apples"
+    ],
+    "sub": "Golden Delicious apples",
+    "kind": "veg"
+  },
+  "p31.jpg": {
+    "name": [
+      "Yoghurts",
+      "Yoghurt",
+      "Corner yoghurts"
+    ],
+    "sub": "Muller Corner vanilla chocolate balls & banana chocolate flakes",
+    "date": "2026-11-11"
+  },
+  "p32.jpg": {
+    "name": [
+      "Pork ribs",
+      "Bbq pork ribs",
+      "Pork rack of ribs",
+      "Rack of ribs",
+      "Ribs"
+    ],
+    "sub": "Slow cooked smoky BBQ pork rack of ribs",
+    "date": "2026-11-01"
+  },
+  "p33.jpg": {
+    "name": "Scotch eggs",
+    "sub": "M&S British classic scotch eggs",
+    "date": "2026-10-17"
+  },
+  "p34.jpg": {
+    "name": "Scotch eggs",
+    "sub": "M&S British classic scotch eggs",
+    "date": "2026-10-17"
+  },
+  "p35.jpg": {
+    "name": [
+      "Eggs",
+      "Medium eggs"
+    ],
+    "sub": "Asda free range 6 medium eggs",
+    "date": "2026-10-21",
+    "bb": true
+  }
+}
