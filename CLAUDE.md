@@ -53,3 +53,7 @@ New chats start from the repo's **default branch**, so work left on a chat's own
 ## Things for me to copy
 
 - Whenever I need to copy something (a name, a value, a command, a setting), put it on its own in a code block so I get the copy button. Don't make me select text by hand (Darren, 2026-10-16).
+
+## Photo test API key
+
+- The Claude API key for the photo tests is the environment variable `PHOTO_TEST_API_KEY` (not `ANTHROPIC_API_KEY`, and not a network secret). Run with `ANTHROPIC_API_KEY="$PHOTO_TEST_API_KEY" ANTHROPIC_BASE_URL=https://api.anthropic.com`. If it's empty, tell me the env var is missing (Darren, 2026-10-16).
