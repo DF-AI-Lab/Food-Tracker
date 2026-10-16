@@ -27,7 +27,7 @@ Photos live in the Drive folder **Food test photos** (df.ai.lab.hq). `pack-facts
 
 1. Download the Drive folder into `tools/photo-test/photos`
 2. `node tools/photo-test/name-photos.js tools/photo-test/photos` (renames to p01.jpg… and lists any new photos Claude hasn't read yet)
-3. `node tools/photo-test/run-api.js tools/photo-test/photos --prompt prompt-v4.txt --expected tools/photo-test/expected-v4.json`
+3. `ANTHROPIC_API_KEY="$PHOTO_TEST_API_KEY" ANTHROPIC_BASE_URL=https://api.anthropic.com node tools/photo-test/run-api.js tools/photo-test/photos --prompt prompt-v4.txt --expected tools/photo-test/expected-v4.json` (in the cloud the key is the env var `PHOTO_TEST_API_KEY`)
 
 - Look at **names** and **no brand** on the score line. 🏷 lines show names that didn't match.
 - Dates must still be ❌ 0.
