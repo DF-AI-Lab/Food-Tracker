@@ -110,3 +110,10 @@ test("score.js reads a run-api results file (results inside { settings, cost, re
   try { assert.equal(main([exp, res]), 0); } finally { console.log = log; }
   assert.match(lines[0], /right 1 .*names 1\/1/);
 });
+
+test("prompt keeps the cut over a short app name, and veg type only when the packet says it", () => {
+  const p = buildPrompt(["Bacon", "Sausages", "Potatoes"], 2026, "prompt-v4.txt");
+  assert.match(p, /"Smoked back bacon", not "Bacon"/);
+  assert.match(p, /"Pork chipolatas", not "Sausages"/);
+  assert.match(p, /only when the packet/i);
+});
