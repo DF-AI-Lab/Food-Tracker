@@ -1219,11 +1219,52 @@
       toFreezer: document.getElementById('toFreezer').checked };
   }
 
+  // Add one item on a phone (touch screen): 3 steps, Food, Date, Add (mock docs/mockups/add-steps-mock.html)
+  const STEPS_ON = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  let addStep = 1;
+  function onFridgeAdd() {
+    return currentPage() === 'add' && document.querySelector('[data-sub].on')?.dataset.sub === 'fridge';
+  }
+  // The header (and its title row and sub tabs) goes while a food is being typed in, so the steps sit at the top
+  function syncStepTop() {
+    const on = STEPS_ON && document.body.classList.contains('typing') && onFridgeAdd();
+    document.body.classList.toggle('add-steps-top', !!on);
+  }
+  function renderSteps() {
+    const bar = document.getElementById('addSteps');
+    const pane = document.querySelector('[data-sub-pane="fridge"] .pane.af');
+    const next = document.getElementById('stepNext');
+    if (!bar || !pane || !next) return;
+    const typed = document.getElementById('name').value.trim();
+    if (!typed) addStep = 1;
+    if (!STEPS_ON || !onFridgeAdd()) {
+      bar.hidden = true;
+      next.hidden = true;
+      pane.classList.remove('stepped', 'step-1', 'step-2', 'step-3');
+      syncStepTop();
+      return;
+    }
+    pane.classList.add('stepped');
+    pane.classList.toggle('step-1', addStep === 1);
+    pane.classList.toggle('step-2', addStep === 2);
+    pane.classList.toggle('step-3', addStep === 3);
+    bar.hidden = false;
+    bar.dataset.step = String(addStep);
+    bar.querySelectorAll('.st-dots b').forEach(b => b.classList.toggle('on', Number(b.dataset.s) === addStep));
+    document.getElementById('stepBack').hidden = addStep <= 1;
+    document.getElementById('stepName').textContent = addStep > 1 ? typed : '';
+    next.hidden = addStep === 3;
+    next.textContent = addStep === 1 ? 'Next: Date →' : 'Next: Add →';
+    next.disabled = addStep === 1 && !typed;
+    syncStepTop();
+  }
+
   function renderAddBar() {
+    renderSteps();
     const bar = document.getElementById('addBar');
     if (!bar) return;
     const spec = addSpec();
-    const show = currentPage() === 'add' && document.querySelector('[data-sub].on')?.dataset.sub === 'fridge' && !!spec.name;
+    const show = onFridgeAdd() && !!spec.name && (!STEPS_ON || addStep === 3);
     bar.hidden = !show;
     document.body.classList.toggle('has-addbar', show);
     if (!show) return;
@@ -1262,9 +1303,11 @@
   function refreshTyping() {
     const typing = isTextTarget(document.activeElement) && window.matchMedia('(pointer: coarse)').matches;
     document.body.classList.toggle('typing', typing);
+    syncStepTop();
   }
   document.addEventListener('focusin', e => {
     if (isTextTarget(e.target) && window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('typing');
+    syncStepTop();
   });
   document.addEventListener('focusout', () => {
     // Short wait, then re-check: moving from one text box to another does not flash the icons back
@@ -1272,6 +1315,23 @@
   });
 
   function setupAddBar() {
+    document.getElementById('stepNext').addEventListener('click', () => {
+      addStep = Math.min(3, addStep + 1);
+      renderSteps();
+      renderAddBar();
+      if (addStep === 2) document.getElementById('ddmm').focus();
+      if (addStep === 3 && document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    });
+    document.getElementById('stepBack').addEventListener('click', () => {
+      addStep = Math.max(1, addStep - 1);
+      renderSteps();
+      renderAddBar();
+    });
+    document.getElementById('stepCancel').addEventListener('click', () => {
+      cancelAdd();
+      addStep = 1;
+      renderSteps();
+    });
     ['name', 'ddmm', 'days'].forEach(id => document.getElementById(id).addEventListener('input', renderAddBar));
     ['noDate', 'toFreezer'].forEach(id => document.getElementById(id).addEventListener('change', renderAddBar));
     ['minus', 'plus'].forEach(id => document.getElementById(id).addEventListener('click', renderAddBar));
@@ -1453,6 +1513,7 @@
     document.getElementById('ddmm').value = '';
     document.getElementById('days').value = '';
     document.getElementById('count').textContent = '1';
+    addStep = 1;
     applyNoDateRule();
     updateDatePreview();
     refreshUsuals();
@@ -1467,6 +1528,7 @@
     document.getElementById('days').value = '';
     document.getElementById('count').textContent = '1';
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    addStep = 1;
     applyNoDateRule();
     updateDatePreview();
     refreshUsuals();
