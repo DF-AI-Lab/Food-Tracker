@@ -8,6 +8,7 @@ const path = require("node:path");
 const {
   initializeTestEnvironment, assertSucceeds, assertFails,
 } = require("@firebase/rules-unit-testing");
+const { asUser, allow, emailOf } = require("./allowed-list");
 const {
   doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, addDoc,
   arrayUnion, arrayRemove, deleteField, Timestamp,
@@ -38,9 +39,11 @@ test.beforeEach(async () => {
     await setDoc(doc(db, "invites", "ABCD2345"), { householdId: H, expires: later() });
     await setDoc(doc(db, "invites", "OLD23456"), { householdId: H, expires: earlier() });
   });
+  // alice and bob are on the family list; carol is not
+  await allow(env, ["alice", "bob"]);
 });
 
-const as = uid => env.authenticatedContext(uid).firestore();
+const as = uid => asUser(env, uid);
 const anon = () => env.unauthenticatedContext().firestore();
 
 // ---------- households ----------
@@ -207,4 +210,48 @@ test("sanity: the test data is there", async () => {
     const snap = await getDoc(doc(ctx.firestore(), "households", H));
     assert.deepEqual(snap.data().members, ["alice"]);
   });
+});
+
+// ---------- family list (allowed/{email}) ----------
+
+test("someone not on the family list gets nothing, not even a household of their own", async () => {
+  await assertFails(setDoc(doc(as("carol"), "households", "carolHome"),
+    { name: "Carol", members: ["carol"], names: { carol: "Carol" } }));
+  await assertFails(setDoc(doc(as("carol"), "users", "carol"), { householdId: "carolHome" }));
+  await assertFails(getDoc(doc(as("carol"), "users", "carol")));
+  await assertFails(getDoc(doc(as("carol"), "invites", "ABCD2345")));
+});
+
+test("someone not on the family list cannot join, even with a good invite", async () => {
+  await assertFails(updateDoc(doc(as("carol"), "households", H), {
+    members: arrayUnion("carol"), "names.carol": "Carol", joinedWith: "ABCD2345",
+  }));
+});
+
+test("a member taken off the family list loses access to their household", async () => {
+  await env.withSecurityRulesDisabled(async ctx => {
+    await deleteDoc(doc(ctx.firestore(), "allowed", emailOf("alice")));
+  });
+  await assertFails(getDoc(doc(as("alice"), "households", H)));
+  await assertFails(getDoc(doc(as("alice"), "households", H, "packs", "p1")));
+  await assertFails(addDoc(collection(as("alice"), "households", H, "packs"), { name: "Milk" }));
+});
+
+test("an unverified email does not count, even if it is on the list", async () => {
+  const unverified = env.authenticatedContext("alice", { email: emailOf("alice"), email_verified: false }).firestore();
+  await assertFails(getDoc(doc(unverified, "households", H)));
+});
+
+test("people can check their own place on the list, but not see or change the list", async () => {
+  await assertSucceeds(getDoc(doc(as("alice"), "allowed", emailOf("alice"))));
+  await assertFails(getDoc(doc(as("alice"), "allowed", emailOf("bob"))));
+  await assertFails(getDocs(collection(as("alice"), "allowed")));
+  await assertFails(setDoc(doc(as("alice"), "allowed", emailOf("carol")), { note: "sneaky" }));
+  await assertFails(deleteDoc(doc(as("alice"), "allowed", emailOf("alice"))));
+  await assertFails(getDoc(doc(anon(), "allowed", emailOf("alice"))));
+});
+
+test("an email on the list in capitals still matches", async () => {
+  const shouty = env.authenticatedContext("bob", { email: "BOB@Example.com", email_verified: true }).firestore();
+  await assertSucceeds(getDoc(doc(shouty, "invites", "ABCD2345")));
 });

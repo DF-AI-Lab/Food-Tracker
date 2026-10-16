@@ -4,6 +4,7 @@
 //   npm run check:account
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
+const { allowRest } = require("./allowed-list");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -35,6 +36,8 @@ function startStatic() {
   // Start from an empty emulator database
   await fetch("http://127.0.0.1:8085/emulator/v1/projects/demo-food-tracker/databases/(default)/documents", { method: "DELETE" });
   await fetch("http://127.0.0.1:9099/emulator/v1/projects/demo-food-tracker/accounts", { method: "DELETE" });
+  // The family list: these test people may use the app (zoe is not on it)
+  await allowRest(["alice", "bob", "carol", "dave"]);
 
   const server = await startStatic();
   const browser = await chromium.launch();
@@ -228,6 +231,20 @@ function startStatic() {
     await alice.click("#signOut");
     await visible(alice, "#gate");
     await visible(alice, "#signIn");
+  });
+
+  // Someone not on the family list: told plainly, offered nothing
+  const zoe = await phone("zoe");
+  await step("an email not on the family list is told so, with no make or join", async () => {
+    await zoe.click("#signIn");
+    await until(zoe, async () => assert.match(await zoe.locator("#gateMsg").innerText(), /not on the family list/i));
+    await visible(zoe, "#gate");
+    assert.equal(await zoe.locator("#makeHH").isVisible(), false, "no Make a household");
+    assert.equal(await zoe.locator("#joinBtn").isVisible(), false, "no Join");
+    // A way out, to try another Google account
+    await visible(zoe, "#gateSignOut");
+    await zoe.click("#gateSignOut");
+    await visible(zoe, "#signIn");
   });
 
   await step("no page errors", async () => assert.deepEqual(errors, []));

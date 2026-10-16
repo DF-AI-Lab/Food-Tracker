@@ -12,7 +12,8 @@ const DAY = 24 * 3600 * 1000;
 const alice = { uid: "alice", displayName: "Alice" };
 const bob = { uid: "bob", displayName: "Bob" };
 const eve = { uid: "eve", displayName: "Eve" };
-const as = u => env.authenticatedContext(u.uid).firestore();
+const { asUser, allow } = require("./allowed-list");
+const as = u => asUser(env, u.uid);
 
 test.before(async () => {
   H = await import(path.join(__dirname, "..", "v2", "js", "household.js"));
@@ -22,7 +23,10 @@ test.before(async () => {
   });
 });
 test.after(async () => env && env.cleanup());
-test.beforeEach(async () => env.clearFirestore());
+test.beforeEach(async () => {
+  await env.clearFirestore();
+  await allow(env, ["alice", "bob", "eve"]);
+});
 
 // ---------- pure helpers ----------
 
