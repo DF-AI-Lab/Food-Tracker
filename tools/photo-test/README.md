@@ -18,3 +18,12 @@ Note: ❌ wrong is the number that must be 0.
 4. All good? Run the full folder the same way
 5. Upload the `results-api-...json` file it saves to Claude to score it
 - Settings: 1000 px, Haiku first, Sonnet retry on a blank date. `--no-retry` turns the retry off.
+
+## V4 names test (shopping match)
+
+Same 35 photos, new naming rule (main food + cut, no shop/brand). Prompt: `prompt-v4.txt`. Answer key: `expected-v4.json` (a list of OK names per photo).
+
+`node tools/photo-test/run-api.js tools/photo-test/photos --prompt prompt-v4.txt --expected tools/photo-test/expected-v4.json`
+
+- Look at **names** and **no brand** on the score line. 🏷 lines show names that didn't match.
+- Dates must still be ❌ 0.

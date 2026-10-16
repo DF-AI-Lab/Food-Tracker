@@ -18,8 +18,9 @@ function main(args) {
   for (const file of resFiles) {
     const t = scoreRun(expected, JSON.parse(fs.readFileSync(file, "utf8")));
     const T = t.total;
-    console.log(`${path.basename(file)}  ✅ right ${t.right}  ⚪ blank ${t.blank}  ❌ WRONG ${t.wrong}  names ${t.nameRight}/${T}  veg ${t.kindRight}/${T}  bb ${t.bbRight}/${T}  price ${t.priceRight}/${T}`);
+    console.log(`${path.basename(file)}  ✅ right ${t.right}  ⚪ blank ${t.blank}  ❌ WRONG ${t.wrong}  names ${t.nameRight}/${T}  no brand ${t.brandFreeRight}/${T}  veg ${t.kindRight}/${T}  bb ${t.bbRight}/${T}  price ${t.priceRight}/${T}`);
     for (const r of t.rows) {
+      if (!r.name && r.got.name != null) console.log(`  🏷 ${r.file}: expected ${[].concat(r.expected.name)[0]}, got ${r.got.name}`);
       if (r.date === "wrong") console.log(`  ❌ ${r.file}: expected ${shown(r.expected)}, got ${r.got.date}`);
       else if (r.date === "blank") console.log(`  ⚪ ${r.file}: expected ${shown(r.expected)}, got blank`);
     }

@@ -1,5 +1,5 @@
 // Real Claude API photo test. Run on the PC (Node 22) with ANTHROPIC_API_KEY set.
-// Usage: node tools/photo-test/run-api.js <photoFolder> [--size 1000] [--thinking on|off] [--today YYYY-MM-DD] [--no-retry] [--limit 5] [--expected file]
+// Usage: node tools/photo-test/run-api.js <photoFolder> [--size 1000] [--thinking on|off] [--today YYYY-MM-DD] [--no-retry] [--limit 5] [--expected file] [--prompt prompt-v4.txt]
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseReply, scoreRun, costUSD, PRICES, buildPrompt } = require("./lib.js");
@@ -115,7 +115,7 @@ function listPhotos(dir) {
 }
 
 function parseArgs(argv) {
-  const opts = { dir: null, size: 1000, retry: true, limit: 5, expected: null, thinking: "on", today: null };
+  const opts = { dir: null, size: 1000, retry: true, limit: 5, expected: null, thinking: "on", today: null, prompt: "prompt.txt" };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--size") opts.size = Number(argv[++i]);
@@ -124,6 +124,7 @@ function parseArgs(argv) {
     else if (a === "--expected") opts.expected = argv[++i];
     else if (a === "--thinking") opts.thinking = argv[++i] === "off" ? "off" : "on";
     else if (a === "--today") opts.today = argv[++i];
+    else if (a === "--prompt") opts.prompt = argv[++i];
     else if (!opts.dir) opts.dir = a;
   }
   return opts;
@@ -163,7 +164,7 @@ async function main(argv) {
     return 1;
   }
   const client = new Anthropic();
-  const prompt = buildPrompt(NAMES, new Date().getFullYear());
+  const prompt = buildPrompt(NAMES, new Date().getFullYear(), opts.prompt);
 
   const files = listPhotos(opts.dir);
   if (files.length === 0) {
@@ -246,4 +247,4 @@ if (require.main === module) {
   main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
 }
 
-module.exports = { thinkingFor, needsRetry, buildRequest, scanOne, runAll, costSummary, listPhotos };
+module.exports = { thinkingFor, needsRetry, buildRequest, scanOne, runAll, costSummary, listPhotos, parseArgs };

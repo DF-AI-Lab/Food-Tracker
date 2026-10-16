@@ -23,6 +23,9 @@ function realDate(s) {
 const clean = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
 const norm = (v) => String(v ?? "").trim().toLowerCase();
 
+// Shop and brand words that must not appear in a name (V4)
+const BRANDS = ["asda", "m&s", "tesco", "sainsbury", "morrisons", "aldi", "lidl", "waitrose", "co-op", "iceland", "jus-rol", "warburtons", "muller", "müller", "dairylea"];
+
 // Model text -> one clean entry. Never guesses: bad fields become null.
 function parseReply(text) {
   const raw = String(text ?? "").replace(/```\w*/g, "");
@@ -64,7 +67,8 @@ function scoreOne(expected, got) {
 
   return {
     date,
-    name: got.name != null && norm(got.name) === norm(expected.name),
+    name: got.name != null && [].concat(expected.name).some((n) => norm(got.name) === norm(n)),
+    brandFree: got.name == null || !norm(got.name).split(/\s+/).some((w) => BRANDS.includes(w)),
     kind: expected.kind === undefined ? true : got.kind === expected.kind,
     bb: Boolean(expected.bb) === Boolean(got.bb),
     price: expected.price === undefined ? true : got.price === expected.price,
@@ -84,6 +88,7 @@ function scoreRun(expected, results) {
     blank: count((r) => r.date === "blank"),
     wrong: count((r) => r.date === "wrong"),
     nameRight: count((r) => r.name),
+    brandFreeRight: count((r) => r.brandFree),
     kindRight: count((r) => r.kind),
     bbRight: count((r) => r.bb),
     priceRight: count((r) => r.price),
@@ -101,9 +106,9 @@ function costUSD(usage, price) {
   return (usage.input_tokens * price.in + usage.output_tokens * price.out) / 1e6;
 }
 
-// Fill the prompt template that sits next to this file.
-function buildPrompt(names, year) {
-  const tpl = fs.readFileSync(path.join(__dirname, "prompt.txt"), "utf8");
+// Fill a prompt template that sits next to this file (V4 names: "prompt-v4.txt").
+function buildPrompt(names, year, file = "prompt.txt") {
+  const tpl = fs.readFileSync(path.join(__dirname, file), "utf8");
   return tpl.split("{{NAMES}}").join(names.join(", ")).split("{{YEAR}}").join(String(year));
 }
 
