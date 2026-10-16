@@ -45,5 +45,7 @@ New chats start from the repo's **default branch**, so work left on a chat's own
 - **At the start of every chat:** check for other `claude/*` branches with commits not yet on the default branch. If there are any, tell me which and ask before merging them in.
   - **Skip these old ones, never ask about them** (old V1 work from 7–8 Oct, replaced by V2; Darren said leave them, 2026-10-11/12): `claude/adoring-mccarthy-22jl0l`, `claude/festive-hopper-xdzo11`, `claude/nice-thompson-lxinyj`, `claude/stoic-faraday-8q4w4a`.
   - **Also skip these, never ask** (Darren, 2026-10-13): `claude/festive-johnson-vp52uf`, `claude/quirky-hypatia-xx7jyn`, `claude/trusting-dirac-xu88h2`.
+  - **And these, never ask** (old V2 work from 11 Oct, replaced; Darren 2026-10-16): `claude/compassionate-ramanujan-r2gukp`, `claude/intelligent-hamilton-romoyo`, `claude/kind-cannon-h6gu82`.
+  - **Only ask about a branch with work from the last 2 days.** Anything older is stale: skip it silently (Darren 2026-10-16).
 - **Merge without asking once tests pass** (Darren, 2026-10-11): after each finished build or fix, run the tests; if they pass, commit, push, open a PR into the **default branch** and merge it straight away. Then tell me in one line it's merged, with the PR link. If tests fail, don't merge: tell me.
 - Never leave work only on a chat branch at the end of a session without asking me first.
