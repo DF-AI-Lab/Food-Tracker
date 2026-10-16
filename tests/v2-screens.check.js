@@ -138,8 +138,8 @@ function startStatic() {
     assert.equal(await page.locator("#bell").isVisible(), false);
   });
 
-  await step("version number shows at the bottom", async () => {
-    await until(async () => assert.match(await text("#ver"), /^(d\.)?v\d+(\.\d+)? · \d+ \w+$/));
+  await step("version number shows (in the header next to the date, Darren 2026-10-16)", async () => {
+    await until(async () => assert.match(await text("#ver"), /^(d\.)?v\d+(\.\d+)?$/));
   });
 
   await step("test banner stays hidden", async () => {

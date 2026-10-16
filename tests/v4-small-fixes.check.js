@@ -99,6 +99,15 @@ function startStatic() {
     await page.setViewportSize({ width: 390, height: 844 });
   });
 
+  await step("header shows the date and version (no 'Synced'); no version line at the bottom", async () => {
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.click('[data-tab="fridge"]');
+    const sub = await page.locator("#homeBtn .homesub").innerText();
+    assert.match(sub, /v\d+\.\d+/);
+    assert.doesNotMatch(sub, /Synced/);
+    assert.equal(await page.locator(".homesub #ver").count(), 1, "version lives in the header");
+  });
+
   await step("no page errors", async () => {
     assert.deepEqual(errors, []);
   });
