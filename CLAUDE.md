@@ -49,3 +49,7 @@ New chats start from the repo's **default branch**, so work left on a chat's own
   - **Only ask about a branch with work from the last 2 days.** Anything older is stale: skip it silently (Darren 2026-10-16).
 - **Merge without asking once tests pass** (Darren, 2026-10-11): after each finished build or fix, run the tests; if they pass, commit, push, open a PR into the **default branch** and merge it straight away. Then tell me in one line it's merged, with the PR link. If tests fail, don't merge: tell me.
 - Never leave work only on a chat branch at the end of a session without asking me first.
+
+## Things for me to copy
+
+- Whenever I need to copy something (a name, a value, a command, a setting), put it on its own in a code block so I get the copy button. Don't make me select text by hand (Darren, 2026-10-16).
