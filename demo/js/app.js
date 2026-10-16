@@ -357,6 +357,7 @@
     document.getElementById('plus').addEventListener('click', () => changeCount(1));
 
     document.getElementById('addBtn').addEventListener('click', addPacks);
+    document.getElementById('barCancel').addEventListener('click', cancelAdd);
 
     // Date type: Use by | Best before, the tapped one is picked
     document.querySelectorAll('[data-dt]').forEach(btn => {
@@ -1456,6 +1457,19 @@
     updateDatePreview();
     refreshUsuals();
     renderAll();
+    renderAddBar();
+  }
+
+  // ✕ on the Add bar: clear what was typed, close the bar and the keyboard, add nothing
+  function cancelAdd() {
+    document.getElementById('name').value = '';
+    document.getElementById('ddmm').value = '';
+    document.getElementById('days').value = '';
+    document.getElementById('count').textContent = '1';
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    applyNoDateRule();
+    updateDatePreview();
+    refreshUsuals();
     renderAddBar();
   }
 
