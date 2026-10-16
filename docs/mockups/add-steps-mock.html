@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Add in steps mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--on:#0A1210;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:#050807;color:var(--text);font-family:var(--font);padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;max-width:1100px;margin:0 auto}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--accent);margin-bottom:8px}
+.phone{height:560px;border:1px solid var(--border);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.panel{min-height:34%;background:var(--surface);border-bottom:1px solid #2E4A3F;padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.top{display:flex;align-items:center;gap:8px}
+.x{width:30px;height:30px;border-radius:9px;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:18px}
+.steps{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.steps b{color:var(--accent)}
+.name{font-size:16px;font-weight:700;margin-left:auto}
+.in{border:1px solid var(--accent);border-radius:11px;padding:10px 12px;font-size:16px;background:var(--surface-2)}
+.in.ph{color:var(--dim)}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.pill{border:1px solid var(--border);border-radius:9px;padding:6px 10px;font-size:13px;color:var(--muted)}
+.pill.on{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:700}
+.two{display:flex;gap:8px}.two .in{flex:1}
+.go{margin-top:auto;display:flex;gap:8px}
+.b{flex:1;min-height:40px;border-radius:11px;border:1px solid var(--border);background:transparent;color:var(--text);font:inherit;font-weight:700;font-size:15px}
+.b.main{background:var(--accent);color:var(--on);border:0}
+.page{flex:1;opacity:.35;padding:12px 14px;font-size:13px;color:var(--muted)}
+.kb{height:40%;background:#1C1F1E;display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:8px}
+.kb span{background:#2E3331;border-radius:5px}
+.cap{font-size:13px;color:var(--dim);line-height:1.5;margin-top:8px}
+</style></head><body><div class="grid">
+
+<div><div class="lbl">STEP 1 · WHAT IS IT?</div>
+<div class="phone">
+ <div class="panel">
+  <div class="top"><span class="x">✕</span><span class="steps"><b>1 Food</b> · 2 Date · 3 Add</span></div>
+  <div class="in">Chicken thighs|</div>
+  <div class="row"><span class="pill on">Main</span><span class="pill">Side</span><span class="pill">Veg</span><span class="pill">Other</span><span class="pill">Cupboard</span></div>
+  <div class="go"><button class="b main">Next: Date →</button></div>
+ </div>
+ <div class="page">(rest of the page, dimmed)</div>
+ <div class="kb"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+<div class="cap">Type the name, tap what it is, then Next. The keyboard stays put.</div></div>
+
+<div><div class="lbl">STEP 2 · DATE</div>
+<div class="phone">
+ <div class="panel">
+  <div class="top"><span class="x">←</span><span class="steps">1 Food · <b>2 Date</b> · 3 Add</span><span class="name">Chicken thighs</span></div>
+  <div class="row"><span class="pill on">Use by</span><span class="pill">Best before</span><span class="pill">No date</span></div>
+  <div class="two"><div class="in">20 10|</div><div class="in ph">or Days</div></div>
+  <div class="go"><button class="b main">Next: Add →</button></div>
+ </div>
+ <div class="page">(rest of the page, dimmed)</div>
+ <div class="kb"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+<div class="cap">Number keyboard for the date. ← goes back to step 1.</div></div>
+
+<div><div class="lbl">STEP 3 · CHECK AND ADD</div>
+<div class="phone">
+ <div class="panel">
+  <div class="top"><span class="x">←</span><span class="steps">1 Food · 2 Date · <b>3 Add</b></span></div>
+  <div style="font-size:17px;font-weight:700">Chicken thighs</div>
+  <div style="font-size:13px;color:var(--muted);font-family:var(--mono)">Main · use by Tue 20 Oct</div>
+  <div class="row"><span class="pill">− 1 pack +</span><span class="pill on">Fridge</span><span class="pill">Freezer</span></div>
+  <div class="go"><button class="b main">✓ Add</button></div>
+ </div>
+ <div class="page">(rest of the page, dimmed)</div>
+</div>
+<div class="cap">Keyboard closes. Packs and fridge/freezer, then Add. After Add it goes back to step 1, ready for the next food.</div></div>
+
+</div></body></html>

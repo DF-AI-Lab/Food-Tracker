@@ -312,6 +312,16 @@ body.typing .addbar{top:var(--vvtop,0px);bottom:auto;z-index:70;border-top:0;bor
 body.kb-open .bnav,body.kb-open .verbar{display:none}
 body.typing .bnav{display:none}
 .ab-x{width:40px;height:40px;flex:none;margin-left:-8px;border-radius:12px;border:0;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+/* Add one item on a phone: 3 steps (Food, Date, Add) with a step bar; hidden on a computer */
+.addsteps:not([hidden]){display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.addsteps [hidden],.st-next[hidden]{display:none}
+.addsteps .st-dots{white-space:nowrap}
+.addsteps .st-dots b{font-weight:600}
+.addsteps .st-dots b.on{color:var(--accent)}
+.st-name{flex:1 1 auto;min-width:0;margin-left:auto;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.st-next{width:100%;margin-top:10px}
+.pane.af.stepped:not(.step-1) .st-1,.pane.af.stepped:not(.step-2) .st-2,.pane.af.stepped:not(.step-3) .st-3{display:none}
+body.add-steps-top #top,body.add-steps-top .titlerow,body.add-steps-top #subTabs{display:none}
 .ab-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 #abName{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #abSum{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

@@ -187,7 +187,8 @@
     <!-- Add to fridge -->
     <div data-sub-pane="fridge" style="display:none;">
       <div class="pane af">
-        <div class="group">
+        <div id="addSteps" class="addsteps" data-step="1" hidden><button type="button" id="stepCancel" class="ab-x" aria-label="Cancel"><i data-icon="close" data-size="18"></i></button><button type="button" id="stepBack" class="ab-x" aria-label="Back" hidden><i data-icon="back" data-size="18"></i></button><span class="st-dots"><b data-s="1">1 Food</b> · <b data-s="2">2 Date</b> · <b data-s="3">3 Add</b></span><span id="stepName" class="st-name"></span></div>
+        <div class="group st-1">
           <div class="lbl">What is it?</div>
           <div class="mtabs utabs">
             <button data-kind="main" class="sb on">Main</button>
@@ -204,7 +205,7 @@
           <div class="note" id="micNote"></div>
         </div>
 
-        <div class="group">
+        <div class="group st-2">
           <div class="rowhead">
             <div class="lbl">Date</div>
             <div class="seg mini dts">
@@ -222,8 +223,9 @@
           </div>
           <div id="datePreview" class="datebox">No date picked yet</div>
         </div>
+        <button type="button" id="stepNext" class="act big st-next" hidden>Next: Date →</button>
 
-        <div class="card opts">
+        <div class="card opts st-3">
           <div class="packs2"><span>Packs</span><span class="step"><button type="button" class="undo sq" id="minus" aria-label="One less"><i data-icon="minus" data-size="16"></i></button><b id="count">1</b><button type="button" class="undo sq" id="plus" aria-label="One more"><i data-icon="add" data-size="16"></i></button></span></div>
           <label class="frzck"><span class="t"><span>Straight to freezer</span><small>Skips the fridge list</small></span><input type="checkbox" id="toFreezer" role="switch"><i class="tog" aria-hidden="true"></i></label>
         </div>
