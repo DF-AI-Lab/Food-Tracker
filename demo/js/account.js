@@ -1,0 +1,314 @@
+// Sign-in gate, household and settings for V2 (step 3). Loaded after the classic scripts.
+//   ?local=1          no sign-in, no Firebase: the in-memory app (checks)
+//   ?emu=1&as=NAME    Firebase emulators, fake Google sign-in as NAME
+import { firebaseConfig } from "./firebase-config.js";
+import { myHousehold, createHousehold, joinHousehold, removeMember, createInvite, inviteLink, codeFromUrl, renameHousehold, renameMe } from "./household.js";
+
+const CDN = "https://www.gstatic.com/firebasejs/12.19.0/";
+const params = new URLSearchParams(location.search);
+const $ = id => document.getElementById(id);
+
+// Settings → Check for updates (FT_checkUpdate is defined by pwa.js)
+$("checkUpdate").onclick = async () => {
+  $("updateMsg").textContent = "Checking…";
+  try {
+    const r = await window.FT_checkUpdate();
+    $("updateMsg").textContent = r === "new"
+      ? "New version found, tap the bar at the bottom"
+      : `✓ Up to date · ${window.FT_VERSION.prefix || "v"}${window.FT_VERSION.label || window.FT_VERSION.n}`;
+  } catch (e) {
+    $("updateMsg").textContent = "Couldn't check for updates";
+  }
+};
+
+// Settings → Install app (FT_install is defined by pwa.js): runs Chrome's prompt, or says how
+$("settingsInstall").onclick = async () => {
+  const note = $("settingsInstallNote");
+  let r = "none";
+  try {
+    if (window.FT_install) r = await window.FT_install();
+  } catch (e) {
+    r = "none";
+  }
+  note.textContent = r === "installed" ? "Installed" : "Use your browser menu → Add to Home screen";
+  note.hidden = r === "prompted";
+};
+
+// app.js waits for this before it starts
+let resolveReady;
+window.FT_READY = new Promise(r => { resolveReady = r; });
+// Who the running app belongs to (null until it starts)
+let started = null;
+
+if (params.get("local") === "1") {
+  // Memory-only: no gate, no settings, nothing loaded from the network
+  $("gate").hidden = true;
+  $("settingsBtn").hidden = true;
+  resolveReady();
+} else {
+  start().catch(e => { $("gateMsg").textContent = "Could not start: " + e.message; });
+}
+
+async function start() {
+  const emu = params.get("emu") === "1";
+
+  // Dynamic import: only fetched when not in local mode. Each namespace is the whole Firebase API.
+  const [A, AU, F] = await Promise.all([
+    import(CDN + "firebase-app.js"),
+    import(CDN + "firebase-auth.js"),
+    import(CDN + "firebase-firestore.js"),
+  ]);
+
+  const app = A.initializeApp(emu
+    ? { apiKey: "fake-key", authDomain: "localhost", projectId: "demo-food-tracker" }
+    : firebaseConfig, "v4-demo"); // own app name: separate from live and the V3 demo (sign-in + offline cache)
+  const auth = AU.getAuth(app);
+  window.FT_TOKEN = () => auth.currentUser.getIdToken();
+  // Offline cache on, shared across open tabs: the app works without a signal
+  const db = F.initializeFirestore(app, {
+    localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }),
+  });
+  if (emu) {
+    AU.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+    F.connectFirestoreEmulator(db, "127.0.0.1", 8085);
+  }
+
+  // Button actions: gate errors show in #gateMsg, settings errors in an alert
+  const onGate = fn => async () => {
+    $("gateMsg").textContent = "";
+    try { await fn(); } catch (e) { $("gateMsg").textContent = e.message; }
+  };
+  const onSettings = fn => async () => {
+    try { await fn(); } catch (e) { alert(e.message); }
+  };
+
+  function showSignedOut() {
+    // The app is running with the last person's data: start clean from the sign-in screen
+    if (started) return location.reload();
+    window.FT_HOUSEHOLD = null;
+    $("settings").hidden = true;
+    $("signIn").hidden = false;
+    $("joinPart").hidden = true;
+    $("gateSignOut").hidden = true;
+    $("gateMsg").textContent = "";
+    $("gate").hidden = false;
+  }
+
+  // With a join link, only the Join part shows (no making a new household)
+  const invited = !!codeFromUrl(location.href);
+
+  // Signed in with an email that is not on the family list: say so, offer another account
+  function notOnList(email) {
+    $("signIn").hidden = true;
+    $("joinPart").hidden = true;
+    $("gateMsg").textContent = `${email} is not on the family list. Ask Darren to add it.`;
+    $("gateSignOut").hidden = false;
+    $("gate").hidden = false;
+  }
+
+  function showJoin() {
+    $("signIn").hidden = true;
+    $("joinPart").hidden = false;
+    $("makePart").hidden = invited;
+    $("orJoin").hidden = invited;
+    $("inviteNote").hidden = !invited;
+    $("gate").hidden = false;
+  }
+
+  // Signed in: open the app if this user is in a household, else offer make or join
+  async function enter(user) {
+    try {
+      // The family list comes first: only people on it may use the app
+      const email = String(user.email || "").toLowerCase();
+      let onList = false;
+      try { onList = (await F.getDoc(F.doc(db, "allowed", email))).exists(); } catch (e) { onList = false; }
+      if (!onList) return notOnList(email);
+      const h = await myHousehold(F, db, user.uid);
+      if (!h) return showJoin();
+      // Opened from an invite while already in another household: ask, then switch
+      const code = codeFromUrl(location.href);
+      if (code && !started) {
+        let target = null;
+        try {
+          const inv = await F.getDoc(F.doc(db, "invites", code));
+          if (inv.exists()) target = inv.data().householdId;
+        } catch (e) { /* unknown code: just open the current household */ }
+        if (target && target !== h.id &&
+            confirm(`You're in "${h.name}".\n\nLeave it and join the household that invited you?`)) {
+          await joinHousehold(F, db, user, code);
+          return enter(user);
+        }
+      }
+      // The app is already running: a different person or household needs a clean start
+      if (started) {
+        if (started.uid !== user.uid || started.householdId !== h.id) return location.reload();
+        return;
+      }
+      const { makeCloudDB } = await import("./db-firestore.js");
+      window.DB = makeCloudDB(F, db, h.id, user.uid, { describe: window.FT.activityChange });
+      started = { uid: user.uid, householdId: h.id };
+      window.FT_HOUSEHOLD = h;
+      $("gate").hidden = true;
+      // The join code has been used: drop it from the address bar, keep other params
+      const url = new URL(location.href);
+      if (url.searchParams.has("join")) {
+        url.searchParams.delete("join");
+        history.replaceState(null, "", url);
+      }
+      resolveReady();
+    } catch (e) {
+      $("gateMsg").textContent = e.message;
+    }
+  }
+
+  $("signIn").onclick = onGate(async () => {
+    if (emu) {
+      // Fake Google sign-in: the emulator accepts this JSON as the Google ID token
+      const as = params.get("as") || "tester";
+      const name = as.charAt(0).toUpperCase() + as.slice(1);
+      const token = JSON.stringify({ sub: as, email: as + "@example.com", email_verified: true, name });
+      await AU.signInWithCredential(auth, AU.GoogleAuthProvider.credential(token));
+      return;
+    }
+    try {
+      await AU.signInWithPopup(auth, new AU.GoogleAuthProvider());
+    } catch (e) {
+      if (e.code !== "auth/popup-blocked") throw e;
+      await AU.signInWithRedirect(auth, new AU.GoogleAuthProvider());
+    }
+  });
+
+  $("gateSignOut").onclick = onGate(async () => {
+    await AU.signOut(auth);
+    $("gateSignOut").hidden = true;
+    $("gateMsg").textContent = "";
+    $("signIn").hidden = false;
+  });
+
+  $("makeHH").onclick = onGate(async () => {
+    if (!confirm("Make a NEW household?\n\nTo share with someone already using the app, ask them for an invite and tap Join instead.")) return;
+    const user = auth.currentUser;
+    await createHousehold(F, db, user, $("hhName").value.trim() || "Home");
+    await enter(user);
+  });
+
+  $("joinBtn").onclick = onGate(async () => {
+    const user = auth.currentUser;
+    await joinHousehold(F, db, user, $("joinCode").value);
+    await enter(user);
+  });
+
+  // Settings: re-read the household each time it opens
+  async function openSettings() {
+    const user = auth.currentUser;
+    const h = await myHousehold(F, db, user.uid);
+    if (!h) return enter(user);
+
+    window.FT_HOUSEHOLD = h;
+    $("hhTitle").textContent = h.name;
+    $("hhInit").textContent = window.LOOK.initials(h.name);
+    $("hhMeta").textContent = `Household · ${h.members.length} member${h.members.length === 1 ? "" : "s"}`;
+    $("memCount").textContent = "· " + h.members.length;
+    $("hhNameRow").hidden = true;
+    $("meNameRow").hidden = true;
+    const v = window.FT_VERSION;
+    $("settingsVer").textContent = v ? `App version ${v.prefix || "v"}${v.label || v.n} · ${v.date}` : "";
+    // Photo reading: count and Claude cost from the Worker (fills in when it answers)
+    $("usageMonth").textContent = "Checking…";
+    $("usageWeek").textContent = "";
+    window.FT_PHOTOS.fetchUsage({ fetch: (u, i) => fetch(u, i), getToken: window.FT_TOKEN, household: h.id }).then(d => {
+      const t = window.FT_PHOTOS.usageText(d);
+      $("usageMonth").textContent = t ? t.month : "Couldn't check right now";
+      $("usageWeek").textContent = t ? t.week : "";
+    });
+    // Which Google account this phone uses (both of Darren's accounts share a name)
+    $("signedInAs").textContent = user.email || "";
+    // When the household last backed up (shared, so it is read again each time)
+    $("backupNote").textContent = window.FT.lastBackupLabel(window.DB.lastBackup());
+    const list = $("members");
+    list.innerHTML = "";
+    for (const m of h.members) {
+      const li = document.createElement("li");
+      const mine = m.uid === user.uid;
+      const av = document.createElement("span");
+      av.className = "avatar";
+      av.textContent = window.LOOK.initials(m.name);
+      const nm = document.createElement("span");
+      nm.className = "grow mname";
+      nm.textContent = m.name;
+      if (mine) {
+        const you = document.createElement("span");
+        you.className = "you";
+        you.textContent = "You";
+        nm.append(" ", you);
+      }
+      li.append(av, nm);
+      if (mine) {
+        const edit = document.createElement("button");
+        edit.id = "renameMe";
+        edit.className = "ib";
+        edit.innerHTML = window.ICON("edit", 17);
+        edit.setAttribute("aria-label", "Change my name");
+        edit.onclick = () => {
+          $("meNameEdit").value = m.name;
+          $("meNameRow").hidden = false;
+          $("meNameEdit").focus();
+        };
+        li.append(edit);
+      } else { // no remove button on yourself
+        const x = document.createElement("button");
+        x.className = "ib remove";
+        x.innerHTML = window.ICON("close", 16, 2);
+        x.setAttribute("aria-label", "Remove " + m.name);
+        x.onclick = onSettings(async () => {
+          if (!confirm(`Remove ${m.name}?`)) return;
+          await removeMember(F, db, h.id, m.uid);
+          await openSettings();
+        });
+        li.append(x);
+      }
+      list.append(li);
+    }
+    $("inviteBox").hidden = true;
+    $("settings").hidden = false;
+  }
+
+  $("settingsBtn").onclick = onSettings(openSettings);
+  $("settingsClose").onclick = () => { $("settings").hidden = true; };
+
+  $("renameHH").onclick = () => {
+    $("hhNameEdit").value = window.FT_HOUSEHOLD.name;
+    $("hhNameRow").hidden = false;
+    $("hhNameEdit").focus();
+  };
+  $("hhNameSave").onclick = onSettings(async () => {
+    await renameHousehold(F, db, window.FT_HOUSEHOLD.id, $("hhNameEdit").value);
+    await openSettings();
+  });
+  $("meNameSave").onclick = onSettings(async () => {
+    await renameMe(F, db, window.FT_HOUSEHOLD.id, auth.currentUser.uid, $("meNameEdit").value);
+    await openSettings();
+  });
+
+  $("inviteBtn").onclick = onSettings(async () => {
+    const { code } = await createInvite(F, db, window.FT_HOUSEHOLD.id);
+    const link = inviteLink(code, location.origin + location.pathname);
+    $("inviteCode").textContent = code;
+    $("inviteLink").textContent = link;
+    $("inviteLink").href = link;
+    // QR code of the link, drawn as SVG (loaded only when an invite is made)
+    const { default: qrcode } = await import("./vendor/qrcode.mjs");
+    const q = qrcode(0, "M");
+    q.addData(link);
+    q.make();
+    $("inviteQr").innerHTML = q.createSvgTag(5, 2);
+    $("inviteBox").hidden = false;
+  });
+
+  $("signOut").onclick = onSettings(() => AU.signOut(auth));
+
+  // A join link prefills the code
+  $("joinCode").value = codeFromUrl(location.href) || "";
+
+  AU.onAuthStateChanged(auth, user => (user ? enter(user) : showSignedOut()));
+}
