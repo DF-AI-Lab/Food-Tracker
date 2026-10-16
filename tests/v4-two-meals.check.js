@@ -43,7 +43,9 @@ function startStatic() {
   };
   const todayCard = () => page.locator("#dayList .day.today");
   const sit = (card, meal) => card.locator(`.sit[data-meal="${meal}"]`);
-  const past = meal => page.locator(`#dayList .day.past[data-meal="${meal}"]`);
+  // Asking: one card per day; each waiting meal is its own block inside it
+  const pastCards = () => page.locator("#dayList .day.past");
+  const past = meal => page.locator(`#dayList .day.past .ask-meal[data-meal="${meal}"]`);
   const pick = name => page.locator("#pickList .item", { hasText: name }).first().click();
   // Change the clock hour without a reload (test mode keeps its data in memory only),
   // then redraw the Meals page by switching tabs
@@ -52,10 +54,10 @@ function startStatic() {
     await page.click('[data-tab="fridge"]');
     await page.click('[data-tab="meals"]');
   };
-  const openAsk = async card => {
-    if (await card.locator(".had-yes").isVisible()) return;
-    await card.locator(".dh").click();
-    await until(async () => assert.ok(await card.locator(".had-yes").isVisible()));
+  const openAsk = async block => {
+    if (await block.locator(".had-yes").isVisible()) return;
+    await block.locator(".ask-line").click();
+    await until(async () => assert.ok(await block.locator(".had-yes").isVisible()));
   };
 
   await page.goto(url("2026-10-20", 10));
@@ -129,12 +131,12 @@ function startStatic() {
     assert.equal(await tomorrow.locator('.sit[data-meal="dinner"]').count(), 0);
   });
 
-  await step("2pm: dinner asked on its own card; tea still planned on today's card", async () => {
+  await step("2pm: dinner asked; tea still planned on today's card", async () => {
     await setHour("2026-10-20", 15);
     await until(async () => assert.equal(await past("dinner").count(), 1));
     assert.equal(await past("tea").count(), 0);
     const d = await past("dinner").innerText();
-    assert.match(d, /Dinner/);
+    assert.match(d, /DINNER|Dinner/);
     assert.match(d, /Sausage rolls/);
     assert.match(d, /Chips/);
     assert.doesNotMatch(d, /Chicken/);
@@ -142,31 +144,45 @@ function startStatic() {
     assert.doesNotMatch(await todayCard().innerText(), /Sausage rolls/);
   });
 
-  await step("dinner: Yes -> how much did you use? -> Done; tea untouched", async () => {
+  await step("5pm with dinner still waiting: ONE card for the day, a dinner line and a tea line", async () => {
+    await setHour("2026-10-20", 18);
+    await until(async () => assert.equal(await past("tea").count(), 1));
+    assert.equal(await pastCards().count(), 1, "one card for the day");
+    assert.equal(await past("dinner").count(), 1);
+    assert.match(await past("tea").innerText(), /Chicken/);
+    assert.doesNotMatch(await past("tea").innerText(), /Sausage rolls/);
+    assert.equal(await todayCard().count(), 0);
+    // closed: each line has its own Used? tag and no buttons
+    assert.equal(await past("dinner").locator(".ask-tag").count(), 1);
+    assert.equal(await past("tea").locator(".ask-tag").count(), 1);
+    assert.equal(await pastCards().locator(".had-yes").count(), 0);
+  });
+
+  await step("tap dinner: only dinner's buttons open (small); tap tea: they move to tea", async () => {
     await openAsk(past("dinner"));
+    assert.equal(await past("tea").locator(".had-yes").count(), 0);
     const h = (await past("dinner").locator(".had-yes").boundingBox()).height;
     assert.ok(h <= 36, `small asking buttons (${h}px)`);
+    await openAsk(past("tea"));
+    assert.equal(await past("dinner").locator(".had-yes").count(), 0);
+    await openAsk(past("dinner"));
+  });
+
+  await step("dinner: Yes -> how much did you use? -> Done; card stays with tea only", async () => {
     await past("dinner").locator(".had-yes").click();
     await until(async () => assert.match(await past("dinner").innerText(), /How much did you use\?/));
     await past("dinner").locator(".had-done").click();
     await until(async () => assert.equal(await past("dinner").count(), 0));
-    assert.match(await todayCard().innerText(), /Chicken/);
-  });
-
-  await step("5pm: tea asked; nothing else on today", async () => {
-    await setHour("2026-10-20", 18);
-    await until(async () => assert.equal(await past("tea").count(), 1));
-    assert.equal(await past("dinner").count(), 0);
+    assert.equal(await pastCards().count(), 1);
     assert.match(await past("tea").innerText(), /Chicken/);
-    assert.equal(await todayCard().count(), 0);
   });
 
-  await step("tea: Yes -> Done; nothing left to ask", async () => {
+  await step("tea: Yes -> Done; the card goes", async () => {
     await openAsk(past("tea"));
     await past("tea").locator(".had-yes").click();
     await until(async () => assert.match(await past("tea").innerText(), /How much did you use\?/));
     await past("tea").locator(".had-done").click();
-    await until(async () => assert.equal(await page.locator("#dayList .day.past").count(), 0));
+    await until(async () => assert.equal(await pastCards().count(), 0));
   });
 
   await step("a takeaway for dinner: planned for dinner, asked at 2pm, cost saved", async () => {
