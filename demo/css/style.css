@@ -319,9 +319,15 @@ body.typing .bnav{display:none}
 .addsteps .st-dots b{font-weight:600}
 .addsteps .st-dots b.on{color:var(--accent)}
 .st-name{flex:1 1 auto;min-width:0;margin-left:auto;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
-.st-next{width:100%;margin-top:10px}
+/* The Next button sits at the end of the field's row (name on step 1, date on step 2), the same height as the row */
+.st-next{flex:none;width:auto;min-height:44px;height:44px;margin:0;padding:0 14px;font-size:15px;border-radius:11px}
 .pane.af.stepped:not(.step-1) .st-1,.pane.af.stepped:not(.step-2) .st-2,.pane.af.stepped:not(.step-3) .st-3{display:none}
-body.add-steps-top #top,body.add-steps-top .titlerow,body.add-steps-top #subTabs{display:none}
+.pane.af.stepped .st-1 .lbl,.pane.af.stepped .st-2 .lbl{display:none}
+.pane.af.stepped .st-1 .sform input,.pane.af.stepped .st-2 .sform input{min-width:0}
+.pane.af.stepped #quick:empty{display:none}
+/* Phone steps: header and title row go on every step; the Quick fill / One item tabs only on step 1 with nothing typed */
+body.add-steps-top #top,body.add-steps-top .titlerow{display:none}
+body.add-steps-top:not(.add-steps-tabs) #subTabs{display:none}
 .ab-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 #abName{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #abSum{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
