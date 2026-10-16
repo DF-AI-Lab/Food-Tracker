@@ -81,6 +81,13 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible,summary:focus
 .kicker{font-size:13px;color:var(--muted);letter-spacing:.02em}
 h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.1;text-wrap:balance}
 .count{font-size:13px;color:var(--dim);white-space:nowrap}
+.titlerow>.titlecol,.titlerow>.count{flex:none}
+/* Search on the title line (fridge pages): sits between the title and the count, centred on that line */
+.titlerow:has(.search:not([hidden])){align-items:center}
+.titlerow .search{flex:1;min-width:0;min-height:40px;border-radius:12px}
+@media (max-width:400px){
+  .titlerow .search{gap:6px;padding-left:10px}
+}
 body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 
 /* ---- Panes ---- */
