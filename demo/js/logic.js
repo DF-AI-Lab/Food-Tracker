@@ -1436,10 +1436,16 @@
     return String(s ?? "").trim().toLowerCase();
   }
 
-  // A fresh food as { name, some } (a plain name is an old saved food: not "some")
+  // How many packs a fresh food needs: a whole number 1..3 (anything else is 1)
+  function clampQty(v) {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? Math.min(3, Math.max(1, n)) : 1;
+  }
+
+  // A fresh food as { name, some, qty } (a plain name is an old saved food: not "some", 1 pack)
   function normFresh(f) {
-    if (f && typeof f === "object") return { name: String(f.name ?? "").trim(), some: !!f.some };
-    return { name: String(f ?? "").trim(), some: false };
+    if (f && typeof f === "object") return { name: String(f.name ?? "").trim(), some: !!f.some, qty: clampQty(f.qty) };
+    return { name: String(f ?? "").trim(), some: false, qty: 1 };
   }
 
   // Any saved meal in the current shape (old ones kept fresh as plain names). null for none.
@@ -1468,7 +1474,7 @@
       const n = tidyName(f.name);
       if (!n || seen.has(keyOf(n))) continue;
       seen.add(keyOf(n));
-      fresh.push({ name: n, some: f.some });
+      fresh.push({ name: n, some: f.some, qty: f.qty });
     }
 
     const other = [];
@@ -1541,7 +1547,10 @@
   function planMeal(meal, packs, dayIso, planId, skip = [], mealTime = "tea") {
     const m = normMeal(meal) || { fresh: [] };
     const skipKeys = new Set((skip || []).map(keyOf));
-    const names = m.fresh.map(f => f.name).filter(n => !skipKeys.has(keyOf(n)));
+    const names = [];
+    for (const f of m.fresh) {
+      if (!skipKeys.has(keyOf(f.name))) for (let i = 0; i < f.qty; i++) names.push(f.name);
+    }
     const { picks } = pickFoods(names, packs || []);
     return picks.map(({ pack }) => ({
       ...pack, plannedFor: dayIso, slot: slotFor(pack.kind), mealPlanId: planId, mealTime
@@ -1554,20 +1563,28 @@
     const m = normMeal(meal);
     if (!plan || plan.day < today || !m) return { plan: [], unplan: [] };
     const skipKeys = new Set((plan.skip || []).map(keyOf));
-    const wanted = m.fresh.map(f => f.name).filter(n => !skipKeys.has(keyOf(n)));
-    const wantedKeys = new Set(wanted.map(keyOf));
+    const wanted = m.fresh.filter(f => !skipKeys.has(keyOf(f.name)));
+    const qtyByKey = new Map();
+    for (const f of wanted) qtyByKey.set(keyOf(f.name), (qtyByKey.get(keyOf(f.name)) || 0) + f.qty);
 
+    // Keep up to qty current packs per food; unplan the extras and the foods no longer wanted
     const current = (packs || []).filter(p => p.mealPlanId === plan.id && p.status === "in_fridge");
-    const kept = new Set();
+    const keptCount = new Map();
     const unplan = [];
     for (const p of current) {
       const key = keyOf(p.name);
-      if (!wantedKeys.has(key) || kept.has(key)) unplan.push(unplanPack(p));
-      else kept.add(key);
+      const kept = keptCount.get(key) || 0;
+      if (kept < (qtyByKey.get(key) || 0)) keptCount.set(key, kept + 1);
+      else unplan.push(unplanPack(p));
     }
 
-    const missing = wanted.filter(n => !kept.has(keyOf(n)));
-    const planned = planMeal({ fresh: missing.map(name => ({ name })) }, packs, plan.day, plan.id, [], mealTimeOf(plan));
+    // Plan the packs still short (qty minus those kept) from the free packs
+    const missing = [];
+    for (const f of wanted) {
+      const short = f.qty - (keptCount.get(keyOf(f.name)) || 0);
+      for (let i = 0; i < short; i++) missing.push({ name: f.name });
+    }
+    const planned = planMeal({ fresh: missing }, packs, plan.day, plan.id, [], mealTimeOf(plan));
     return { plan: planned, unplan };
   }
 
@@ -1578,17 +1595,24 @@
     if (!m) return null;
     const skipKeys = new Set((plan.skip || []).map(keyOf));
     const foods = m.fresh.map(f => {
-      const pack = (packs || []).find(p =>
-        p.mealPlanId === plan.id && p.status === "in_fridge" && keyOf(p.name) === keyOf(f.name)) || null;
+      const packsHere = (packs || []).filter(p =>
+        p.mealPlanId === plan.id && p.status === "in_fridge" && keyOf(p.name) === keyOf(f.name)).slice(0, f.qty);
+      const pack = packsHere[0] || null;
+      const skipped = skipKeys.has(keyOf(f.name));
+      const have = packsHere.length;
       return {
         name: f.name,
         some: f.some,
+        qty: f.qty,
+        packs: packsHere,
         pack,
-        skipped: skipKeys.has(keyOf(f.name)),
+        have,
+        need: skipped ? 0 : Math.max(0, f.qty - have),
+        skipped,
         out: pack ? outByDay(pack, plan.day) : 0
       };
     });
-    const missing = foods.filter(f => !f.pack && !f.skipped).map(f => f.name);
+    const missing = [...new Set(foods.filter(f => f.need > 0).map(f => f.name))];
     return {
       id: m.id,
       plan,
@@ -1631,8 +1655,10 @@
       .map(pl => pl.day))].sort();
     if (planned.length) return { planned, need: [] };
     const m = normMeal(meal) || { fresh: [] };
-    const { missing } = pickFoods(m.fresh.map(f => f.name), packs || []);
-    return { planned: [], need: missing };
+    const names = [];
+    for (const f of m.fresh) for (let i = 0; i < f.qty; i++) names.push(f.name);
+    const { missing } = pickFoods(names, packs || []);
+    return { planned: [], need: [...new Set(missing)] };
   }
 
   // Pack ids of the day's "some" foods (they start as part used on "How much did you use?")

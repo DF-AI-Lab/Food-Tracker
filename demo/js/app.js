@@ -2492,7 +2492,7 @@
     mealFormId = meal ? meal.id : null;
     mealDraft = { fresh: [], other: [] };
     if (meal) {
-      mealDraft.fresh = meal.fresh.map(f => ({ ...f }));
+      mealDraft.fresh = meal.fresh.map(f => ({ ...f, qty: f.qty || 1 }));
       mealDraft.other = meal.other.map(o => ({ ...o }));
     } else {
       freshNames.forEach(n => draftAddFresh(n));
@@ -2523,7 +2523,7 @@
   function draftAddFresh(name) {
     const n = FT.tidyName(name);
     if (!n || mealDraft.fresh.some(f => f.name.toLowerCase() === n.toLowerCase())) return false;
-    mealDraft.fresh.push({ name: n, some: false });
+    mealDraft.fresh.push({ name: n, some: false, qty: 1 });
     return true;
   }
 
@@ -2538,6 +2538,16 @@
       const nm = document.createElement('span');
       nm.className = 'fnm';
       nm.textContent = f.name;
+      const qty = document.createElement('button');
+      qty.type = 'button';
+      qty.className = 'qty' + (f.qty > 1 ? ' on' : '');
+      qty.textContent = '×' + (f.qty || 1);
+      qty.title = 'How many packs this meal needs (tap for 1, 2 or 3)';
+      qty.setAttribute('aria-label', 'Packs needed: ' + (f.qty || 1));
+      qty.addEventListener('click', () => {
+        mealDraft.fresh[i].qty = ((mealDraft.fresh[i].qty || 1) % 3) + 1;
+        renderMealDraft();
+      });
       const some = document.createElement('button');
       some.type = 'button';
       some.className = 'some';
@@ -2557,7 +2567,7 @@
         mealDraft.fresh.splice(i, 1);
         renderMealDraft();
       });
-      chip.append(nm, some, rm);
+      chip.append(nm, qty, some, rm);
       freshList.appendChild(chip);
     });
     const otherList = form.querySelector('.other-list');
@@ -3087,12 +3097,19 @@
       } else {
         row.className = 'ing' + (f.out > 0 ? ' warn' : '');
         if (f.out > 0) status = 'out by ' + shortDay(day);
+        else if (f.need > 0) status = 'need ' + f.need + ' more';
         else status = f.pack.date ? LOOK.whenText(f.pack.date, today) : FT.ageLabel(f.pack.added, today);
       }
       const name = document.createElement('span');
       name.className = 'iname';
       name.textContent = f.name;
       row.appendChild(name);
+      if (f.qty > 1) {
+        const q = document.createElement('span');
+        q.className = 'qty-tag';
+        q.textContent = '×' + f.qty;
+        row.appendChild(q);
+      }
       if (f.some) {
         const some = document.createElement('span');
         some.className = 'some-tag';
