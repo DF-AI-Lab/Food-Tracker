@@ -145,3 +145,16 @@ export async function renameMe(F, db, householdId, uid, name) {
   const clean = cleanName(name);
   await F.updateDoc(F.doc(db, "households", householdId), { [`names.${uid}`]: clean });
 }
+
+// Close my account (Darren 2026-10-17): leave the household (the food stays for everyone else) and
+// delete this user's record. The household is never emptied: if you are the only one in it, it is
+// left as it is. The sign-in itself and the allowed list are handled by the caller / by hand.
+export async function closeAccount(F, db, user, household) {
+  let leftHousehold = false;
+  if (household && (household.members || []).length > 1) {
+    await removeMember(F, db, household.id, user.uid);
+    leftHousehold = true;
+  }
+  await F.deleteDoc(F.doc(db, "users", user.uid));
+  return { leftHousehold };
+}
