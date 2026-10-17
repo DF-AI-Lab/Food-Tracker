@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meal amounts mock</title>
+<style>
+:root{--bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;--dim:#6F847C;--accent:#8FD4B0;--on:#0A1210;--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);padding:16px}
+.wrap{max-width:412px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:8px 12px;font-size:16px;font-weight:600;align-self:flex-start}
+.qty{border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:2px 8px;font-size:14px;font-weight:800}
+.qty.one{border-color:var(--border);color:var(--muted);font-weight:700}
+.some{border:1px solid var(--border);border-radius:8px;padding:2px 8px;font-size:13px;color:var(--muted);font-weight:600}
+.x{color:var(--muted)}
+.arrow{font-size:13px;color:var(--dim)}
+.plan{border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6}
+.plan b{color:var(--text)}.warn{color:#F2B35B}
+.cap{font-size:13px;color:var(--dim);line-height:1.5}
+</style></head><body><div class="wrap">
+<div class="lbl">FRESH FOODS · TAP ×1 TO CHANGE HOW MANY</div>
+<span class="chip">Peppers <span class="qty one">×1</span><span class="some">some</span><span class="x">✕</span></span>
+<span class="chip">Whole Chicken <span class="qty">×2</span><span class="some">some</span><span class="x">✕</span></span>
+<div class="arrow">Tap ×1 → ×2 → ×3 → back to ×1</div>
+
+<div class="lbl">WHEN THE MEAL IS PLANNED</div>
+<div class="plan"><b>Fajita recipe for 4</b><br>Whole Chicken ×2 · <span class="warn">have 1, need 1 more</span><br>Peppers · have it</div>
+<div class="cap">A meal with ×2 uses 2 packs from the fridge. If you only have 1, it says "need 1 more" and the missing one can go on the shopping list.</div>
+</div></body></html>
