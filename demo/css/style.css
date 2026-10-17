@@ -693,6 +693,9 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 #mealForm .some{all:unset;box-sizing:border-box;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:3px 7px;min-height:24px;display:inline-flex;align-items:center}
 #mealForm .some[aria-pressed="true"]{background:var(--sel-bg);border-color:var(--sel-border);color:var(--accent)}
 #mealForm .some:focus-visible,#mealForm .rm:focus-visible{outline:2px solid var(--accent)}
+.fresh-item .qty{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;padding:2px 8px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.fresh-item .qty.on{border-color:var(--accent);color:var(--accent);font-weight:800}
+.qty-tag{margin-left:6px;color:var(--accent);font-weight:700;font-size:13px}
 #mealForm .rm{all:unset;cursor:pointer;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--dim);border-radius:6px;flex:none}
 .sugs{display:flex;flex-wrap:wrap;gap:6px}
 .sugs:empty{display:none}
