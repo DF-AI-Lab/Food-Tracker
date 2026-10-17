@@ -802,3 +802,10 @@ details.added[open] .chev{transform:rotate(180deg)}
 /* Phone add steps: step bar pinned at the top; quick-pick chips hide while typing your own food */
 .pane.af.stepped .addsteps{position:sticky;top:var(--vvtop,0px);z-index:30;background:var(--bg)}
 body.typing .pane.af.stepped #usuals{display:none}
+/* Demo only: red DEMO band fixed at the very top; everything else moves down by its height */
+:root{--demo-h:16px}
+#demoBand{position:fixed;top:0;left:0;right:0;z-index:300;height:calc(var(--demo-h) + env(safe-area-inset-top,0px));padding-top:env(safe-area-inset-top,0px);background:#E53935;color:#fff;font:800 10px/var(--demo-h) system-ui,sans-serif;letter-spacing:.3em;text-align:center;pointer-events:none}
+body{padding-top:var(--demo-h)}
+.topbar{top:var(--demo-h)}
+.pane.af.stepped .addsteps{top:calc(var(--vvtop,0px) + var(--demo-h))}
+body.typing .addbar{top:calc(var(--vvtop,0px) + var(--demo-h))}

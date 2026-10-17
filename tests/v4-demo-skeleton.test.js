@@ -83,3 +83,15 @@ test("v2/ and v2-next/ untouched: still their own keys", () => {
   assert.match(fs.readFileSync(path.join(root, "v2-next/js/household.js"), "utf8"), /const KEY = "demoHouseholdId"/);
   assert.match(fs.readFileSync(path.join(root, "v2-next/sw.js"), "utf8"), /"ftnext-v"/);
 });
+
+test("demo is marked: a red DEMO band fixed at the top, and red-outlined icons (Darren 2026-10-17)", () => {
+  const html = read("index.html");
+  assert.match(html, /id="demoBand"[^>]*>\s*DEMO\s*</);
+  const css = read("css/style.css");
+  assert.match(css, /#demoBand\{[^}]*position:fixed/);
+  const crypto = require("node:crypto");
+  const hash = f => crypto.createHash("md5").update(fs.readFileSync(f)).digest("hex");
+  for (const icon of ["icon-192.png", "icon-512.png", "apple-touch-icon.png", "app-icon.png"]) {
+    assert.notEqual(hash(path.join(DIR, "icons", icon)), hash(path.join(__dirname, "..", "live", "icons", icon)), `${icon} differs from live`);
+  }
+});
