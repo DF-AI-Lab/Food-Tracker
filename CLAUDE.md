@@ -57,3 +57,11 @@ New chats start from the repo's **default branch**, so work left on a chat's own
 ## Photo test API key
 
 - The Claude API key for the photo tests is the environment variable `PHOTO_TEST_API_KEY` (not `ANTHROPIC_API_KEY`, and not a network secret). Run with `ANTHROPIC_API_KEY="$PHOTO_TEST_API_KEY" ANTHROPIC_BASE_URL=https://api.anthropic.com`. If it's empty, tell me the env var is missing (Darren, 2026-10-16).
+
+## App links (Darren, 2026-10-17)
+
+- **Live (real, family):** `https://df-ai-lab.github.io/Food-Tracker/live/` (folder `live/`, version v4.xx, real household `householdId`).
+- **Demo (testing):** `https://df-ai-lab.github.io/Food-Tracker/demo/` (folder `demo/`, d.v4.xx, own test household `v4DemoHouseholdId`, red DEMO band + red-outlined icon).
+- These links never change: no more new folders or reinstalls. Changes land in place; bump `js/version.js` n + label and `sw.js` VERSION on each change.
+- Build and test in `demo/` first unless Darren says "straight to live"; then copy the change into `live/`.
+- `v2/` and `v2-next/` are the old V3 apps, kept but no longer worked on.
