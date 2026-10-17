@@ -2,7 +2,7 @@
 //   ?local=1          no sign-in, no Firebase: the in-memory app (checks)
 //   ?emu=1&as=NAME    Firebase emulators, fake Google sign-in as NAME
 import { firebaseConfig } from "./firebase-config.js";
-import { myHousehold, createHousehold, joinHousehold, removeMember, createInvite, inviteLink, codeFromUrl, renameHousehold, renameMe } from "./household.js";
+import { myHousehold, createHousehold, joinHousehold, removeMember, createInvite, inviteLink, codeFromUrl, renameHousehold, renameMe, closeAccount } from "./household.js";
 
 const CDN = "https://www.gstatic.com/firebasejs/12.19.0/";
 const params = new URLSearchParams(location.search);
@@ -306,6 +306,29 @@ async function start() {
   });
 
   $("signOut").onclick = onSettings(() => AU.signOut(auth));
+
+  // Close my account: leave the household (food stays for the others), delete my record and my
+  // sign-in, then sign out. The email on the allowed list is removed by hand in the Firebase console.
+  $("closeAccount").onclick = onSettings(async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    if (!confirm("Close your account?\n\nYou leave the household (the food stays for everyone else) and your sign-in is deleted. This can't be undone.")) return;
+    const h = await myHousehold(F, db, user.uid);
+    await closeAccount(F, db, user, h);
+    try {
+      await AU.deleteUser(user);
+    } catch (e) {
+      // Google asks you to sign in again before a sign-in can be deleted
+      if (e && e.code === "auth/requires-recent-login") {
+        await AU.reauthenticateWithPopup(user, new AU.GoogleAuthProvider());
+        await AU.deleteUser(user);
+      } else {
+        throw e;
+      }
+    }
+    alert("Your account is closed. Remember to remove your email from the allowed list in Firebase.");
+    await AU.signOut(auth).catch(() => {});
+  });
 
   // A join link prefills the code
   $("joinCode").value = codeFromUrl(location.href) || "";

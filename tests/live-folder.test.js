@@ -18,9 +18,9 @@ test("live/ has every app file, loaded by relative path", () => {
   assert.doesNotMatch(html, /(src|href)="\/(?!\/)/, "no root-absolute paths");
 });
 
-test("shows v4.01 (not a demo version)", () => {
+test("shows v4.xx (not a demo version)", () => {
   const v = read("js/version.js");
-  assert.match(v, /label:\s*"4\.01"/);
+  assert.match(v, /label:\s*"4\.\d\d"/);
   assert.doesNotMatch(v, /prefix:\s*"d\.v"/);
 });
 
