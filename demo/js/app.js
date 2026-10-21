@@ -936,7 +936,66 @@
       row.appendChild(group);
     }
 
+    attachQfSwipe(row, index);
     return row;
+  }
+
+  // Swipe a row sideways to remove it (Pointer Events, so touch and mouse both work). Only a
+  // sideways move starts a drag, so up and down scrolling still works (touch-action: pan-y in CSS).
+  // Past 80px either way the row goes; under that it snaps back.
+  function attachQfSwipe(row, index) {
+    let startX = 0, startY = 0, mode = 'idle', dragged = false;
+    row.addEventListener('pointerdown', e => {
+      startX = e.clientX;
+      startY = e.clientY;
+      mode = 'pending';
+      dragged = false;
+    });
+    row.addEventListener('pointermove', e => {
+      if (mode === 'idle') return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (mode === 'pending') {
+        if (Math.abs(dy) > Math.abs(dx)) { mode = 'idle'; return; } // up and down: a scroll
+        if (Math.abs(dx) < 6) return;
+        mode = 'drag';
+        dragged = true;
+        try { row.setPointerCapture(e.pointerId); } catch (err) { /* synthetic events have no pointer to capture */ }
+      }
+      row.style.transition = 'none';
+      row.style.transform = `translateX(${dx}px)`;
+    });
+    const end = e => {
+      if (mode !== 'drag') { mode = 'idle'; return; }
+      const dx = e.clientX - startX;
+      mode = 'idle';
+      if (Math.abs(dx) > 80) return removeQfRow(index, row);
+      row.style.transition = 'transform .15s ease';
+      row.style.transform = '';
+    };
+    row.addEventListener('pointerup', end);
+    row.addEventListener('pointercancel', () => {
+      if (mode !== 'drag') return;
+      mode = 'idle';
+      row.style.transition = 'transform .15s ease';
+      row.style.transform = '';
+    });
+    // A real drag ends with a click on the label (mouse): don't let it tick or untick the box
+    row.addEventListener('click', e => {
+      if (!dragged) return;
+      dragged = false;
+      e.preventDefault();
+    });
+  }
+
+  // Take a swiped row off the list for good: it is marked so it is never added
+  function removeQfRow(index, row) {
+    const item = quickFillItems[index];
+    if (item) quickFillItems[index] = { ...item, ok: false, removed: true };
+    if (quickFillBoxes[index]) quickFillBoxes[index].checked = false;
+    const next = row.nextElementSibling;
+    if (next && (next.classList.contains('qf-quickdate') || next.classList.contains('qf-datein'))) next.remove();
+    row.remove();
+    if (!document.querySelector('#qfList .qf-row')) document.getElementById('qfAdd').style.display = 'none';
   }
 
   // Re-check one row with the kind the user picked, and swap just that row
@@ -954,30 +1013,63 @@
     quickFillItems[index] = item;
     const rowEl = buildQuickFillRow(item, index, !!old.querySelector('.qf-new'));
     quickFillBoxes[index].checked = item.ok && (wasTicked || !wasOk);
-    if (old.nextElementSibling && old.nextElementSibling.classList.contains('qf-datein')) old.nextElementSibling.remove();
+    const next = old.nextElementSibling;
+    if (next && (next.classList.contains('qf-datein') || next.classList.contains('qf-quickdate'))) next.remove();
     old.replaceWith(rowEl);
     quickFillRowEls[index] = rowEl;
   }
 
-  // Tap a date (or Add date): a date box opens just under the row. It sits beside the row, not
-  // inside it, because the row is a <label> and the label swallows taps on the native calendar.
+  // Tap a date (or Add date): a row of quick day buttons opens just under the row. It sits beside
+  // the row, not inside it, because the row is a <label> and the label swallows taps on the native
+  // calendar. Tapping the date again closes it.
   function openQfDate(index, rowEl) {
     const next = rowEl.nextElementSibling;
-    if (next && next.classList.contains('qf-datein')) return;
+    if (next && (next.classList.contains('qf-quickdate') || next.classList.contains('qf-datein'))) {
+      next.remove();
+      return;
+    }
+    const box = document.createElement('div');
+    box.className = 'qf-quickdate';
+    [1, 2, 3, 5, 7].forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'qc';
+      btn.textContent = '+' + n;
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        setQfDate(index, FT.addDays(today, n));
+      });
+      box.appendChild(btn);
+    });
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'qc';
+    pick.textContent = 'Pick date';
+    pick.addEventListener('click', e => {
+      e.preventDefault();
+      openQfDatePicker(index, box);
+    });
+    box.appendChild(pick);
+    rowEl.after(box);
+  }
+
+  // Pick date: the box turns into a native date input. Each of change / input / blur saves the
+  // value if it is a real date (the latest one wins); a value already saved, or a removed input,
+  // is ignored.
+  function openQfDatePicker(index, box) {
     const input = document.createElement('input');
     input.type = 'date';
     input.className = 'qf-datein';
     input.value = (quickFillItems[index] && quickFillItems[index].date) || '';
-    let done = false;
     const commit = () => {
-      if (done || !input.value) return;
-      done = true;
+      if (!input.isConnected || !/^\d{4}-\d{2}-\d{2}$/.test(input.value)) return;
       setQfDate(index, input.value);
     };
     input.addEventListener('change', commit);
     input.addEventListener('input', commit);
+    input.addEventListener('blur', commit);
     input.addEventListener('click', e => e.stopPropagation());
-    rowEl.after(input);
+    box.replaceWith(input);
     try { input.showPicker(); } catch (e) { input.focus(); }
   }
 
