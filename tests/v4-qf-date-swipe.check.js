@@ -114,6 +114,20 @@ function startStatic() {
     assert.doesNotMatch(txt, /Cheese|Soup/);
   });
 
+  await step("the ✕ on a row deletes it (not added)", async () => {
+    await page.click('[data-tab="add"]');
+    await paste('[{"name":"Jam","kind":"cupboard","date":"2026-11-30"},{"name":"Beans","kind":"cupboard","date":"2026-12-30"}]');
+    await until(async () => assert.equal(await rows.count(), 2));
+    await rows.nth(0).locator(".qf-del").tap({ force: true });
+    await until(async () => assert.equal(await rows.count(), 1));
+    assert.doesNotMatch(await page.locator("#qfList").innerText(), /Jam/);
+    await page.click("#qfAdd");
+    await page.click('[data-tab="fridge"]');
+    await page.click('[data-view="cupboard"]');
+    await until(async () => assert.match(await page.locator("#cupboardList").innerText(), /Beans/));
+    assert.doesNotMatch(await page.locator("#cupboardList").innerText(), /Jam/);
+  });
+
   await step("no page errors", async () => assert.deepEqual(errors, []));
 
   console.log("ALL QF DATE / SWIPE CHECKS PASSED");

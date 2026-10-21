@@ -936,6 +936,19 @@
       row.appendChild(group);
     }
 
+    // ✕ at the end: removes the row the same way a swipe does (inside the label, so no tick)
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'qf-del';
+    del.setAttribute('aria-label', 'Remove');
+    del.innerHTML = ICON('close', 16);
+    del.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeQfRow(index, row);
+    });
+    row.appendChild(del);
+
     attachQfSwipe(row, index);
     return row;
   }
