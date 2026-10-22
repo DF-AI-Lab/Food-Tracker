@@ -1127,6 +1127,38 @@
     return a.added.localeCompare(b.added) || byId(a, b);
   }
 
+  // Stock check sections: fridge kinds match on kind; the freezer matches on its own status (frozen)
+  const STOCK_SECTIONS = [
+    { key: "main", label: "Mains", kind: "main" },
+    { key: "side", label: "Sides", kind: "side" },
+    { key: "veg", label: "Veg", kind: "veg" },
+    { key: "misc", label: "Other", kind: "misc" },
+    { key: "freezer", label: "Freezer", status: "frozen" },
+    { key: "cupboard", label: "Cupboard", kind: "cupboard" }
+  ];
+
+  // Section labels for the fridge kinds on the By date list
+  const BY_DATE_LABELS = { main: "Mains", side: "Sides", veg: "Veg", misc: "Other" };
+
+  // Packs in each stock check section, soonest first (see sheetOrder)
+  function stockSections(packs) {
+    return STOCK_SECTIONS.map(def => ({
+      key: def.key,
+      label: def.label,
+      items: (packs || []).filter(p => def.status
+        ? p.status === def.status
+        : p.status === "in_fridge" && p.kind === def.kind).sort(sheetOrder)
+    }));
+  }
+
+  // Every fridge food (mains, sides, veg, other) in one list, soonest first
+  function byDateList(packs) {
+    return (packs || [])
+      .filter(p => p.status === "in_fridge" && Object.prototype.hasOwnProperty.call(BY_DATE_LABELS, p.kind))
+      .sort(sheetOrder)
+      .map(pack => ({ pack, section: BY_DATE_LABELS[pack.kind], dateLabel: packDateLabel(pack) }));
+  }
+
   function printSheet(packs, today, { rows = 26 } = {}) {
     const inFridge = (packs || []).filter(p => p.status === "in_fridge" && p.kind !== "takeaway");
     const soonPacks = useSoon(inFridge, today);
@@ -1457,7 +1489,8 @@
       fresh: (r.fresh || []).map(normFresh).filter(f => f.name),
       other: (r.other || [])
         .map(o => ({ name: String(o?.name ?? "").trim(), qty: String(o?.qty ?? "").trim() || null }))
-        .filter(o => o.name)
+        .filter(o => o.name),
+      fancy: r.fancy === true
     };
   }
 
@@ -1496,7 +1529,14 @@
     meal.name = name;
     meal.fresh = fresh;
     meal.other = other;
+    meal.fancy = src.fancy === true; // the editing form passes the saved star in
     return { meal };
+  }
+
+  // Meals starred as "Meals I fancy", A to Z
+  function fancyMeals(meals) {
+    return (meals || []).filter(m => m.fancy === true)
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }
 
   // The name to offer as "+ Add new": null when blank or already among the suggestions (any case)
@@ -1780,6 +1820,10 @@
     tidyName,
     normMeal,
     makeMeal,
+    fancyMeals,
+    stockSections,
+    byDateList,
+    packDateLabel,
     newFoodName,
     planMeal,
     syncMealPlan,

@@ -14,6 +14,10 @@
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
   let feedback = [];      // ideas & feedback (Settings), saved in DB.feedback
+  let byDateOn = false;   // Fridge: the By date list shows instead of the sections
+  let stockOpen = false;  // Fridge: the Stock check panel is open
+  let stockKey = 'main';  // Stock check: the section chosen
+  let stockOk = new Set(); // Stock check: packs ticked "Still there" (this check only)
   // A "sitting" is a day's meal: its key is the day (tea) or day|dinner (FT.sitKey)
   let askDay = null;      // sitting in "What did you have?" (or cost) mode
   let addingDay = null;  // an asking sitting whose picker is open (+ Add); tonight after 5pm too
@@ -309,6 +313,10 @@
 
     // Print: fill the A4 fridge sheet, then open the print dialog
     document.getElementById('printF').addEventListener('click', printFridgeSheet);
+    // Fridge: By date list, and the Stock check panel
+    document.getElementById('byDateBtn').addEventListener('click', () => { byDateOn = !byDateOn; renderByDate(); });
+    document.getElementById('stockBtn').addEventListener('click', openStock);
+    document.getElementById('stockDone').addEventListener('click', () => { stockOpen = false; renderStock(); });
     // Mic: coming soon
     document.getElementById('mic').addEventListener('click', () => {
       document.getElementById('micNote').textContent = 'Voice input: coming soon';
@@ -316,7 +324,13 @@
 
     // Tabs (the bottom bar's Fridge, Meals and + carry data-tab)
     document.querySelectorAll('[data-tab]').forEach(btn => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      btn.addEventListener('click', () => {
+        // + while Add is already on Quick fill: open the camera for the next photo
+        const onQuick = document.querySelector('[data-tab].on')?.dataset.tab === 'add'
+          && document.querySelector('[data-sub].on')?.dataset.sub === 'quick';
+        if (btn.dataset.tab === 'add' && onQuick) return document.getElementById('qfCamera').click();
+        switchTab(btn.dataset.tab);
+      });
     });
     // Bottom bar: Used opens the used page (Shop is a [data-tab] above)
     document.querySelector('[data-nav="used"]').addEventListener('click', () => {
@@ -922,7 +936,79 @@
       row.appendChild(group);
     }
 
+    // ✕ at the end: removes the row the same way a swipe does (inside the label, so no tick)
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'qf-del';
+    del.setAttribute('aria-label', 'Remove');
+    del.innerHTML = ICON('close', 16);
+    del.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeQfRow(index, row);
+    });
+    row.appendChild(del);
+
+    attachQfSwipe(row, index);
     return row;
+  }
+
+  // Swipe a row sideways to remove it (Pointer Events, so touch and mouse both work). Only a
+  // sideways move starts a drag, so up and down scrolling still works (touch-action: pan-y in CSS).
+  // Past 80px either way the row goes; under that it snaps back.
+  function attachQfSwipe(row, index) {
+    let startX = 0, startY = 0, mode = 'idle', dragged = false;
+    row.addEventListener('pointerdown', e => {
+      startX = e.clientX;
+      startY = e.clientY;
+      mode = 'pending';
+      dragged = false;
+    });
+    row.addEventListener('pointermove', e => {
+      if (mode === 'idle') return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (mode === 'pending') {
+        if (Math.abs(dy) > Math.abs(dx)) { mode = 'idle'; return; } // up and down: a scroll
+        if (Math.abs(dx) < 6) return;
+        mode = 'drag';
+        dragged = true;
+        try { row.setPointerCapture(e.pointerId); } catch (err) { /* synthetic events have no pointer to capture */ }
+      }
+      row.style.transition = 'none';
+      row.style.transform = `translateX(${dx}px)`;
+    });
+    const end = e => {
+      if (mode !== 'drag') { mode = 'idle'; return; }
+      const dx = e.clientX - startX;
+      mode = 'idle';
+      if (Math.abs(dx) > 80) return removeQfRow(index, row);
+      row.style.transition = 'transform .15s ease';
+      row.style.transform = '';
+    };
+    row.addEventListener('pointerup', end);
+    row.addEventListener('pointercancel', () => {
+      if (mode !== 'drag') return;
+      mode = 'idle';
+      row.style.transition = 'transform .15s ease';
+      row.style.transform = '';
+    });
+    // A real drag ends with a click on the label (mouse): don't let it tick or untick the box
+    row.addEventListener('click', e => {
+      if (!dragged) return;
+      dragged = false;
+      e.preventDefault();
+    });
+  }
+
+  // Take a swiped row off the list for good: it is marked so it is never added
+  function removeQfRow(index, row) {
+    const item = quickFillItems[index];
+    if (item) quickFillItems[index] = { ...item, ok: false, removed: true };
+    if (quickFillBoxes[index]) quickFillBoxes[index].checked = false;
+    const next = row.nextElementSibling;
+    if (next && (next.classList.contains('qf-quickdate') || next.classList.contains('qf-datein'))) next.remove();
+    row.remove();
+    if (!document.querySelector('#qfList .qf-row')) document.getElementById('qfAdd').style.display = 'none';
   }
 
   // Re-check one row with the kind the user picked, and swap just that row
@@ -940,30 +1026,63 @@
     quickFillItems[index] = item;
     const rowEl = buildQuickFillRow(item, index, !!old.querySelector('.qf-new'));
     quickFillBoxes[index].checked = item.ok && (wasTicked || !wasOk);
-    if (old.nextElementSibling && old.nextElementSibling.classList.contains('qf-datein')) old.nextElementSibling.remove();
+    const next = old.nextElementSibling;
+    if (next && (next.classList.contains('qf-datein') || next.classList.contains('qf-quickdate'))) next.remove();
     old.replaceWith(rowEl);
     quickFillRowEls[index] = rowEl;
   }
 
-  // Tap a date (or Add date): a date box opens just under the row. It sits beside the row, not
-  // inside it, because the row is a <label> and the label swallows taps on the native calendar.
+  // Tap a date (or Add date): a row of quick day buttons opens just under the row. It sits beside
+  // the row, not inside it, because the row is a <label> and the label swallows taps on the native
+  // calendar. Tapping the date again closes it.
   function openQfDate(index, rowEl) {
     const next = rowEl.nextElementSibling;
-    if (next && next.classList.contains('qf-datein')) return;
+    if (next && (next.classList.contains('qf-quickdate') || next.classList.contains('qf-datein'))) {
+      next.remove();
+      return;
+    }
+    const box = document.createElement('div');
+    box.className = 'qf-quickdate';
+    [1, 2, 3, 5, 7].forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'qc';
+      btn.textContent = '+' + n;
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        setQfDate(index, FT.addDays(today, n));
+      });
+      box.appendChild(btn);
+    });
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'qc';
+    pick.textContent = 'Pick date';
+    pick.addEventListener('click', e => {
+      e.preventDefault();
+      openQfDatePicker(index, box);
+    });
+    box.appendChild(pick);
+    rowEl.after(box);
+  }
+
+  // Pick date: the box turns into a native date input. Each of change / input / blur saves the
+  // value if it is a real date (the latest one wins); a value already saved, or a removed input,
+  // is ignored.
+  function openQfDatePicker(index, box) {
     const input = document.createElement('input');
     input.type = 'date';
     input.className = 'qf-datein';
     input.value = (quickFillItems[index] && quickFillItems[index].date) || '';
-    let done = false;
     const commit = () => {
-      if (done || !input.value) return;
-      done = true;
+      if (!input.isConnected || !/^\d{4}-\d{2}-\d{2}$/.test(input.value)) return;
       setQfDate(index, input.value);
     };
     input.addEventListener('change', commit);
     input.addEventListener('input', commit);
+    input.addEventListener('blur', commit);
     input.addEventListener('click', e => e.stopPropagation());
-    rowEl.after(input);
+    box.replaceWith(input);
     try { input.showPicker(); } catch (e) { input.focus(); }
   }
 
@@ -1704,13 +1823,18 @@
   async function actDelete() {
     if (!selectedPackId) return;
     const pack = packs.find(p => p.id === selectedPackId);
+    hideSheet();
+    await deletePack(pack);
+    showUndoBar();
+  }
+
+  // Mark a pack deleted (it stays on the Deleted line for an hour, with Undo). Used by the sheet and Stock check's Gone
+  async function deletePack(pack) {
     const beforeState = JSON.parse(JSON.stringify(pack));
     const updated = FT.markDeleted(pack, today);
     await DB.put(updated);
     Object.assign(pack, updated);
-    lastAction = { type: 'update', packId: selectedPackId, before: beforeState };
-    hideSheet();
-    showUndoBar();
+    lastAction = { type: 'update', packId: pack.id, before: beforeState };
     renderAll();
   }
 
@@ -1974,6 +2098,106 @@
       rowEl.append(nameEl, tagEl, undoEl);
       deletedEl.appendChild(rowEl);
     });
+    renderByDate();
+    renderStock();
+  }
+
+  // By date: every fridge food in one list, soonest first (shows instead of the sections)
+  function renderByDate() {
+    document.getElementById('fridgeView').hidden = byDateOn;
+    document.getElementById('byDateList').hidden = !byDateOn;
+    document.getElementById('byDateBtn').classList.toggle('acc', byDateOn);
+    if (!byDateOn) return;
+    const listEl = document.getElementById('byDateList');
+    listEl.innerHTML = '';
+    const rows = FT.byDateList(packs);
+    if (!rows.length) {
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = 'Nothing in the fridge yet.';
+      listEl.appendChild(note);
+      return;
+    }
+    for (const { pack, section, dateLabel } of rows) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'meal-row bd-row';
+      const name = document.createElement('span');
+      name.className = 'mr-name';
+      name.textContent = pack.name;
+      const sub = document.createElement('span');
+      sub.className = 'meal-sub';
+      sub.textContent = `${section} · ${dateLabel}`;
+      btn.append(name, sub);
+      btn.addEventListener('click', () => showSheet(pack.id));
+      listEl.appendChild(btn);
+    }
+  }
+
+  // Stock check: pick a section, then "Still there" ticks the food for this check only, "Gone" deletes it (with Undo)
+  function openStock() {
+    stockOpen = true;
+    stockKey = 'main';
+    stockOk = new Set();
+    renderStock();
+  }
+
+  function renderStock() {
+    document.getElementById('stockPanel').hidden = !stockOpen;
+    if (!stockOpen) return;
+    const sections = FT.stockSections(packs);
+    const chipsEl = document.getElementById('stockChips');
+    chipsEl.innerHTML = '';
+    for (const s of sections) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'sb' + (s.key === stockKey ? ' on' : '');
+      chip.dataset.stock = s.key;
+      chip.textContent = `${s.label} · ${s.items.length}`;
+      chip.addEventListener('click', () => { stockKey = s.key; renderStock(); });
+      chipsEl.appendChild(chip);
+    }
+
+    const listEl = document.getElementById('stockList');
+    listEl.innerHTML = '';
+    const items = sections.find(s => s.key === stockKey).items;
+    if (!items.length) {
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = 'Nothing in this section.';
+      listEl.appendChild(note);
+    }
+    for (const pack of items) {
+      const row = document.createElement('div');
+      row.className = 'stock-row' + (stockOk.has(pack.id) ? ' ok' : '');
+      const text = document.createElement('div');
+      text.className = 'sr-text';
+      const name = document.createElement('span');
+      name.className = 'sr-name';
+      name.textContent = pack.name;
+      const date = document.createElement('span');
+      date.className = 'sr-date';
+      date.textContent = FT.packDateLabel(pack);
+      text.append(name, date);
+
+      const there = document.createElement('button');
+      there.type = 'button';
+      there.className = 'act ghost stock-there';
+      there.textContent = 'Still there';
+      there.addEventListener('click', () => { stockOk.add(pack.id); row.classList.add('ok'); });
+
+      const gone = document.createElement('button');
+      gone.type = 'button';
+      gone.className = 'act alt stock-gone';
+      gone.textContent = 'Gone';
+      gone.addEventListener('click', async () => {
+        row.remove();
+        await deletePack(pack);
+      });
+
+      row.append(text, there, gone);
+      listEl.appendChild(row);
+    }
   }
 
   // Freezer: oldest first, each row has a blue line for how long it has been frozen (full at 3 months)
@@ -2429,6 +2653,7 @@
   }
 
   function renderMyMeals() {
+    renderFancyMeals();
     const list = document.querySelector('#myMeals .ml');
     list.textContent = '';
     const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
@@ -2441,6 +2666,8 @@
     }
     for (const m of sorted) {
       const st = mealStatusText(m);
+      const line = document.createElement('div');
+      line.className = 'meal-line';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'meal-row';
@@ -2452,7 +2679,48 @@
       sub.textContent = st.text;
       btn.append(name, sub);
       btn.addEventListener('click', () => openMealForm(m));
-      list.appendChild(btn);
+      const star = document.createElement('button');
+      star.type = 'button';
+      star.className = 'meal-fancy';
+      star.textContent = m.fancy ? '★' : '☆';
+      star.setAttribute('aria-pressed', m.fancy ? 'true' : 'false');
+      star.setAttribute('aria-label', (m.fancy ? 'Unfancy ' : 'Fancy ') + m.name);
+      star.addEventListener('click', () => toggleFancy(m));
+      line.append(star, btn); // star first, so the Undo bar (bottom right) never covers it
+      list.appendChild(line);
+    }
+  }
+
+  // Meals I fancy: starred meals, A to Z, above My meals (hidden when there are none)
+  function renderFancyMeals() {
+    const box = document.getElementById('fancyMeals');
+    const listEl = document.getElementById('fancyList');
+    listEl.innerHTML = '';
+    const fancy = FT.fancyMeals(recipes);
+    box.hidden = fancy.length === 0;
+    for (const m of fancy) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'meal-row';
+      const name = document.createElement('span');
+      name.className = 'mr-name';
+      name.textContent = m.name;
+      btn.append(name);
+      btn.addEventListener('click', () => openMealForm(m));
+      listEl.appendChild(btn);
+    }
+  }
+
+  // Star or unstar a meal. Starring puts the meal's missing foods on the shopping list.
+  async function toggleFancy(meal) {
+    const next = { ...meal, fancy: !meal.fancy };
+    recipes = recipes.map(m => (String(m.id) === String(meal.id) ? next : m));
+    renderMeals();
+    await DB.recipes.put(next);
+    if (next.fancy) {
+      const need = FT.mealStatus(next, mealPlans, packs, today).need;
+      for (const name of FT.recipeShopList(need, shop)) await autoAdd(name, 'for a meal');
+      renderAll();
     }
   }
 
@@ -2642,7 +2910,8 @@
       id: mealFormId,
       name: document.getElementById('mealName').value,
       fresh: mealDraft.fresh,
-      other: mealDraft.other
+      other: mealDraft.other,
+      fancy: mealById(mealFormId)?.fancy === true // editing keeps the star
     }, recipes);
     if (res.error) {
       setMealErr(res.error);
@@ -3604,6 +3873,8 @@
     else if (activeView === 'used') renderUsedView();
     if (packs) {
       renderTabCounts();
+      renderByDate();
+      renderStock();
       renderAddedToday();
     }
     renderPageCount();

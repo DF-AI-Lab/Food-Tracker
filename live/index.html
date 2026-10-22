@@ -58,6 +58,16 @@
         <div class="eatsub" id="useSoonSub" hidden></div>
         <button type="button" class="eatmore" id="useSoonMore" hidden></button>
       </div>
+      <div class="fridge-tools">
+        <button class="act ghost" id="byDateBtn" type="button">By date</button>
+        <button class="act ghost" id="stockBtn" type="button">Stock check</button>
+      </div>
+      <div id="stockPanel" class="card stock-panel" hidden>
+        <div class="sechead"><h3 class="sec">Stock check</h3><button class="act ghost" id="stockDone" type="button">Done</button></div>
+        <div class="seg stock-chips" id="stockChips"></div>
+        <div class="rows" id="stockList"></div>
+      </div>
+      <div id="byDateList" class="rows card" hidden></div>
       <div id="fridgeView">
         <details class="fbox" open>
           <summary><span class="sec">Mains <span class="n">· <span id="mainCount">0</span></span></span><i data-icon="chevron-down" data-size="18"></i></summary>
@@ -169,6 +179,10 @@
       <div id="pickList"></div>
       <button class="act ghost" id="nextSlot">Sides</button>
       <button class="act" id="nextDay">Next day</button>
+    </div>
+    <div id="fancyMeals" hidden>
+      <div class="sechead"><h3 class="sec">Meals I fancy</h3></div>
+      <div class="ml card" id="fancyList"></div>
     </div>
     <div id="myMeals" class="ideas">
       <div class="sechead"><h3 class="sec">My meals</h3><button class="act ghost" id="newMeal" type="button">New meal</button></div>
