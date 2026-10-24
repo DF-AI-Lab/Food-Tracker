@@ -22,6 +22,8 @@
   let stockOpen = false;  // Fridge: the Stock check panel is open
   let stockKey = 'main';  // Stock check: the section chosen
   let stockOk = new Set(); // Stock check: packs ticked "All there" (this check only)
+  let addedTab = 'all';    // Added today: the tab shown (all, nodate, later)
+  let addedEditId = null;  // Added today, 3+ days tab: the pack whose date box is open, or null
   let stockEditKey = null; // Stock check: the food whose Edit box is open (name key), or null
   let stockLeft = 0;       // Stock check: how many packs of that food are still left
   // A "sitting" is a day's meal: its key is the day (tea) or day|dinner (FT.sitKey)
@@ -832,8 +834,12 @@
     }
     msg.textContent = '';
     const start = quickFillItems.length;
-    result.items.forEach((item, j) => {
+    result.items.forEach((item0, j) => {
       const i = start + j;
+      // No date found: the row is fine as it is (ticked, "no date"); tap the date to set one
+      const item = item0.problem === 'Needs a date'
+        ? FT.quickFillRow({ ...item0.raw, kind: item0.kind, dateMissing: true, check: item0.check }, packs)
+        : item0;
       quickFillItems[i] = item;
       const rowEl = buildQuickFillRow(item, i, !fresh);
       quickFillRowEls[i] = rowEl;
@@ -903,29 +909,6 @@
       problem.className = 'qf-problem';
       problem.textContent = item.problem === 'Needs a date' ? 'No date found' : item.problem;
       row.appendChild(problem);
-    }
-
-    if (item.problem === 'Needs a date') {
-      const group = document.createElement('div');
-      group.className = 'qf-kind';
-      const addDate = document.createElement('button');
-      addDate.type = 'button';
-      addDate.className = 'qc';
-      addDate.innerHTML = ICON('meals', 14, 2) + 'Add date';
-      addDate.addEventListener('click', e => {
-        e.preventDefault();
-        openQfDate(index, row);
-      });
-      const noDate = document.createElement('button');
-      noDate.type = 'button';
-      noDate.className = 'qc';
-      noDate.textContent = 'No date';
-      noDate.addEventListener('click', e => {
-        e.preventDefault();
-        setQfDate(index, null);
-      });
-      group.append(addDate, noDate);
-      row.appendChild(group);
     }
 
     if (item.needsKind) {
@@ -4079,50 +4062,136 @@
 
   // Packs added today, still in the fridge or freezer: tap one for the fridge menu
   function renderAddedToday() {
-    const list = FT.addedToday(packs, today);
-    document.getElementById('addedWrap').hidden = list.length === 0;
-    document.getElementById('addedHead').textContent = `Added today · ${list.length} ${list.length === 1 ? 'pack' : 'packs'}`;
+    const lists = {
+      all: FT.addedToday(packs, today),
+      nodate: FT.addedNoDate(packs, today),
+      later: FT.addedLater(packs, today)
+    };
+    document.getElementById('addedWrap').hidden = lists.all.length === 0;
+    document.querySelectorAll('#addedWrap [data-added]').forEach(btn => {
+      const key = btn.dataset.added;
+      btn.querySelector('b').textContent = lists[key].length;
+      btn.classList.toggle('on', key === addedTab);
+      btn.onclick = () => { addedTab = key; renderAddedToday(); };
+    });
     const box = document.getElementById('addedToday');
     box.innerHTML = '';
-    list.forEach(pack => {
-      const row = document.createElement('button');
-      row.type = 'button';
+    if (addedTab === 'all') {
+      lists.all.forEach(pack => {
+        const { parts } = addedRowParts(pack);
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'added-row';
+        row.append(...parts);
+        row.addEventListener('click', () => showSheet(pack.id));
+        box.appendChild(row);
+      });
+      return;
+    }
+    // No date and 3+ days: a plain row, with date buttons under it
+    lists[addedTab].forEach(pack => {
+      const { parts, name } = addedRowParts(pack);
+      const row = document.createElement('div');
       row.className = 'added-row';
-      const kind = document.createElement('span');
-      kind.className = 'qf-kindtag';
-      kind.textContent = (FT.kindLabel(pack.kind) || pack.kind || '').toUpperCase();
-      const name = document.createElement('span');
-      name.className = 'nm';
-      name.textContent = pack.name;
-      if (typeof pack.price === 'number') {
-        const price = document.createElement('span');
-        price.className = 'pr';
-        price.textContent = ` · £${pack.price.toFixed(2)}`;
-        name.appendChild(price);
+      row.append(...parts);
+      name.addEventListener('click', () => showSheet(pack.id));
+      if (addedTab === 'later') {
+        const edit = document.createElement('button');
+        edit.type = 'button';
+        edit.className = 'added-edit' + (addedEditId === pack.id ? ' on' : '');
+        edit.textContent = 'Edit';
+        edit.addEventListener('click', () => {
+          addedEditId = addedEditId === pack.id ? null : pack.id;
+          renderAddedToday();
+        });
+        row.appendChild(edit);
       }
-      row.append(kind, name);
-      const tag = FT.dateTag(pack);
-      if (tag) {
-        const dt = document.createElement('span');
-        dt.className = 'dt';
-        dt.textContent = tag;
-        row.appendChild(dt);
-      }
-      const when = document.createElement('span');
-      if (pack.date) {
-        when.className = 'when';
-        when.textContent = FT.formatDate(pack.date);
-      } else if (pack.dateMissing) {
-        when.className = 'nd-tag';
-        when.textContent = 'NO DATE';
-      } else {
-        when.className = 'when';
-        when.textContent = 'no date';
-      }
-      row.appendChild(when);
-      row.addEventListener('click', () => showSheet(pack.id));
       box.appendChild(row);
+      if (addedTab === 'nodate' || addedEditId === pack.id) box.appendChild(addedQuickBox(pack));
     });
+  }
+
+  // The parts of one Added today row: kind, name (with price), UB/BB tag, and the date or "no date"
+  function addedRowParts(pack) {
+    const kind = document.createElement('span');
+    kind.className = 'qf-kindtag';
+    kind.textContent = (FT.kindLabel(pack.kind) || pack.kind || '').toUpperCase();
+    const name = document.createElement('span');
+    name.className = 'nm';
+    name.textContent = pack.name;
+    if (typeof pack.price === 'number') {
+      const price = document.createElement('span');
+      price.className = 'pr';
+      price.textContent = ` · £${pack.price.toFixed(2)}`;
+      name.appendChild(price);
+    }
+    const parts = [kind, name];
+    const tag = FT.dateTag(pack);
+    if (tag) {
+      const dt = document.createElement('span');
+      dt.className = 'dt';
+      dt.textContent = tag;
+      parts.push(dt);
+    }
+    const when = document.createElement('span');
+    if (pack.date) {
+      when.className = 'when';
+      when.textContent = FT.formatDate(pack.date);
+    } else if (pack.dateMissing) {
+      when.className = 'nd-tag';
+      when.textContent = 'NO DATE';
+    } else {
+      when.className = 'when';
+      when.textContent = 'no date';
+    }
+    parts.push(when);
+    return { parts, name };
+  }
+
+  // The date buttons under an Added today row: +1 to +7 and Pick date
+  function addedQuickBox(pack) {
+    const box = document.createElement('div');
+    box.className = 'added-quick';
+    [1, 2, 3, 5, 7].forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'qc';
+      btn.textContent = '+' + n;
+      btn.addEventListener('click', () => saveAddedDate(pack, FT.addDays(today, n)));
+      box.appendChild(btn);
+    });
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'qc';
+    pick.textContent = 'Pick date';
+    pick.addEventListener('click', () => {
+      // The box turns into a native date input; change / input / blur save a real date once
+      const input = document.createElement('input');
+      input.type = 'date';
+      input.className = 'qf-datein';
+      input.value = pack.date || '';
+      let done = false;
+      const commit = () => {
+        if (done || !input.isConnected || !/^\d{4}-\d{2}-\d{2}$/.test(input.value)) return;
+        done = true;
+        saveAddedDate(pack, input.value);
+      };
+      input.addEventListener('change', commit);
+      input.addEventListener('input', commit);
+      input.addEventListener('blur', commit);
+      box.replaceWith(input);
+      try { input.showPicker(); } catch (e) { input.focus(); }
+    });
+    box.appendChild(pick);
+    return box;
+  }
+
+  // Give a pack its date (it is no longer "no date"), close any open date box, and redraw
+  async function saveAddedDate(pack, date) {
+    const updated = { ...pack, date, dateMissing: false };
+    addedEditId = null;
+    await savePack(updated);
+    renderAll();
   }
 
   // ---- Ideas & feedback (Settings) ----

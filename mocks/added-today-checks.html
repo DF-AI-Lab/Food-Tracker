@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Added today mock</title>
+<style>
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#4caf7a;--amb:#f0b35a;--red:#e57373}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:360px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.tab{border:1px solid var(--line);background:#111a16;border-radius:12px;padding:9px 4px;text-align:center;font-size:13px;font-weight:600}
+.tab b{display:block;font-size:18px}
+.tab.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
+.tab.amb b{color:var(--amb)}
+.tab.red b{color:var(--red)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.k{width:42px;font-size:11px;font-weight:700;color:var(--mut)}
+.n{flex:1}
+.d{font-family:ui-monospace,monospace;font-size:13px}
+.ub{border:1px solid var(--line);border-radius:6px;padding:0 5px;font-size:11px;color:var(--mut);margin-right:6px}
+.qd{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px 66px;border-bottom:1px solid var(--line)}
+.qd:last-child{border-bottom:0}
+.qd span{border:1px solid var(--line);border-radius:10px;padding:5px 9px;font-size:13px;background:#111a16}
+.amb{color:var(--amb)}
+.red{color:var(--red)}
+.fix{border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:10px;padding:5px 10px;font-size:13px}
+</style></head><body>
+<h1>Added today: mock 3 (tabs)</h1>
+<p class="note">Mock only. Three tabs, with the list for the tab you tap underneath.</p>
+
+<div class="wrap">
+
+<div class="phone">
+  <div class="cap">Tab 1 · Added today</div>
+  <div class="tabs">
+    <div class="tab on"><b>40</b>Added today</div>
+    <div class="tab amb"><b>2</b>No date</div>
+    <div class="tab"><b>3</b>3+ days</div>
+  </div>
+  <div class="box">
+    <div class="row"><span class="k">MAIN</span><span class="n">Bacon</span><span class="d"><span class="ub">UB</span>Sat 14 Nov</span></div>
+    <div class="row"><span class="k">MAIN</span><span class="n">Frankfurters</span><span class="d"><span class="ub">UB</span>Sat 14 Nov</span></div>
+    <div class="row"><span class="k">MAIN</span><span class="n">Mince</span><span class="d"><span class="ub">UB</span>Tue 3 Nov</span></div>
+    <div class="row"><span class="k">SIDE</span><span class="n">Cheese sauce</span><span class="d amb">no date</span></div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="cap">Tab 2 · No date (not veg)</div>
+  <div class="tabs">
+    <div class="tab"><b>40</b>Added today</div>
+    <div class="tab amb on"><b>2</b>No date</div>
+    <div class="tab"><b>3</b>3+ days</div>
+  </div>
+  <div class="box">
+    <div class="row"><span class="k">SIDE</span><span class="n">Cheese sauce</span><span class="d amb">no date</span></div>
+    <div class="qd"><span>+1</span><span>+2</span><span>+3</span><span>+5</span><span>+7</span><span>Pick date</span></div>
+    <div class="row"><span class="k">OTHER</span><span class="n">Ham</span><span class="d amb">no date</span></div>
+    <div class="qd"><span>+1</span><span>+2</span><span>+3</span><span>+5</span><span>+7</span><span>Pick date</span></div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="cap">Tab 3 · 3+ days (check the shopping)</div>
+  <div class="tabs">
+    <div class="tab"><b>40</b>Added today</div>
+    <div class="tab amb"><b>2</b>No date</div>
+    <div class="tab on"><b>3</b>3+ days</div>
+  </div>
+  <div class="box">
+    <div class="row"><span class="k">MAIN</span><span class="n">Bacon</span><span class="d"><span class="ub">UB</span>Sat 14 Nov</span><button class="fix">Edit</button></div>
+    <div class="row"><span class="k">MAIN</span><span class="n">Mince</span><span class="d"><span class="ub">UB</span>Tue 3 Nov</span><button class="fix">Edit</button></div>
+    <div class="row"><span class="k">MAIN</span><span class="n">Tagliatelle</span><span class="d"><span class="ub">UB</span>Wed 2 Dec</span><button class="fix">Edit</button></div>
+  </div>
+  <p class="note">Edit opens the date with the same +1 to +7 / Pick date buttons.</p>
+</div>
+
+</div>
+</body></html>

@@ -801,12 +801,18 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 #qfShopList{display:flex;flex-direction:column;gap:8px}
 .qf-shop-row{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer;min-height:36px}
 .qf-shop-row input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
-details.added{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-details.added>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;cursor:pointer;list-style:none;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-details.added>summary::-webkit-details-marker{display:none}
-details.added .chev{flex:none;font-size:16px;line-height:1;transition:transform .2s}
-details.added[open] .chev{transform:rotate(180deg)}
+.added{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.added-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:10px}
+.added-tab{font:inherit;min-height:52px;padding:6px 4px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.added-tab b{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text)}
+.added-tab.on{background:var(--sel-bg);border-color:var(--sel-border);color:var(--accent)}
+.added-tab.on b{color:var(--accent)}
+.added-tab[data-added="nodate"] b{color:var(--warn)}
 .added-list{border-top:1px solid var(--border)}
+.added-quick{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px 62px}
+.added-quick .qf-datein{margin:0}
+.added-edit{flex:none;min-height:32px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.added-edit.on{color:var(--accent);border-color:var(--sel-border);background:var(--sel-bg)}
 .added-row{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:10px 14px;border:0;border-top:1px solid var(--divider);background:none;color:var(--text);font:inherit;font-size:14px;text-align:left;cursor:pointer}
 .added-row:first-child{border-top:0}
 .added-row .nm{flex:1;min-width:0;overflow-wrap:anywhere}

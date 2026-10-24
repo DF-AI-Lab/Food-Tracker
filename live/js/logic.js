@@ -1039,6 +1039,17 @@
       .sort((a, b) => rank(a) - rank(b) || String(a.name).localeCompare(String(b.name)));
   }
 
+  // Added today, in the fridge, with no date (mains, sides and other only: veg and cupboard need none)
+  function addedNoDate(packs, today) {
+    return addedToday(packs, today).filter(p =>
+      p.status === "in_fridge" && !p.date && ["main", "side", "misc"].includes(p.kind));
+  }
+
+  // Added today, dated 3 or more days away
+  function addedLater(packs, today) {
+    return addedToday(packs, today).filter(p => p.date && daysLeft(p.date, today) >= 3);
+  }
+
   // UB (use by) or BB (best before) for a dated pack, "" when it has no date
   function dateTag(pack) {
     if (!pack.date) return "";
@@ -1919,6 +1930,8 @@
     foldShopRepeats,
     searchPacks,
     addedToday,
+    addedNoDate,
+    addedLater,
     dateTag,
     addDays,
     daysLeft,
