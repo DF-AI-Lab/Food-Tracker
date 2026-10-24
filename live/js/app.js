@@ -17,7 +17,9 @@
   let byDateOn = false;   // Fridge: the By date list shows instead of the sections
   let stockOpen = false;  // Fridge: the Stock check panel is open
   let stockKey = 'main';  // Stock check: the section chosen
-  let stockOk = new Set(); // Stock check: packs ticked "Still there" (this check only)
+  let stockOk = new Set(); // Stock check: packs ticked "All there" (this check only)
+  let stockEditKey = null; // Stock check: the food whose Edit box is open (name key), or null
+  let stockLeft = 0;       // Stock check: how many packs of that food are still left
   // A "sitting" is a day's meal: its key is the day (tea) or day|dinner (FT.sitKey)
   let askDay = null;      // sitting in "What did you have?" (or cost) mode
   let addingDay = null;  // an asking sitting whose picker is open (+ Add); tonight after 5pm too
@@ -2134,12 +2136,36 @@
     }
   }
 
-  // Stock check: pick a section, then "Still there" ticks the food for this check only, "Gone" deletes it (with Undo)
+  // Stock check: pick a section. Each food shows once (×N if several packs). "All there" ticks every pack
+  // of it for this check only. "Edit" opens a box: how many are left (if several), then what happened to
+  // the gone ones: Used, Thrown away or Delete (it was never there).
   function openStock() {
     stockOpen = true;
     stockKey = 'main';
     stockOk = new Set();
+    stockEditKey = null;
     renderStock();
+  }
+
+  // Stock check: apply Used / Thrown away / Delete to the packs that are gone (the soonest ones)
+  async function applyStockGone(group, choice) {
+    const gone = FT.stockGone(group.packs, group.packs.length > 1 ? stockLeft : 0);
+    if (!gone.length) return;
+    const writes = [];
+    for (const p of gone) {
+      if (choice === 'used') {
+        const updated = FT.markUsed(p, today);
+        writes.push(setPack(updated), autoAddFinished(updated, 'used'));
+      } else if (choice === 'thrown') {
+        const updated = FT.markThrown(p, today);
+        writes.push(setPack(updated), autoAddFinished(updated, 'thrown_away'));
+      } else {
+        writes.push(setPack(FT.markDeleted(p, today)));
+      }
+    }
+    stockEditKey = null;
+    renderAll();
+    await persistAll(writes);
   }
 
   function renderStock() {
@@ -2154,7 +2180,7 @@
       chip.className = 'sb' + (s.key === stockKey ? ' on' : '');
       chip.dataset.stock = s.key;
       chip.textContent = `${s.label} · ${s.items.length}`;
-      chip.addEventListener('click', () => { stockKey = s.key; renderStock(); });
+      chip.addEventListener('click', () => { stockKey = s.key; stockEditKey = null; renderStock(); });
       chipsEl.appendChild(chip);
     }
 
@@ -2167,36 +2193,108 @@
       note.textContent = 'Nothing in this section.';
       listEl.appendChild(note);
     }
-    for (const pack of items) {
+    for (const group of FT.stockGroups(items)) {
+      const n = group.packs.length;
+      const key = group.name.toLowerCase();
       const row = document.createElement('div');
-      row.className = 'stock-row' + (stockOk.has(pack.id) ? ' ok' : '');
+      row.className = 'stock-row' + (group.packs.every(p => stockOk.has(p.id)) ? ' ok' : '');
       const text = document.createElement('div');
       text.className = 'sr-text';
       const name = document.createElement('span');
       name.className = 'sr-name';
-      name.textContent = pack.name;
+      name.textContent = group.name;
+      if (n > 1) {
+        const count = document.createElement('span');
+        count.className = 'sr-x';
+        count.textContent = `×${n}`;
+        name.append(' ', count);
+      }
       const date = document.createElement('span');
       date.className = 'sr-date';
-      date.textContent = FT.packDateLabel(pack);
+      date.textContent = group.dateLabel;
       text.append(name, date);
 
       const there = document.createElement('button');
       there.type = 'button';
       there.className = 'act ghost stock-there';
-      there.textContent = 'Still there';
-      there.addEventListener('click', () => { stockOk.add(pack.id); row.classList.add('ok'); });
-
-      const gone = document.createElement('button');
-      gone.type = 'button';
-      gone.className = 'act alt stock-gone';
-      gone.textContent = 'Gone';
-      gone.addEventListener('click', async () => {
-        row.remove();
-        await deletePack(pack);
+      there.textContent = 'All there';
+      there.addEventListener('click', () => {
+        group.packs.forEach(p => stockOk.add(p.id));
+        row.classList.add('ok');
       });
 
-      row.append(text, there, gone);
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'act ghost stock-edit';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', () => {
+        stockEditKey = stockEditKey === key ? null : key;
+        stockLeft = n;
+        renderStock();
+      });
+
+      row.append(text, there, edit);
       listEl.appendChild(row);
+
+      if (stockEditKey !== key) continue;
+
+      const box = document.createElement('div');
+      box.className = 'stock-editbox';
+      if (n > 1) {
+        const howMany = document.createElement('div');
+        howMany.className = 'stock-q';
+        howMany.textContent = 'How many left?';
+        const step = document.createElement('div');
+        step.className = 'stock-step';
+        const minus = document.createElement('button');
+        minus.type = 'button';
+        minus.className = 'act ghost stock-minus';
+        minus.textContent = '−';
+        const left = document.createElement('span');
+        left.className = 'stock-left';
+        left.textContent = stockLeft;
+        const plus = document.createElement('button');
+        plus.type = 'button';
+        plus.className = 'act ghost stock-plus';
+        plus.textContent = '+';
+        minus.addEventListener('click', () => {
+          stockLeft = Math.max(0, stockLeft - 1);
+          left.textContent = stockLeft;
+        });
+        plus.addEventListener('click', () => {
+          stockLeft = Math.min(n, stockLeft + 1);
+          left.textContent = stockLeft;
+        });
+        step.append(minus, left, plus);
+        box.append(howMany, step);
+      }
+
+      const what = document.createElement('div');
+      what.className = 'stock-q';
+      what.textContent = n > 1 ? 'What happened to the gone ones?' : 'What happened to it?';
+      const choices = document.createElement('div');
+      choices.className = 'stock-choices';
+      const used = document.createElement('button');
+      used.type = 'button';
+      used.className = 'act ghost stock-used';
+      used.textContent = 'Used';
+      used.addEventListener('click', () => applyStockGone(group, 'used'));
+      const thrown = document.createElement('button');
+      thrown.type = 'button';
+      thrown.className = 'act ghost stock-thrown';
+      thrown.textContent = 'Thrown away';
+      thrown.addEventListener('click', () => applyStockGone(group, 'thrown'));
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'act ghost stock-del';
+      del.textContent = 'Delete';
+      del.addEventListener('click', () => applyStockGone(group, 'delete'));
+      choices.append(used, thrown, del);
+      const delNote = document.createElement('p');
+      delNote.className = 'note stock-delnote';
+      delNote.textContent = 'Delete = it was never there';
+      box.append(what, choices, delNote);
+      listEl.appendChild(box);
     }
   }
 

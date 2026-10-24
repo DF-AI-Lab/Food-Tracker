@@ -1151,6 +1151,35 @@
     }));
   }
 
+  // Stock check v2: the same food (name trimmed, any case) is one row. Items come soonest first,
+  // so the first pack's name and order are kept. dateLabel lists each date once, e.g. "UB 30 Oct · 1 Nov".
+  function stockGroups(items) {
+    const groups = new Map();
+    for (const p of items || []) {
+      const key = p.name.trim().toLowerCase();
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    }
+    return [...groups.values()].map(packs => {
+      const labels = [];
+      for (const p of packs) {
+        const label = packDateLabel(p);
+        if (!labels.includes(label)) labels.push(label);
+      }
+      const first = labels[0];
+      const prefix = first.split(" ")[0];
+      const dateLabel = labels
+        .map((l, i) => (i === 0 || l.split(" ")[0] !== prefix ? l : l.slice(prefix.length + 1)))
+        .join(" · ");
+      return { name: packs[0].name.trim(), packs, dateLabel };
+    });
+  }
+
+  // The packs that go in Stock check: "left" of them stay (the latest ones), the soonest go first
+  function stockGone(packs, left) {
+    return packs.slice(0, Math.max(0, packs.length - left));
+  }
+
   // Every fridge food (mains, sides, veg, other) in one list, soonest first
   function byDateList(packs) {
     return (packs || [])
@@ -1822,6 +1851,8 @@
     makeMeal,
     fancyMeals,
     stockSections,
+    stockGroups,
+    stockGone,
     byDateList,
     packDateLabel,
     newFoodName,

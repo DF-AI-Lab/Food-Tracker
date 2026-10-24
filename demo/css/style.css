@@ -772,6 +772,16 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .stock-row .sr-name{font-size:15px;font-weight:500;overflow-wrap:anywhere}
 .stock-row .sr-date{font-size:12px;color:var(--muted)}
 .stock-row .act{min-height:40px;padding:0 12px;font-size:14px}
+.stock-row .sr-x{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--ok-bg);border:1px solid var(--ok-border);color:var(--accent);font-size:12px;font-weight:600;line-height:18px;vertical-align:middle}
+.stock-editbox{display:flex;flex-direction:column;gap:10px;padding:12px;border-bottom:1px solid var(--divider);background:var(--surface-2)}
+.stock-q{font-size:13px;font-weight:600;color:var(--muted)}
+.stock-step{display:flex;align-items:center;justify-content:center;gap:16px}
+.stock-step .act{width:56px;min-height:56px;padding:0;font-size:24px;line-height:1}
+.stock-left{font-size:24px;font-weight:700;min-width:48px;text-align:center}
+.stock-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stock-choices .act{min-height:48px;padding:0 6px;font-size:14px}
+.stock-choices .stock-del{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.stock-delnote{margin:0;text-align:center}
 /* V3 photos: take / select buttons, bar gauge while the Worker reads photos */
 .act-row{display:flex;gap:10px;margin-bottom:14px}
 .act-row .act{flex:1}

@@ -50,3 +50,29 @@ test("fancyMeals: starred meals only, A to Z", () => {
   assert.deepEqual(FT.fancyMeals(meals).map(m => m.id), [3, 1]);
   assert.deepEqual(FT.fancyMeals([]), []);
 });
+
+// Stock check v2 (Darren 2026-10-24): same food shows once as ×2, Edit picks how many are left
+test("stockGroups: same name (any case) is one row, soonest first, dates listed once", () => {
+  const items = [
+    pack(1, "Pizza", "main", { date: "2026-10-30" }),
+    pack(2, "Ribs", "main", { date: "2026-10-31" }),
+    pack(3, "pizza ", "main", { date: "2026-11-01" }),
+    pack(4, "Potatoes", "veg"),
+    pack(5, "Potatoes", "veg"),
+  ];
+  const g = FT.stockGroups(items);
+  assert.deepEqual(g.map(x => x.name), ["Pizza", "Ribs", "Potatoes"]);
+  assert.deepEqual(g.map(x => x.packs.map(p => p.id)), [[1, 3], [2], [4, 5]]);
+  assert.equal(g[0].dateLabel, "UB 30 Oct · 1 Nov");
+  assert.equal(g[1].dateLabel, "UB 31 Oct");
+  assert.equal(g[2].dateLabel, "added 15 Oct");
+  assert.deepEqual(FT.stockGroups([]), []);
+});
+
+test("stockGone: the ones that go are the soonest dated first", () => {
+  const ps = [pack(1, "Pizza", "main", { date: "2026-10-30" }), pack(3, "Pizza", "main", { date: "2026-11-01" })];
+  assert.deepEqual(FT.stockGone(ps, 1).map(p => p.id), [1]);
+  assert.deepEqual(FT.stockGone(ps, 0).map(p => p.id), [1, 3]);
+  assert.deepEqual(FT.stockGone(ps, 2), []);
+  assert.deepEqual(FT.stockGone(ps, 5), []);
+});

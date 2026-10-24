@@ -94,26 +94,58 @@ function startStatic() {
     assert.equal(await page.locator("#byDateList").isVisible(), false);
   });
 
-  await step("Stock check: pick Mains, Chicken is there; mark it Gone and it leaves the fridge", async () => {
+  await step("Stock check: pick Mains, Chicken is there; Edit → Thrown away and it leaves the fridge", async () => {
     await page.click("#stockBtn");
     await until(async () => assert.ok(await page.locator("#stockPanel").isVisible()));
     await page.click('#stockPanel [data-stock="main"]');
     const row = page.locator("#stockList .stock-row", { hasText: "Chicken" });
     await until(async () => assert.equal(await row.count(), 1));
-    await row.locator(".stock-gone").click();
+    assert.equal(await row.locator(".stock-gone").count(), 0); // no more Gone button
+    await row.locator(".stock-edit").click();
+    const box = page.locator("#stockList .stock-editbox");
+    await until(async () => assert.ok(await box.isVisible()));
+    assert.equal(await box.locator(".stock-left").count(), 0); // just 1: no how-many
+    assert.ok(await box.locator(".stock-used").isVisible());
+    assert.ok(await box.locator(".stock-del").isVisible());
+    await box.locator(".stock-thrown").click();
     await until(async () => assert.equal(await page.locator("#stockList .stock-row", { hasText: "Chicken" }).count(), 0));
   });
 
-  await step("Stock check: Other, Yoghurt 'Still there' gets ticked and stays", async () => {
+  await step("Stock check: Other, Yoghurt 'All there' gets ticked and stays", async () => {
     await page.click('#stockPanel [data-stock="misc"]');
     const row = page.locator("#stockList .stock-row", { hasText: "Yoghurt" });
     await until(async () => assert.equal(await row.count(), 1));
+    assert.equal((await row.locator(".stock-there").innerText()).trim(), "All there");
     await row.locator(".stock-there").click();
     await until(async () => assert.ok(await row.evaluate(el => el.classList.contains("ok"))));
     await page.click("#stockDone");
     await until(async () => assert.equal(await page.locator("#stockPanel").isVisible(), false));
     assert.equal((await page.locator("#mainCount").innerText()).trim(), "0");
     assert.equal((await page.locator("#miscCount").innerText()).trim(), "1");
+  });
+
+  await step("Stock check: Potatoes ×2 shows once; Edit, 1 left, Used → 1 Potatoes stays", async () => {
+    await addFood("veg", "Potatoes", 3);
+    await addFood("veg", "Potatoes", 5);
+    await page.click('[data-tab="fridge"]');
+    await page.click("#stockBtn");
+    await page.click('#stockPanel [data-stock="veg"]');
+    const row = page.locator("#stockList .stock-row", { hasText: "Potatoes" });
+    await until(async () => assert.equal(await row.count(), 1));
+    assert.match(await row.innerText(), /×2/);
+    await row.locator(".stock-edit").click();
+    const box = page.locator("#stockList .stock-editbox");
+    await until(async () => assert.ok(await box.isVisible()));
+    assert.equal((await box.locator(".stock-left").innerText()).trim(), "2");
+    await box.locator(".stock-minus").click();
+    assert.equal((await box.locator(".stock-left").innerText()).trim(), "1");
+    await box.locator(".stock-used").click();
+    await until(async () => {
+      const r = page.locator("#stockList .stock-row", { hasText: "Potatoes" });
+      assert.equal(await r.count(), 1);
+      assert.doesNotMatch(await r.innerText(), /×2/);
+    });
+    await page.click("#stockDone");
   });
 
   await step("Meals: new meal Tacos with Peppers (not in the fridge)", async () => {
