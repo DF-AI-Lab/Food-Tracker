@@ -813,6 +813,26 @@
     return [a, b].map(n => String(n ?? "").trim().toLowerCase()).sort().join("+");
   }
 
+  // A stored pair's key: the pair, plus its note (if any), so "Potatoes (chips)" and "Potatoes (mash)" are 2 rows
+  function comboKey(a, b, note) {
+    const n = String(note ?? "").trim().toLowerCase();
+    return n ? pairKey(a, b) + "|" + n : pairKey(a, b);
+  }
+
+  // Dishes: combo records with type "dish" (a name, its foods, an optional note), A to Z by name
+  function comboDishes(combos) {
+    return (combos || [])
+      .filter(s => s && s.type === "dish")
+      .map(s => ({
+        id: s.id,
+        name: String(s.name ?? "").trim(),
+        foods: (Array.isArray(s.foods) ? s.foods : []).map(f => String(f ?? "").trim()).filter(Boolean),
+        note: String(s.note ?? "").trim()
+      }))
+      .filter(d => d.name)
+      .sort((x, y) => x.name.localeCompare(y.name));
+  }
+
   // Soonest first: dated packs by date, then undated packs; ties by id
   function soonestFirst(a, b) {
     if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
@@ -847,22 +867,25 @@
     }
     const storedKeys = new Set();
     for (const s of combos || []) {
+      if (s.type === "dish") continue; // dishes are not pairs (see comboDishes)
       const a = String(s.a ?? "").trim();
       const b = String(s.b ?? "").trim();
       if (!a || !b) continue;
-      const key = pairKey(a, b);
-      if (storedKeys.has(key)) continue; // the same pair stored twice: keep the first
+      const note = String(s.note ?? "").trim();
+      const key = comboKey(a, b, note);
+      if (storedKeys.has(key)) continue; // the same pair (and note) stored twice: keep the first
       storedKeys.add(key);
       const have = rows.get(key);
       if (have) {
         have.id = s.id;
         have.hidden = !!s.hidden;
       } else {
-        rows.set(key, { key, a, b, count: 0, source: s.source || "hand", id: s.id, hidden: !!s.hidden });
+        rows.set(key, { key, a, b, ...(note ? { note } : {}), count: 0, source: s.source || "hand", id: s.id, hidden: !!s.hidden });
       }
     }
 
-    const byOrder = (x, y) => (y.count - x.count) || `${x.a} + ${x.b}`.localeCompare(`${y.a} + ${y.b}`);
+    const byOrder = (x, y) => (y.count - x.count) || `${x.a} + ${x.b}`.localeCompare(`${y.a} + ${y.b}`)
+      || (x.note || "").localeCompare(y.note || "");
     const all = [...rows.values()];
     return {
       shown: all.filter(r => !r.hidden).sort(byOrder),
@@ -878,39 +901,60 @@
       .sort((a, b) => a.localeCompare(b));
   }
 
-  // Combos list: rows grouped by their first food (case-insensitive), groups A to Z, rows A to Z by b
-  function comboGroups(rows) {
-    const groups = new Map(); // lower-case name -> { name, rows }
-    for (const r of rows || []) {
-      const key = String(r.a ?? "").trim().toLowerCase();
-      if (!groups.has(key)) groups.set(key, { name: r.a, rows: [] });
-      groups.get(key).rows.push(r);
+  // Combos list: rows grouped by their first food (case-insensitive), groups A to Z, rows A to Z by b.
+  // A dish (see comboDishes) gets a group too, even with no rows; group.dish is its record or null.
+  function comboGroups(rows, dishes = []) {
+    const groups = new Map(); // lower-case name -> { name, rows, dish }
+    const groupFor = name => {
+      const key = String(name ?? "").trim().toLowerCase();
+      if (!groups.has(key)) groups.set(key, { name: String(name ?? "").trim(), rows: [], dish: null });
+      return groups.get(key);
+    };
+    for (const r of rows || []) groupFor(r.a).rows.push(r);
+    for (const d of dishes || []) {
+      const g = groupFor(d.name);
+      g.name = d.name;
+      g.dish = d;
     }
     return [...groups.values()]
       .sort((x, y) => x.name.localeCompare(y.name))
-      .map(g => ({ name: g.name, rows: g.rows.sort((x, y) => x.b.localeCompare(y.b)) }));
+      .map(g => ({
+        name: g.name,
+        dish: g.dish,
+        rows: g.rows.sort((x, y) => x.b.localeCompare(y.b) || (x.note || "").localeCompare(y.note || ""))
+      }));
   }
 
-  // Combos picker save: one new hand pair per ticked food. Skips blanks, the food itself,
-  // doubles in the list, and pairs already in existingRows (by key).
+  // Combos picker save: one new hand pair per ticked food and per note (a note with commas is one
+  // pair each). picked: names or { name, note }. Skips blanks, the food itself, doubles, and pairs
+  // already in existingRows (by key).
   function newComboRows(food, picked, existingRows) {
-    const have = new Set((existingRows || []).map(r => r.key));
+    const have = new Set((existingRows || []).map(r => r.key ?? comboKey(r.a, r.b, r.note)));
     const rows = [];
+    const self = String(food ?? "").trim().toLowerCase();
     for (const raw of picked || []) {
-      const name = String(raw ?? "").trim();
-      if (!name || name.toLowerCase() === String(food).trim().toLowerCase()) continue;
-      const key = pairKey(food, name);
-      if (have.has(key)) continue;
-      have.add(key);
-      rows.push({ a: food, b: name, source: "hand", hidden: false });
+      const item = typeof raw === "object" && raw !== null ? raw : { name: raw };
+      const name = String(item.name ?? "").trim();
+      if (!name || name.toLowerCase() === self) continue;
+      const notes = String(item.note ?? "").split(",").map(n => n.trim()).filter(Boolean);
+      for (const note of notes.length ? notes : [""]) {
+        const key = comboKey(food, name, note);
+        if (have.has(key)) continue;
+        have.add(key);
+        rows.push(note
+          ? { a: food, b: name, note, source: "hand", hidden: false }
+          : { a: food, b: name, source: "hand", hidden: false });
+      }
     }
     return rows;
   }
 
   // Ideas for tonight: each free main in the fridge with the sides its pairs can make (3 at most).
   // skipKeys: mains said "Not tonight". Sorted by the soonest date among the foods, then main name.
-  // Returns [{ key, main, sides, pairs }]; pairs are the pairs of the sides shown.
-  function tonightIdeas(packs, pairs, today, skipKeys = []) {
+  // Dishes (comboDishes) too: a dish whose foods all have a free pack is an idea, key "dish:<name>",
+  // with its goes-with items from the pairs (3 at most). Returns [{ key, main, sides, pairs, title }];
+  // pairs are the pairs of the sides shown.
+  function tonightIdeas(packs, pairs, today, skipKeys = [], dishes = []) {
     const skip = new Set(skipKeys);
     const free = (packs || []).filter(isFree);
     const mains = new Map(); // name key -> soonest free main
@@ -945,19 +989,72 @@
         sides.push(f.side);
         shownPairs.push(f.pair);
       }
-      ideas.push({ key, main, sides, pairs: shownPairs });
+      ideas.push({ key, main, sides, pairs: shownPairs, title: [main, ...sides].map(p => p.name).join(" + ") });
     }
 
-    // The soonest date among the foods (undated last), then the main's name
+    // Dish ideas. A dish's foods take their soonest free packs (one each); each pair with the dish
+    // resolves its other side the same way (a dish: all its foods), soonest first, 3 at most.
+    const dishByKey = new Map((dishes || []).map(d => [keyOf(d.name), d]));
+    for (const dish of dishes || []) {
+      const key = "dish:" + keyOf(dish.name);
+      if (skip.has(key)) continue;
+      const dishPacks = takePacks(dish.foods, free, new Set());
+      if (!dishPacks || !dishPacks.length) continue;
+      const used = new Set(dishPacks.map(p => p.id));
+      const dk = keyOf(dish.name);
+      const goesWith = name => (dishByKey.get(keyOf(name)) ? dishByKey.get(keyOf(name)).foods : [name]);
+
+      const cands = [];
+      for (const pair of pairs || []) {
+        const other = keyOf(pair.a) === dk ? pair.b : keyOf(pair.b) === dk ? pair.a : null;
+        if (other == null || keyOf(other) === dk) continue;
+        const first = takePacks(goesWith(other), free, used);
+        if (first) cands.push({ pair, other, rank: first.slice().sort(soonestFirst)[0] });
+      }
+      cands.sort((x, y) => soonestFirst(x.rank, y.rank));
+
+      const sides = [...dishPacks.slice(1)];
+      const shownPairs = [];
+      const labels = [];
+      for (const c of cands) {
+        if (labels.length === 3) break;
+        const packs = takePacks(goesWith(c.other), free, used);
+        if (!packs) continue; // its packs went to an earlier item
+        packs.forEach(p => used.add(p.id));
+        sides.push(...packs);
+        shownPairs.push(c.pair);
+        labels.push(c.pair.note ? `${c.other} (${c.pair.note})` : c.other);
+      }
+      if (!labels.length) continue;
+      ideas.push({ key, main: dishPacks[0], sides, pairs: shownPairs, title: [dish.name, ...labels].join(" + ") });
+    }
+
+    // The soonest date among the foods (undated last), then the title (main's name for a main)
     const soonestDate = idea => [idea.main, ...idea.sides].map(p => p.date).filter(Boolean).sort()[0] || null;
     ideas.sort((x, y) => {
       const dx = soonestDate(x), dy = soonestDate(y);
       if (dx && dy && dx !== dy) return dx < dy ? -1 : 1;
       if (dx && !dy) return -1;
       if (!dx && dy) return 1;
-      return x.main.name.localeCompare(y.main.name);
+      return (x.title || x.main.name).localeCompare(y.title || y.main.name);
     });
-    return ideas.map(({ key, main, sides, pairs: used }) => ({ key, main, sides, pairs: used }));
+    return ideas.map(({ key, main, sides, pairs: used, title }) => ({ key, main, sides, pairs: used, title }));
+  }
+
+  // One free pack for each name, none of them in used (or taken twice); null when one is missing
+  function takePacks(names, free, used) {
+    const taken = new Set();
+    const out = [];
+    for (const name of names) {
+      const key = keyOf(name);
+      const pack = free
+        .filter(p => !used.has(p.id) && !taken.has(p.id) && keyOf(p.name) === key)
+        .sort(soonestFirst)[0];
+      if (!pack) return null;
+      taken.add(pack.id);
+      out.push(pack);
+    }
+    return out;
   }
 
   // The foods in an idea that are out of date by the day (their date is before it)
@@ -2027,6 +2124,8 @@
     dayGroups,
     mealIdeas,
     pairKey,
+    comboKey,
+    comboDishes,
     comboPairs,
     comboFoods,
     comboGroups,

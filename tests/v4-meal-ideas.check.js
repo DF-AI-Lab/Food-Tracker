@@ -56,6 +56,7 @@ function startStatic() {
     await page.click("#comboAdd");
     await pick.locator(`[data-cpkind="${aKind}"]`).click();
     await pick.locator(".cp-chip", { hasText: new RegExp("^" + a + "$") }).click();
+    await page.click("#cpNext");
     await pick.locator(`[data-cpkind="${bKind}"]`).click();
     await pick.locator(".cp-chip", { hasText: new RegExp("^" + b + "$") }).click();
     await page.click("#cpSave");

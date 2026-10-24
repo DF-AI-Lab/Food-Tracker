@@ -199,15 +199,19 @@
       <p class="note">Foods that go together. The app also learns pairs you eat 2 or more times.</p>
       <div id="comboPick" class="card" hidden>
         <div class="cp-title"></div>
-        <div class="cp-tabs">
-          <button type="button" data-cpkind="main">Main</button>
-          <button type="button" data-cpkind="side">Side</button>
-          <button type="button" data-cpkind="veg">Veg</button>
-          <button type="button" data-cpkind="misc">Other</button>
+        <div class="cp-tabs"></div>
+        <div class="cp-type">
+          <input id="cpType" type="text" placeholder="Not listed? Type a food" autocomplete="off">
+          <button id="cpTypeAdd" type="button">Add</button>
         </div>
         <div class="cp-chips"></div>
+        <div class="cp-dish">
+          <input id="cpName" type="text" placeholder="Name it, e.g. Pigs in blankets" autocomplete="off" hidden>
+          <input id="cpNote" type="text" placeholder="Note (optional)" autocomplete="off" hidden>
+        </div>
         <div class="cp-ticked note"></div>
         <div class="cp-btns">
+          <button id="cpNext" class="act" type="button">Next: goes with</button>
           <button id="cpSave" class="act" type="button">Save</button>
           <button id="cpCancel" class="act ghost" type="button">Cancel</button>
         </div>
