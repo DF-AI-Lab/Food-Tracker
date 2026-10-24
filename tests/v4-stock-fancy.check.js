@@ -107,6 +107,7 @@ function startStatic() {
     assert.equal(await box.locator(".stock-left").count(), 0); // just 1: no how-many
     assert.ok(await box.locator(".stock-used").isVisible());
     assert.ok(await box.locator(".stock-del").isVisible());
+    assert.ok(await box.locator(".stock-cancel").isVisible());
     await box.locator(".stock-thrown").click();
     await until(async () => assert.equal(await page.locator("#stockList .stock-row", { hasText: "Chicken" }).count(), 0));
   });
@@ -136,8 +137,20 @@ function startStatic() {
     await row.locator(".stock-edit").click();
     const box = page.locator("#stockList .stock-editbox");
     await until(async () => assert.ok(await box.isVisible()));
+    // starts at 1 left (one gone), so Used works straight away
+    assert.equal((await box.locator(".stock-left").innerText()).trim(), "1");
+    assert.equal(await box.locator(".stock-used").isDisabled(), false);
+    // back up to 2 left = nothing gone, so the choices are off
+    await box.locator(".stock-plus").click();
     assert.equal((await box.locator(".stock-left").innerText()).trim(), "2");
-    await box.locator(".stock-minus").click();
+    assert.equal(await box.locator(".stock-used").isDisabled(), true);
+    // Cancel closes it and changes nothing
+    await box.locator(".stock-cancel").click();
+    await until(async () => assert.equal(await page.locator("#stockList .stock-editbox").count(), 0));
+    assert.match(await row.innerText(), /×2/);
+    // open again, starts at 1, Used
+    await row.locator(".stock-edit").click();
+    await until(async () => assert.ok(await box.isVisible()));
     assert.equal((await box.locator(".stock-left").innerText()).trim(), "1");
     await box.locator(".stock-used").click();
     await until(async () => {
