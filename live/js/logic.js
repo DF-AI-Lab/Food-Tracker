@@ -136,6 +136,15 @@
     return `${age} days old`;
   }
 
+  // Fridge row line under the bar: "added today" / "added Mon 19 Oct · 5 days ago"
+  function addedLine(added, today) {
+    if (!added) return "";
+    const age = daysLeft(today, added);
+    if (age === 0) return "added today";
+    if (age === 1) return `added ${formatDate(added)} · 1 day ago`;
+    return `added ${formatDate(added)} · ${age} days ago`;
+  }
+
   function isOld(added, today) {
     return daysLeft(today, added) >= 7;
   }
@@ -1941,6 +1950,7 @@
     countdown,
     colour,
     ageLabel,
+    addedLine,
     isOld,
     makePacks,
     editPack,
