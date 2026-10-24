@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Combos v3 mock</title>
+<style>
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#4caf7a;--amb:#f0b35a}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:12px;padding:10px;font-weight:600;font-size:14px}
+.go{background:var(--grn);color:#062014;border:0}
+.lbl{font-size:13px;color:var(--mut);margin:12px 0 6px}
+.in{border:1px solid var(--line);background:#111a16;border-radius:10px;padding:9px 11px;color:var(--txt)}
+.in.ph{color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:20px;padding:7px 12px;font-size:14px;background:#111a16}
+.chip.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
+.chip small{color:var(--mut);font-size:12px}
+.chip.on small{color:#9fe0bf;opacity:.8}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{flex:1;text-align:center;border:1px solid var(--line);border-radius:10px;padding:7px 2px;font-size:13px;font-weight:600;background:#111a16}
+.tab.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
+.dish{font-weight:700;font-size:16px}
+.made{font-size:12px;color:var(--mut);margin-top:2px}
+.gw{font-size:13px;color:var(--mut);margin-top:8px}
+.gw b{color:var(--txt);font-weight:500}
+.sec{font-weight:700;margin:2px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sm{flex:0 0 auto;padding:6px 10px;font-size:13px}
+</style></head><body>
+<h1>Combos: mock 3</h1>
+<p class="note">Mock only. A combo can be 1 food or several (a dish), then you tick everything that goes with it.</p>
+
+<div class="wrap">
+
+<div class="phone">
+  <div class="cap">1 · Combos list</div>
+  <div class="sec">Combos <button class="btn sm go">+ Add</button></div>
+  <div class="card">
+    <div class="dish">Pigs in blankets</div>
+    <div class="made">Sausages + Bacon · wrapped in bacon</div>
+    <div class="gw">Goes with: <b>Potatoes (chips) · Potatoes (mash) · Peas · Cauli cheese · Gravy</b></div>
+  </div>
+  <div class="card">
+    <div class="dish">Chicken</div>
+    <div class="gw">Goes with: <b>Chips · Cauli cheese · Roast potatoes</b></div>
+  </div>
+  <div class="card">
+    <div class="dish">Cauli cheese</div>
+    <div class="made">Cauliflower + Cheese sauce</div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="cap">2 · + Add: what is it made of?</div>
+  <div class="lbl">Tick 1 food, or more for a dish</div>
+  <div class="tabs"><span class="tab on">Main</span><span class="tab">Side</span><span class="tab">Veg</span><span class="tab">Other</span></div>
+  <div class="chips">
+    <span class="chip on">Sausages</span><span class="chip on">Bacon</span><span class="chip">Chicken</span><span class="chip">Mince</span><span class="chip">Gammon</span>
+  </div>
+  <div class="lbl">2 foods, so give it a name</div>
+  <div class="in">Pigs in blankets</div>
+  <div class="lbl">Note (optional)</div>
+  <div class="in">wrapped in bacon</div>
+  <div class="btns"><button class="btn go">Next: goes with</button><button class="btn">Cancel</button></div>
+</div>
+
+<div class="phone">
+  <div class="cap">3 · Pigs in blankets goes with…</div>
+  <div class="tabs"><span class="tab">Main</span><span class="tab on">Side</span><span class="tab">Veg</span><span class="tab">Other</span><span class="tab">Combos</span></div>
+  <div class="chips">
+    <span class="chip on">Potatoes <small>chips</small></span>
+    <span class="chip on">Potatoes <small>mash</small></span>
+    <span class="chip">Rice</span><span class="chip">Yorkshire puddings</span>
+  </div>
+  <div class="lbl">Long-press a food to add a note (chips, mash, roast)</div>
+  <div class="lbl">Combos tab: your dishes, e.g. <b style="color:var(--txt)">Cauli cheese</b> ✓</div>
+  <div class="btns"><button class="btn go">Save</button><button class="btn">Cancel</button></div>
+</div>
+
+</div>
+</body></html>
