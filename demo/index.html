@@ -195,12 +195,22 @@
       <div class="ml card"></div>
     </div>
     <div id="combos">
-      <div class="sechead"><h3 class="sec">Combos</h3></div>
+      <div class="sechead"><h3 class="sec">Combos</h3><button class="act ghost" id="comboAdd" type="button">+ Add</button></div>
       <p class="note">Foods that go together. The app also learns pairs you eat 2 or more times.</p>
-      <div class="combo-add">
-        <input id="comboA" type="text" placeholder="Food" aria-label="Food" autocomplete="off">
-        <input id="comboB" type="text" placeholder="Goes with" aria-label="Goes with" autocomplete="off">
-        <button class="act ghost" id="comboAdd" type="button">+ Add pair</button>
+      <div id="comboPick" class="card" hidden>
+        <div class="cp-title"></div>
+        <div class="cp-tabs">
+          <button type="button" data-cpkind="main">Main</button>
+          <button type="button" data-cpkind="side">Side</button>
+          <button type="button" data-cpkind="veg">Veg</button>
+          <button type="button" data-cpkind="misc">Other</button>
+        </div>
+        <div class="cp-chips"></div>
+        <div class="cp-ticked note"></div>
+        <div class="cp-btns">
+          <button id="cpSave" class="act" type="button">Save</button>
+          <button id="cpCancel" class="act ghost" type="button">Cancel</button>
+        </div>
       </div>
       <div class="combo-list card"></div>
       <div id="combosHidden" hidden>

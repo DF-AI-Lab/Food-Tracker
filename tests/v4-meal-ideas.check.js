@@ -51,10 +51,14 @@ function startStatic() {
     await page.click("#addBtn");
     await until(async () => assert.match(await page.locator("#addMsg").innerText(), /added/i));
   };
-  const addPair = async (a, b) => {
-    await page.fill("#comboA", a);
-    await page.fill("#comboB", b);
+  const addPair = async (a, aKind, b, bKind) => {
+    const pick = page.locator("#comboPick");
     await page.click("#comboAdd");
+    await pick.locator(`[data-cpkind="${aKind}"]`).click();
+    await pick.locator(".cp-chip", { hasText: new RegExp("^" + a + "$") }).click();
+    await pick.locator(`[data-cpkind="${bKind}"]`).click();
+    await pick.locator(".cp-chip", { hasText: new RegExp("^" + b + "$") }).click();
+    await page.click("#cpSave");
   };
   const idea = name => page.locator("#ideasTonight .idea-card", { hasText: name });
 
@@ -75,12 +79,10 @@ function startStatic() {
   });
 
   await step("add pairs by hand: they show in Combos", async () => {
-    await addPair("Chicken", "Chips");
-    await addPair("Chicken", "Cauli cheese");
-    await addPair("Pizza", "Coleslaw");
-    await addPair("chips", "chicken"); // double: skipped
-    await until(async () => assert.equal(await page.locator("#combos .combo-row").count(), 3));
-    assert.equal(await page.locator("#comboA").inputValue(), "");
+    await addPair("Chicken", "main", "Chips", "side");
+    await addPair("Chicken", "main", "Cauli cheese", "side");
+    await addPair("Pizza", "main", "Coleslaw", "side");
+    await until(async () => assert.equal(await page.locator("#combos .combo-chip").count(), 3));
   });
 
   await step("Ideas for tonight: Chicken + Cauli cheese + Chips first, then Pizza + Coleslaw", async () => {
@@ -115,7 +117,7 @@ function startStatic() {
     await idea("Pizza").locator(".idea-nfm").click();
     await until(async () => assert.equal(await idea("Pizza").count(), 0));
     await until(async () => assert.equal(await page.locator("#combosHidden .combo-row", { hasText: "Pizza" }).count(), 1));
-    assert.equal(await page.locator("#combos .combo-list .combo-row", { hasText: "Pizza" }).count(), 0);
+    assert.equal(await page.locator("#combos .combo-list .combo-group", { hasText: "Pizza" }).count(), 0);
   });
 
   await step("Bring back: Pizza idea returns", async () => {

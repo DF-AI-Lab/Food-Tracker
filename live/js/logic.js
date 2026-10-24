@@ -870,6 +870,43 @@
     };
   }
 
+  // Combos picker: the food names of one kind (main, side, veg, misc, cupboard), A to Z
+  function comboFoods(allPacks, kind) {
+    return foodCandidates(allPacks)
+      .filter(c => c.kind === kind)
+      .map(c => c.name)
+      .sort((a, b) => a.localeCompare(b));
+  }
+
+  // Combos list: rows grouped by their first food (case-insensitive), groups A to Z, rows A to Z by b
+  function comboGroups(rows) {
+    const groups = new Map(); // lower-case name -> { name, rows }
+    for (const r of rows || []) {
+      const key = String(r.a ?? "").trim().toLowerCase();
+      if (!groups.has(key)) groups.set(key, { name: r.a, rows: [] });
+      groups.get(key).rows.push(r);
+    }
+    return [...groups.values()]
+      .sort((x, y) => x.name.localeCompare(y.name))
+      .map(g => ({ name: g.name, rows: g.rows.sort((x, y) => x.b.localeCompare(y.b)) }));
+  }
+
+  // Combos picker save: one new hand pair per ticked food. Skips blanks, the food itself,
+  // doubles in the list, and pairs already in existingRows (by key).
+  function newComboRows(food, picked, existingRows) {
+    const have = new Set((existingRows || []).map(r => r.key));
+    const rows = [];
+    for (const raw of picked || []) {
+      const name = String(raw ?? "").trim();
+      if (!name || name.toLowerCase() === String(food).trim().toLowerCase()) continue;
+      const key = pairKey(food, name);
+      if (have.has(key)) continue;
+      have.add(key);
+      rows.push({ a: food, b: name, source: "hand", hidden: false });
+    }
+    return rows;
+  }
+
   // Ideas for tonight: each free main in the fridge with the sides its pairs can make (3 at most).
   // skipKeys: mains said "Not tonight". Sorted by the soonest date among the foods, then main name.
   // Returns [{ key, main, sides, pairs }]; pairs are the pairs of the sides shown.
@@ -1991,6 +2028,9 @@
     mealIdeas,
     pairKey,
     comboPairs,
+    comboFoods,
+    comboGroups,
+    newComboRows,
     tonightIdeas,
     ideaWarn,
     slotFor,
