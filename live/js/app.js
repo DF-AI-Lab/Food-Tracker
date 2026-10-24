@@ -17,6 +17,9 @@
   let ideaOpenKey = null; // Ideas for tonight: the idea whose Yes panel is open (main's name key), or null
   let ideaOpenDay = null; // Ideas: the day picked in that panel (ISO)
   let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
+  let cpFood = null;      // Combos picker: the food picked in step 1 (null = still picking it)
+  let cpKind = 'main';    // Combos picker: the kind tab showing (main, side, veg, misc)
+  let cpTicked = [];      // Combos picker: the foods ticked in step 2, in the order ticked
   let feedback = [];      // ideas & feedback (Settings), saved in DB.feedback
   let byDateOn = false;   // Fridge: the By date list shows instead of the sections
   let stockOpen = false;  // Fridge: the Stock check panel is open
@@ -287,8 +290,12 @@
   }
 
   function setupEventListeners() {
-    document.getElementById('comboAdd').addEventListener('click', addComboFromForm);
-    document.getElementById('comboB').addEventListener('keydown', e => { if (e.key === 'Enter') addComboFromForm(); });
+    document.getElementById('comboAdd').addEventListener('click', openComboPicker);
+    document.getElementById('cpCancel').addEventListener('click', closeComboPicker);
+    document.getElementById('cpSave').addEventListener('click', saveComboPicks);
+    document.querySelectorAll('#comboPick [data-cpkind]').forEach(tab => {
+      tab.addEventListener('click', () => { cpKind = tab.dataset.cpkind; renderComboPicker(); });
+    });
     // Look: Dark | Light (Settings)
     document.getElementById('themeDark').addEventListener('click', () => setTheme('dark'));
     document.getElementById('themeLight').addEventListener('click', () => setTheme('light'));
@@ -3004,25 +3011,84 @@
     renderAll();
   }
 
-  // + Add pair: a pair by hand. Skipped when the same pair is already listed (shown or hidden).
-  async function addComboFromForm() {
-    const a = document.getElementById('comboA');
-    const b = document.getElementById('comboB');
-    const na = a.value.trim();
-    const nb = b.value.trim();
-    a.value = '';
-    b.value = '';
-    if (!na || !nb) return;
-    const { shown, hidden } = FT.comboPairs(combos, meals);
-    const key = FT.pairKey(na, nb);
-    if ([...shown, ...hidden].some(r => r.key === key)) return;
-    const row = { a: na, b: nb, source: 'hand', hidden: false };
-    const id = await DB.combos.add(row);
-    combos = [...combos, { ...row, id }];
+  // Combos picker: + Add opens it on Main. Step 1 picks the food; step 2 ticks what goes with it.
+  function openComboPicker() {
+    cpFood = null;
+    cpKind = 'main';
+    cpTicked = [];
+    document.getElementById('comboPick').hidden = false;
+    renderComboPicker();
+  }
+
+  function closeComboPicker() {
+    cpFood = null;
+    cpTicked = [];
+    document.getElementById('comboPick').hidden = true;
+  }
+
+  function renderComboPicker() {
+    const box = document.getElementById('comboPick');
+    box.querySelector('.cp-title').textContent = cpFood ? `${cpFood} goes with…` : 'Pick a food';
+    box.querySelectorAll('[data-cpkind]').forEach(tab => {
+      tab.classList.toggle('on', tab.dataset.cpkind === cpKind);
+    });
+    // Step 2: pairs already listed (shown or hidden) are locked on
+    const have = new Set();
+    if (cpFood) {
+      const all = FT.comboPairs(combos, meals);
+      for (const r of [...all.shown, ...all.hidden]) have.add(r.key);
+    }
+    const chips = box.querySelector('.cp-chips');
+    chips.textContent = '';
+    for (const name of FT.comboFoods(packs, cpKind)) {
+      if (cpFood && name.toLowerCase() === cpFood.toLowerCase()) continue;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'cp-chip';
+      chip.textContent = name;
+      if (!cpFood) {
+        chip.addEventListener('click', () => {
+          cpFood = name;
+          cpKind = cpKind === 'main' ? 'side' : 'main';
+          cpTicked = [];
+          renderComboPicker();
+        });
+      } else if (have.has(FT.pairKey(cpFood, name))) {
+        chip.classList.add('on');
+        chip.disabled = true;
+      } else {
+        const ticked = cpTicked.includes(name);
+        chip.classList.toggle('on', ticked);
+        chip.addEventListener('click', () => {
+          cpTicked = ticked ? cpTicked.filter(n => n !== name) : [...cpTicked, name];
+          renderComboPicker();
+        });
+      }
+      chips.appendChild(chip);
+    }
+    box.querySelector('.cp-ticked').textContent = cpFood && cpTicked.length
+      ? `Ticked: ${cpTicked.join(' · ')}`
+      : '';
+    const save = document.getElementById('cpSave');
+    save.hidden = !cpFood;
+    const n = cpTicked.length;
+    save.textContent = `Save ${n} pair${n === 1 ? '' : 's'}`;
+    save.disabled = n === 0;
+  }
+
+  // Save: one hand pair per ticked food (see FT.newComboRows), then the picker closes
+  async function saveComboPicks() {
+    const all = FT.comboPairs(combos, meals);
+    const rows = FT.newComboRows(cpFood, cpTicked, [...all.shown, ...all.hidden]);
+    closeComboPicker();
+    for (const row of rows) {
+      const id = await DB.combos.add(row);
+      combos = [...combos, { ...row, id }];
+    }
     renderAll();
   }
 
-  // Combos: the pairs in use (learned, by hand or AI). Hidden ones are listed below, with Bring back.
+  // Combos: the pairs in use (learned, by hand or AI), grouped by food. Hidden ones are listed below, with Bring back.
   function renderCombos() {
     const { shown, hidden } = FT.comboPairs(combos, meals);
     const list = document.querySelector('#combos > .combo-list');
@@ -3030,18 +3096,45 @@
     if (!shown.length) {
       const note = document.createElement('p');
       note.className = 'note';
-      note.textContent = 'No pairs yet. Add one below.';
+      note.textContent = 'No pairs yet. Tap + Add.';
       list.appendChild(note);
     }
-    for (const r of shown) list.appendChild(comboRow(r, false));
+    for (const g of FT.comboGroups(shown)) list.appendChild(comboGroup(g));
     const box = document.getElementById('combosHidden');
     const hlist = box.querySelector('.combo-hidden');
     hlist.textContent = '';
     box.hidden = !hidden.length;
-    for (const r of hidden) hlist.appendChild(comboRow(r, true));
+    for (const r of hidden) hlist.appendChild(comboRow(r));
   }
 
-  function comboRow(r, isHidden) {
+  // One food with its pairs as chips; × hides that pair
+  function comboGroup(g) {
+    const wrap = document.createElement('div');
+    wrap.className = 'combo-group';
+    const food = document.createElement('div');
+    food.className = 'combo-food';
+    food.textContent = g.name;
+    const chips = document.createElement('div');
+    chips.className = 'combo-chips';
+    for (const r of g.rows) {
+      const chip = document.createElement('span');
+      chip.className = 'combo-chip';
+      chip.append(r.b);
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'combo-x';
+      x.setAttribute('aria-label', 'Hide');
+      x.textContent = '×';
+      x.addEventListener('click', () => setPairHidden(r, true));
+      chip.appendChild(x);
+      chips.appendChild(chip);
+    }
+    wrap.append(food, chips);
+    return wrap;
+  }
+
+  // A hidden pair, with Bring back
+  function comboRow(r) {
     const row = document.createElement('div');
     row.className = 'combo-row';
     const text = document.createElement('div');
@@ -3053,9 +3146,9 @@
     text.append(name, meta);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = isHidden ? 'combo-back' : 'combo-hide';
-    btn.textContent = isHidden ? 'Bring back' : 'Hide';
-    btn.addEventListener('click', () => setPairHidden(r, !isHidden));
+    btn.className = 'combo-back';
+    btn.textContent = 'Bring back';
+    btn.addEventListener('click', () => setPairHidden(r, false));
     row.append(text, btn);
     return row;
   }
