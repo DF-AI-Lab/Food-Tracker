@@ -47,21 +47,16 @@ function startStatic() {
 
   await page.goto(url("2026-10-16", 10));
 
-  await step("no date found: the date box is NOT inside the row's tap area, and a picked date saves", async () => {
+  await step("no date found: the row is fine as it is (no Add date step), tap the date to set one", async () => {
     await page.click('[data-tab="add"]');
     await page.click('[data-sub="quick"]');
     await page.locator("#qfPasteWrap > summary").click();
     await page.fill("#qfText", JSON.stringify([{ name: "Chicken", kind: "main" }]));
     await page.click("#qfCheck");
-    await until(async () => assert.match(await page.locator("#qfList").innerText(), /No date found/));
-    await page.locator("#qfList .qc", { hasText: "Add date" }).tap();
-    await until(async () => assert.equal(await page.locator("#qfList .qf-datein").count(), 1));
-    assert.equal(await page.locator("#qfList label .qf-datein").count(), 0, "date box outside the <label> row");
-    await page.locator("#qfList .qf-datein").tap();
-    await page.locator("#qfList .qf-datein").fill("2026-10-20");
-    await until(async () => assert.match(await page.locator("#qfList").innerText(), /Tue 20 Oct/));
+    await until(async () => assert.match(await page.locator("#qfList").innerText(), /Chicken/));
     assert.doesNotMatch(await page.locator("#qfList").innerText(), /No date found/);
-    assert.equal(await page.locator("#qfList .qf-datein").count(), 0, "date box goes once the date is in");
+    assert.equal(await page.locator("#qfList .qc", { hasText: "Add date" }).count(), 0);
+    assert.equal(await page.locator("#qfList .qf-row input[type=checkbox]").first().isChecked(), true);
   });
 
   await step("keyboard up (typing in a text box): bottom icons hide; done typing: they come back", async () => {
