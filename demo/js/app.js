@@ -13,6 +13,10 @@
   let meals = [];         // meals history, saved in DB.meals
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
+  let combos = [];        // meal combos (pairs): { a, b, source, hidden }, saved in DB.combos
+  let ideaOpenKey = null; // Ideas for tonight: the idea whose Yes panel is open (main's name key), or null
+  let ideaOpenDay = null; // Ideas: the day picked in that panel (ISO)
+  let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
   let feedback = [];      // ideas & feedback (Settings), saved in DB.feedback
   let byDateOn = false;   // Fridge: the By date list shows instead of the sections
   let stockOpen = false;  // Fridge: the Stock check panel is open
@@ -172,6 +176,7 @@
     meals = await DB.meals.all();
     recipes = (await DB.recipes.all()).map(FT.normMeal);
     mealPlans = await DB.mealPlans.all();
+    combos = await DB.combos.all();
     feedback = await DB.feedback.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     // Shop items deleted before yesterday are removed for good
@@ -207,6 +212,7 @@
     meals = await DB.meals.all();
     recipes = (await DB.recipes.all()).map(FT.normMeal);
     mealPlans = await DB.mealPlans.all();
+    combos = await DB.combos.all();
     feedback = await DB.feedback.all();
     for (const r of await DB.ratings.all()) ratings[r.name] = r.rating;
     await foldShop();
@@ -279,6 +285,8 @@
   }
 
   function setupEventListeners() {
+    document.getElementById('comboAdd').addEventListener('click', addComboFromForm);
+    document.getElementById('comboB').addEventListener('keydown', e => { if (e.key === 'Enter') addComboFromForm(); });
     // Look: Dark | Light (Settings)
     document.getElementById('themeDark').addEventListener('click', () => setTheme('dark'));
     document.getElementById('themeLight').addEventListener('click', () => setTheme('light'));
@@ -2769,6 +2777,8 @@
   }
 
   function renderMyMeals() {
+    renderMealIdeas();
+    renderCombos();
     renderFancyMeals();
     const list = document.querySelector('#myMeals .ml');
     list.textContent = '';
@@ -2805,6 +2815,258 @@
       line.append(star, btn); // star first, so the Undo bar (bottom right) never covers it
       list.appendChild(line);
     }
+  }
+
+  // ---- Ideas for tonight and Combos (pairs) ----
+
+  // Not tonight: { day, keys } on this phone. The keys count only on the day they were set.
+  function notTonightKeys() {
+    try {
+      const s = JSON.parse(localStorage.getItem('v4demo.notTonight'));
+      return s && s.day === today && Array.isArray(s.keys) ? s.keys : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function addNotTonight(key) {
+    let s = { day: today, keys: [] };
+    try {
+      const stored = JSON.parse(localStorage.getItem('v4demo.notTonight'));
+      if (stored && stored.day === today && Array.isArray(stored.keys)) s = stored;
+    } catch (e) { /* ignore */ }
+    if (!s.keys.includes(key)) s.keys.push(key);
+    try { localStorage.setItem('v4demo.notTonight', JSON.stringify(s)); } catch (e) { /* ignore */ }
+  }
+
+  // Short weekday for an ISO day ("Mon"), in UTC like the app's days
+  function shortWeekday(day) {
+    return new Date(day + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
+  }
+
+  // Ideas for tonight: what the fridge can make with the pairs. Yes plans it; Not tonight hides it till tomorrow.
+  function renderMealIdeas() {
+    const box = document.getElementById('ideasTonight');
+    const list = box.querySelector('.idea-list');
+    const ideas = FT.tonightIdeas(packs, FT.comboPairs(combos, meals).shown, today, notTonightKeys());
+    list.textContent = '';
+    box.hidden = !ideas.length;
+    for (const idea of ideas) list.appendChild(ideaCard(idea));
+  }
+
+  function ideaCard(idea) {
+    const foods = [idea.main, ...idea.sides];
+    const card = document.createElement('div');
+    card.className = 'idea-card';
+    const title = document.createElement('h4');
+    title.className = 'idea-title';
+    title.textContent = foods.map(p => p.name).join(' + ');
+    card.appendChild(title);
+    for (const p of foods) {
+      const line = document.createElement('div');
+      line.className = 'idea-food';
+      const name = document.createElement('span');
+      name.textContent = p.name;
+      const when = document.createElement('small');
+      when.textContent = FT.packDateLabel(p);
+      line.append(name, when);
+      card.appendChild(line);
+    }
+    card.appendChild(ideaOpenKey === idea.key ? ideaDayPanel(idea) : ideaButtons(idea));
+    return card;
+  }
+
+  function ideaButtons(idea) {
+    const wrap = document.createElement('div');
+    wrap.className = 'idea-actions';
+    const btns = document.createElement('div');
+    btns.className = 'idea-btns';
+    const yes = document.createElement('button');
+    yes.type = 'button';
+    yes.className = 'act idea-yes';
+    yes.textContent = 'Yes';
+    yes.addEventListener('click', () => {
+      ideaOpenKey = idea.key;
+      ideaOpenDay = today;
+      ideaNfmKey = null;
+      renderMealIdeas();
+    });
+    const not = document.createElement('button');
+    not.type = 'button';
+    not.className = 'act ghost idea-not';
+    not.textContent = 'Not tonight';
+    not.addEventListener('click', () => {
+      addNotTonight(idea.key);
+      renderMealIdeas();
+    });
+    btns.append(yes, not);
+    const nfm = document.createElement('button');
+    nfm.type = 'button';
+    nfm.className = 'idea-nfm';
+    nfm.textContent = 'Not for me';
+    nfm.addEventListener('click', () => notForMe(idea));
+    wrap.append(btns, nfm);
+    if (ideaNfmKey === idea.key) {
+      // Two or more pairs: ask which one is not for me
+      const pick = document.createElement('div');
+      pick.className = 'idea-pairs';
+      for (const pair of idea.pairs) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'idea-pair';
+        b.textContent = `${pair.a} + ${pair.b}`;
+        b.addEventListener('click', () => {
+          ideaNfmKey = null;
+          setPairHidden(pair, true);
+        });
+        pick.appendChild(b);
+      }
+      wrap.appendChild(pick);
+    }
+    return wrap;
+  }
+
+  // Yes: pick the day (Tonight, then the next 3), with a warning for foods out of date by then
+  function ideaDayPanel(idea) {
+    const panel = document.createElement('div');
+    panel.className = 'idea-panel';
+    const lbl = document.createElement('div');
+    lbl.className = 'idea-lbl';
+    lbl.textContent = 'Which day?';
+    const days = document.createElement('div');
+    days.className = 'idea-days';
+    for (let i = 0; i < 4; i++) {
+      const day = FT.addDays(today, i);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'idea-day' + (day === ideaOpenDay ? ' on' : '');
+      b.setAttribute('aria-pressed', String(day === ideaOpenDay));
+      b.textContent = i === 0 ? 'Tonight' : shortWeekday(day);
+      b.addEventListener('click', () => {
+        ideaOpenDay = day;
+        renderMealIdeas();
+      });
+      days.appendChild(b);
+    }
+    const warn = document.createElement('div');
+    warn.className = 'idea-warn';
+    const out = FT.ideaWarn(idea, ideaOpenDay);
+    if (out.length) {
+      warn.textContent = `${joinWords(out.map(p => p.name))} ${out.length > 1 ? 'run' : 'runs'} out before then`;
+    }
+    const btns = document.createElement('div');
+    btns.className = 'idea-btns';
+    const plan = document.createElement('button');
+    plan.type = 'button';
+    plan.className = 'act idea-plan';
+    plan.textContent = 'Plan';
+    plan.addEventListener('click', () => planIdea(idea, ideaOpenDay));
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'act ghost idea-cancel';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => {
+      ideaOpenKey = null;
+      ideaOpenDay = null;
+      renderMealIdeas();
+    });
+    btns.append(plan, cancel);
+    panel.append(lbl, days, warn, btns);
+    return panel;
+  }
+
+  // Plan: every food of the idea goes on the day (tea), the soonest pack of each
+  async function planIdea(idea, day) {
+    ideaOpenKey = null;
+    ideaOpenDay = null;
+    for (const p of [idea.main, ...idea.sides]) {
+      await savePack(FT.planPack(p, day, FT.slotFor(p.kind), 'tea'));
+    }
+    renderMeals();
+    renderAll();
+  }
+
+  // Not for me: one pair left goes straight to Hidden; with more, ask which pair first
+  function notForMe(idea) {
+    if (idea.pairs.length === 1) {
+      ideaNfmKey = null;
+      setPairHidden(idea.pairs[0], true);
+      return;
+    }
+    ideaNfmKey = ideaNfmKey === idea.key ? null : idea.key;
+    renderMealIdeas();
+  }
+
+  // Hide a pair or bring it back. A stored pair keeps its id; a learned pair gets a row when hidden.
+  async function setPairHidden(pair, hidden) {
+    const stored = pair.id ? combos.find(c => String(c.id) === String(pair.id)) : null;
+    if (stored) {
+      const next = { ...stored, hidden };
+      combos = combos.map(c => (c === stored ? next : c));
+      renderAll();
+      await persistAll([DB.combos.put(next)]);
+      return;
+    }
+    const row = { a: pair.a, b: pair.b, source: 'learned', hidden };
+    const id = await DB.combos.add(row);
+    combos = [...combos, { ...row, id }];
+    renderAll();
+  }
+
+  // + Add pair: a pair by hand. Skipped when the same pair is already listed (shown or hidden).
+  async function addComboFromForm() {
+    const a = document.getElementById('comboA');
+    const b = document.getElementById('comboB');
+    const na = a.value.trim();
+    const nb = b.value.trim();
+    a.value = '';
+    b.value = '';
+    if (!na || !nb) return;
+    const { shown, hidden } = FT.comboPairs(combos, meals);
+    const key = FT.pairKey(na, nb);
+    if ([...shown, ...hidden].some(r => r.key === key)) return;
+    const row = { a: na, b: nb, source: 'hand', hidden: false };
+    const id = await DB.combos.add(row);
+    combos = [...combos, { ...row, id }];
+    renderAll();
+  }
+
+  // Combos: the pairs in use (learned, by hand or AI). Hidden ones are listed below, with Bring back.
+  function renderCombos() {
+    const { shown, hidden } = FT.comboPairs(combos, meals);
+    const list = document.querySelector('#combos > .combo-list');
+    list.textContent = '';
+    if (!shown.length) {
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = 'No pairs yet. Add one below.';
+      list.appendChild(note);
+    }
+    for (const r of shown) list.appendChild(comboRow(r, false));
+    const box = document.getElementById('combosHidden');
+    const hlist = box.querySelector('.combo-hidden');
+    hlist.textContent = '';
+    box.hidden = !hidden.length;
+    for (const r of hidden) hlist.appendChild(comboRow(r, true));
+  }
+
+  function comboRow(r, isHidden) {
+    const row = document.createElement('div');
+    row.className = 'combo-row';
+    const text = document.createElement('div');
+    text.className = 'combo-text';
+    const name = document.createElement('span');
+    name.textContent = `${r.a} + ${r.b}`;
+    const meta = document.createElement('small');
+    meta.textContent = r.count > 0 ? `had ${r.count}×` : (r.source === 'ai' ? 'AI' : 'by hand');
+    text.append(name, meta);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = isHidden ? 'combo-back' : 'combo-hide';
+    btn.textContent = isHidden ? 'Bring back' : 'Hide';
+    btn.addEventListener('click', () => setPairHidden(r, !isHidden));
+    row.append(text, btn);
+    return row;
   }
 
   // Meals I fancy: starred meals, A to Z, above My meals (hidden when there are none)
@@ -3993,6 +4255,8 @@
       renderStock();
       renderAddedToday();
     }
+    renderMealIdeas();
+    renderCombos();
     renderPageCount();
     syncSearch(); // also at start-up, where updateNav has not run yet
     renderBell();

@@ -84,6 +84,9 @@
     // Recipes: { id, name, fresh: [names], other: [{ name, qty }] }
     recipes: store("recipes"),
 
+    // Meal combos (pairs): { a, b, source: "hand"|"ai"|"learned", hidden }
+    combos: store("combos"),
+
     // Meal plans: one per meal on a day { id, day, mealId, skip: [names] }
     mealPlans: store("mealPlans"),
 
