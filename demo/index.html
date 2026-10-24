@@ -303,10 +303,14 @@
           <button type="button" class="act big" id="qfCheck">Check</button>
           <details><summary>See the message</summary><pre id="qfPrompt"></pre></details>
         </details>
-        <details id="addedWrap" class="added" hidden>
-          <summary><span id="addedHead">Added today</span><span class="chev" aria-hidden="true">⌄</span></summary>
+        <div id="addedWrap" class="added" hidden>
+          <div class="added-tabs">
+            <button type="button" class="added-tab on" data-added="all"><b>0</b>Added today</button>
+            <button type="button" class="added-tab" data-added="nodate"><b>0</b>No date</button>
+            <button type="button" class="added-tab" data-added="later"><b>0</b>3+ days</button>
+          </div>
           <div id="addedToday" class="added-list"></div>
-        </details>
+        </div>
       </div>
     </div>
 
