@@ -2229,7 +2229,7 @@
       edit.textContent = 'Edit';
       edit.addEventListener('click', () => {
         stockEditKey = stockEditKey === key ? null : key;
-        stockLeft = n;
+        stockLeft = n > 1 ? n - 1 : n; // a group opens with one already gone
         renderStock();
       });
 
@@ -2260,10 +2260,12 @@
         minus.addEventListener('click', () => {
           stockLeft = Math.max(0, stockLeft - 1);
           left.textContent = stockLeft;
+          syncChoices();
         });
         plus.addEventListener('click', () => {
           stockLeft = Math.min(n, stockLeft + 1);
           left.textContent = stockLeft;
+          syncChoices();
         });
         step.append(minus, left, plus);
         box.append(howMany, step);
@@ -2290,10 +2292,26 @@
       del.textContent = 'Delete';
       del.addEventListener('click', () => applyStockGone(group, 'delete'));
       choices.append(used, thrown, del);
+      // Nothing gone yet (a group with every pack still left): the three choices do nothing, so disable them
+      function syncChoices() {
+        const none = n > 1 && stockLeft === n;
+        used.disabled = none;
+        thrown.disabled = none;
+        del.disabled = none;
+      }
+      syncChoices();
       const delNote = document.createElement('p');
       delNote.className = 'note stock-delnote';
       delNote.textContent = 'Delete = it was never there';
-      box.append(what, choices, delNote);
+      const cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.className = 'act ghost stock-cancel';
+      cancel.textContent = 'Cancel';
+      cancel.addEventListener('click', () => {
+        stockEditKey = null;
+        renderStock();
+      });
+      box.append(what, choices, delNote, cancel);
       listEl.appendChild(box);
     }
   }

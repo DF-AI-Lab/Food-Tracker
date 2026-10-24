@@ -781,7 +781,9 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .stock-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .stock-choices .act{min-height:48px;padding:0 6px;font-size:14px}
 .stock-choices .stock-del{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.stock-choices .act:disabled{opacity:.4}
 .stock-delnote{margin:0;text-align:center}
+.stock-cancel{width:100%}
 /* V3 photos: take / select buttons, bar gauge while the Worker reads photos */
 .act-row{display:flex;gap:10px;margin-bottom:14px}
 .act-row .act{flex:1}
