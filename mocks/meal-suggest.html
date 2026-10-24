@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meal suggest mock</title>
+<style>
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#4caf7a;--amb:#f0b35a}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.card h4{margin:0 0 6px;font-size:16px}
+.why{color:var(--mut);font-size:12px;margin-top:6px}
+.soon{color:var(--amb)}
+.food{display:flex;justify-content:space-between;padding:3px 0}
+.food small{color:var(--mut)}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:12px;padding:10px;font-weight:600;font-size:14px}
+.go{background:var(--grn);color:#062014;border:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.chip{border:1px solid var(--line);border-radius:20px;padding:7px 12px;font-size:14px;background:#111a16}
+.chip.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
+.lbl{font-size:13px;color:var(--mut);margin:8px 0 4px}
+.tick{color:var(--grn)}
+</style></head><body>
+<h1>Meal ideas: mock</h1>
+<p class="note">Mock only. Nothing built yet.</p>
+
+<div class="wrap">
+
+<!-- 1 -->
+<div class="phone">
+  <div class="cap">1 · Meals tab: "Ideas for tonight"</div>
+  <div class="card">
+    <h4>Whole Chicken + Potatoes + Peas</h4>
+    <div class="food"><span>Whole Chicken</span><small class="soon">UB 27 Oct</small></div>
+    <div class="food"><span>Potatoes</span><small>added 20 Oct</small></div>
+    <div class="food"><span>Peas</span><small>Freezer</small></div>
+    <div class="why">Had 4 times · chicken needs using soon</div>
+    <div class="btns"><button class="btn go">Plan it</button><button class="btn">Change</button></div>
+  </div>
+  <div class="card">
+    <h4>Pizza + Coleslaw</h4>
+    <div class="food"><span>Pizza</span><small>UB 30 Oct</small></div>
+    <div class="food"><span>Coleslaw</span><small class="soon">BB 26 Oct</small></div>
+    <div class="why">Had 2 times · coleslaw going off soon</div>
+    <div class="btns"><button class="btn go">Plan it</button><button class="btn">Change</button></div>
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="phone">
+  <div class="cap">2 · Or pick the main yourself</div>
+  <div class="lbl">Main</div>
+  <div class="chips">
+    <span class="chip on">Whole Chicken</span><span class="chip">Ribs</span><span class="chip">Pizza</span><span class="chip">Chicken en croute</span>
+  </div>
+  <div class="lbl">Goes well with (from what you've had before)</div>
+  <div class="chips">
+    <span class="chip on"><span class="tick">✓</span> Potatoes</span>
+    <span class="chip on"><span class="tick">✓</span> Peas</span>
+    <span class="chip">Stuffing</span>
+    <span class="chip">Carrots <span class="soon">· soon</span></span>
+  </div>
+  <div class="lbl">Not in the fridge (add to shopping?)</div>
+  <div class="chips"><span class="chip">Gravy</span></div>
+  <div class="btns"><button class="btn go">Plan it</button></div>
+</div>
+
+</div>
+</body></html>
