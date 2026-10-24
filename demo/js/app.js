@@ -1953,6 +1953,14 @@
     fill.style.width = LOOK.freshPct(FT.daysLeft(pack.date, today)) + '%';
     line.appendChild(fill);
     btn.append(rowTop(name, pack, when), line);
+    // "added today" / "added Mon 19 Oct · 5 days ago" under the line
+    const addedText = FT.addedLine(pack.added, today);
+    if (addedText) {
+      const added = document.createElement('span');
+      added.className = 'added-line';
+      added.textContent = addedText;
+      btn.appendChild(added);
+    }
     btn.addEventListener('click', () => packTap(pack));
     return btn;
   }
