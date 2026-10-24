@@ -23,7 +23,7 @@
   let stockKey = 'main';  // Stock check: the section chosen
   let stockOk = new Set(); // Stock check: packs ticked "All there" (this check only)
   let addedTab = 'all';    // Added today: the tab shown (all, nodate, later)
-  let addedEditId = null;  // Added today, 3+ days tab: the pack whose date box is open, or null
+  let addedEditId = null;  // Added today, Use in 3 days tab: the pack whose date box is open, or null
   let stockEditKey = null; // Stock check: the food whose Edit box is open (name key), or null
   let stockLeft = 0;       // Stock check: how many packs of that food are still left
   // A "sitting" is a day's meal: its key is the day (tea) or day|dinner (FT.sitKey)
@@ -4088,7 +4088,7 @@
       });
       return;
     }
-    // No date and 3+ days: a plain row, with date buttons under it
+    // No date and Use in 3 days: a plain row, with date buttons under it
     lists[addedTab].forEach(pack => {
       const { parts, name } = addedRowParts(pack);
       const row = document.createElement('div');

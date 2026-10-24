@@ -802,6 +802,8 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .qf-shop-row{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer;min-height:36px}
 .qf-shop-row input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
 .added{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+/* room under the list so the last row is never under the bottom bar or the Undo bar */
+#addedWrap{margin-bottom:calc(var(--nav-h) + var(--safe-b) + 60px)}
 .added-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:10px}
 .added-tab{font:inherit;min-height:52px;padding:6px 4px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .added-tab b{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text)}

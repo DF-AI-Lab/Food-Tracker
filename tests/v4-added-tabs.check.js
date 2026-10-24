@@ -65,13 +65,13 @@ function startStatic() {
     await until(async () => assert.ok(await page.locator("#addedWrap").isVisible()));
   });
 
-  await step("3 tabs with counts: Added today 4, No date 1, 3+ days 1; Added today is on", async () => {
+  await step("3 tabs with counts: Added today 4, No date 1, Use in 3 days 1 (Ham); Added today is on", async () => {
     await until(async () => assert.equal(await count("all"), "4"));
     assert.equal(await count("nodate"), "1");
     assert.equal(await count("later"), "1");
     assert.match(await tab("all").innerText(), /Added today/);
     assert.match(await tab("nodate").innerText(), /No date/);
-    assert.match(await tab("later").innerText(), /3\+ days/);
+    assert.match(await tab("later").innerText(), /Use in 3 days/);
     assert.ok(await tab("all").evaluate(el => el.classList.contains("on")));
     assert.equal(await rows().count(), 4);
   });
@@ -88,22 +88,25 @@ function startStatic() {
     assert.equal(await rows().count(), 0);
   });
 
-  await step("3+ days tab: Bacon with its date and Edit; Edit +5 changes the date", async () => {
+  await step("Use in 3 days tab: Chicken (now 26 Oct) and Ham, with Edit; Edit Ham +5 moves it out", async () => {
     await tab("later").click();
-    await until(async () => assert.equal(await rows().count(), 1));
-    assert.match(await rows().first().innerText(), /Bacon[\s\S]*14 Nov/);
+    await until(async () => assert.equal(await rows().count(), 2));
+    assert.equal(await count("later"), "2");
+    const ham = page.locator("#addedToday .added-row", { hasText: "Ham" });
+    assert.match(await ham.innerText(), /26 Oct/);
     assert.equal(await page.locator("#addedToday .added-quick").count(), 0);
-    await rows().first().locator(".added-edit").click();
+    await ham.locator(".added-edit").click();
     await until(async () => assert.equal(await page.locator("#addedToday .added-quick").count(), 1));
     await page.locator("#addedToday .added-quick button", { hasText: "+5" }).click();
-    await until(async () => assert.match(await rows().first().innerText(), /29 Oct/));
-    assert.equal(await count("later"), "1");
+    await until(async () => assert.equal(await count("later"), "1"));
+    assert.match(await rows().first().innerText(), /Chicken/);
   });
 
-  await step("back on Added today: Chicken now has 26 Oct", async () => {
+  await step("back on Added today: Chicken now has 26 Oct, Ham 29 Oct", async () => {
     await tab("all").click();
     await until(async () => assert.equal(await rows().count(), 4));
     assert.match(await page.locator("#addedToday").innerText(), /Chicken[\s\S]*26 Oct/);
+    assert.match(await page.locator("#addedToday").innerText(), /Ham[\s\S]*29 Oct/);
   });
 
   await step("no page errors", async () => assert.deepEqual(errors, []));

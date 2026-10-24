@@ -1045,9 +1045,9 @@
       p.status === "in_fridge" && !p.date && ["main", "side", "misc"].includes(p.kind));
   }
 
-  // Added today, dated 3 or more days away
+  // Added today, to use within 3 days (out of date counts too)
   function addedLater(packs, today) {
-    return addedToday(packs, today).filter(p => p.date && daysLeft(p.date, today) >= 3);
+    return addedToday(packs, today).filter(p => p.date && daysLeft(p.date, today) <= 3);
   }
 
   // UB (use by) or BB (best before) for a dated pack, "" when it has no date
