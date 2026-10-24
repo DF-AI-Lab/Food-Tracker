@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Combos v2 mock</title>
+<style>
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#4caf7a;--amb:#f0b35a}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.btns{display:flex;gap:8px}
+.btn{flex:1;border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:12px;padding:10px;font-weight:600;font-size:14px}
+.go{background:var(--grn);color:#062014;border:0}
+.lbl{font-size:13px;color:var(--mut);margin:10px 0 6px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{flex:1;text-align:center;border:1px solid var(--line);border-radius:10px;padding:7px 2px;font-size:13px;font-weight:600;background:#111a16}
+.tab.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:20px;padding:7px 12px;font-size:14px;background:#111a16}
+.chip.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
+.chip.big{font-weight:700}
+.row{padding:9px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row b{display:block}
+.row small{color:var(--mut)}
+.why{font-size:12px;color:var(--mut);margin-top:8px}
+.sec{font-weight:700;margin:2px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sm{flex:0 0 auto;padding:6px 10px;font-size:13px}
+</style></head><body>
+<h1>Combos: mock 2</h1>
+<p class="note">Mock only. Pick a food, then tick everything that goes with it.</p>
+
+<div class="wrap">
+
+<div class="phone">
+  <div class="cap">1 · Combos page</div>
+  <div class="sec">Combos <button class="btn sm go">+ Add</button></div>
+  <div class="card">
+    <div class="row"><b>Sausages</b><small>Mash · Chips · Peas · Gravy</small></div>
+    <div class="row"><b>Chicken</b><small>Chips · Cauli cheese · Roast potatoes</small></div>
+    <div class="row"><b>Pizza</b><small>Coleslaw · Garlic bread</small></div>
+  </div>
+  <div class="lbl">Ask an AI</div>
+  <div class="card">
+    <div class="btns"><button class="btn">Copy for AI</button><button class="btn">Download</button></div>
+    <div class="btns" style="margin-top:8px"><button class="btn go">Paste AI answer</button><button class="btn">Upload file</button></div>
+    <div class="why">Copy sends your food, combos and last 4 weeks of meals, with instructions. Paste the AI's answer back to add new pairs.</div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="cap">2 · + Add: pick the food</div>
+  <div class="tabs"><span class="tab on">Main</span><span class="tab">Side</span><span class="tab">Veg</span><span class="tab">Other</span></div>
+  <div class="chips">
+    <span class="chip on big">Sausages</span><span class="chip">Chicken</span><span class="chip">Mince</span>
+    <span class="chip">Gammon</span><span class="chip">Ham</span><span class="chip">Bacon</span><span class="chip">Fish fingers</span>
+  </div>
+  <div class="why">Foods you have or have bought before.</div>
+</div>
+
+<div class="phone">
+  <div class="cap">3 · Sausages goes with… (tick lots)</div>
+  <div class="tabs"><span class="tab">Main</span><span class="tab on">Side</span><span class="tab">Veg</span><span class="tab">Other</span></div>
+  <div class="chips">
+    <span class="chip on">Mash</span><span class="chip on">Chips</span><span class="chip">Rice</span>
+    <span class="chip">Yorkshire puddings</span><span class="chip">Roast potatoes</span><span class="chip">Pasta</span>
+  </div>
+  <div class="lbl">Also ticked: Peas (Veg) · Gravy (Other)</div>
+  <div class="btns" style="margin-top:12px"><button class="btn go">Save 4 pairs</button><button class="btn">Cancel</button></div>
+</div>
+
+</div>
+</body></html>
