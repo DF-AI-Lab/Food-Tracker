@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Added date mock</title>
+<style>
+:root{--bg:#0f1714;--card:#141c19;--line:#24302b;--txt:#eef3f0;--mut:#7d8c85;--grn:#7fd6a8;--amb:#f0b35a}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{padding:12px 16px 10px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.n{font-size:17px;font-weight:600}
+.d{font-family:ui-monospace,monospace;font-size:13px;color:var(--mut)}
+.d.amb{color:var(--amb)}
+.bar{height:3px;background:#26322d;border-radius:2px;margin-top:9px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--grn)}
+.bar.amb i{background:var(--amb)}
+.add{font-size:12px;color:var(--mut);margin-top:2px}
+.tag{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:6px;font-weight:500;vertical-align:2px}
+.ends{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:3px;font-family:ui-monospace,monospace}
+</style></head><body>
+<h1>When was it added? 3 ideas</h1>
+<p class="note">Mock only. Pick A, B or C.</p>
+
+<div class="wrap">
+
+<div class="phone">
+  <div class="cap">A · Small line under the name</div>
+  <div class="box">
+    <div class="row"><div class="top"><span class="n">Ham</span><span class="d amb">2 days</span></div>
+      <div class="add">added Mon 19 Oct · 5 days ago</div>
+      <div class="bar amb"><i style="width:40%"></i></div></div>
+    <div class="row"><div class="top"><span class="n">Pasta salad</span><span class="d">Tue 27 Oct · 3 days</span></div>
+      <div class="add">added today</div>
+      <div class="bar"><i style="width:60%"></i></div></div>
+    <div class="row"><div class="top"><span class="n">Milk</span><span class="d">Mon 2 Nov · 9 days</span></div>
+      <div class="add">added Thu 22 Oct · 2 days ago</div>
+      <div class="bar"><i style="width:100%"></i></div></div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="cap">B · Tiny tag after the name</div>
+  <div class="box">
+    <div class="row"><div class="top"><span class="n">Ham<span class="tag">5d ago</span></span><span class="d amb">2 days</span></div>
+      <div class="bar amb"><i style="width:40%"></i></div></div>
+    <div class="row"><div class="top"><span class="n">Pasta salad<span class="tag">today</span></span><span class="d">Tue 27 Oct · 3 days</span></div>
+      <div class="bar"><i style="width:60%"></i></div></div>
+    <div class="row"><div class="top"><span class="n">Milk<span class="tag">2d ago</span></span><span class="d">Mon 2 Nov · 9 days</span></div>
+      <div class="bar"><i style="width:100%"></i></div></div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="cap">C · Dates at each end of the bar</div>
+  <div class="box">
+    <div class="row"><div class="top"><span class="n">Ham</span><span class="d amb">2 days</span></div>
+      <div class="bar amb"><i style="width:40%"></i></div>
+      <div class="ends"><span>in 19 Oct</span><span>use by 26 Oct</span></div></div>
+    <div class="row"><div class="top"><span class="n">Pasta salad</span><span class="d">3 days</span></div>
+      <div class="bar"><i style="width:60%"></i></div>
+      <div class="ends"><span>in 24 Oct</span><span>use by 27 Oct</span></div></div>
+    <div class="row"><div class="top"><span class="n">Milk</span><span class="d">9 days</span></div>
+      <div class="bar"><i style="width:100%"></i></div>
+      <div class="ends"><span>in 22 Oct</span><span>use by 2 Nov</span></div></div>
+  </div>
+</div>
+
+</div>
+</body></html>
