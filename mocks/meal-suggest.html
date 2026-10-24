@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Meal suggest mock</title>
+<title>Meal ideas mock v2</title>
 <style>
-:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#4caf7a;--amb:#f0b35a}
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#4caf7a;--amb:#f0b35a;--red:#e57373}
 *{box-sizing:border-box}
 body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
 h1{font-size:18px;margin:0 0 4px}
@@ -10,63 +10,103 @@ h1{font-size:18px;margin:0 0 4px}
 .wrap{display:flex;flex-wrap:wrap;gap:20px}
 .phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
 .cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.cap.later{color:var(--mut)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
 .card h4{margin:0 0 6px;font-size:16px}
-.why{color:var(--mut);font-size:12px;margin-top:6px}
+.why{font-size:12px;margin-top:6px;color:var(--mut)}
 .soon{color:var(--amb)}
+.last{color:var(--red)}
 .food{display:flex;justify-content:space-between;padding:3px 0}
 .food small{color:var(--mut)}
 .btns{display:flex;gap:8px;margin-top:10px}
 .btn{flex:1;border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:12px;padding:10px;font-weight:600;font-size:14px}
 .go{background:var(--grn);color:#062014;border:0}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.no{color:var(--red)}
+.sm{flex:0 0 auto;padding:6px 10px;font-size:13px}
+.pair{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)}
+.pair:last-child{border-bottom:0}
+.lbl{font-size:13px;color:var(--mut);margin:12px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px solid var(--line);border-radius:20px;padding:7px 12px;font-size:14px;background:#111a16}
 .chip.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
-.lbl{font-size:13px;color:var(--mut);margin:8px 0 4px}
-.tick{color:var(--grn)}
+.sec{font-size:15px;font-weight:700;margin:4px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.dim{opacity:.6}
+pre{white-space:pre-wrap;font-size:11px;color:var(--mut);background:#111a16;border-radius:10px;padding:10px;margin:0}
 </style></head><body>
-<h1>Meal ideas: mock</h1>
-<p class="note">Mock only. Nothing built yet.</p>
+<h1>Meal ideas: mock 2</h1>
+<p class="note">Step 1 is screens 1 to 3. Step 2 (the AI part) comes later.</p>
 
 <div class="wrap">
 
-<!-- 1 -->
+<!-- 1 Ideas -->
 <div class="phone">
-  <div class="cap">1 · Meals tab: "Ideas for tonight"</div>
+  <div class="cap">1 · Meals tab: Ideas for tonight</div>
   <div class="card">
-    <h4>Whole Chicken + Potatoes + Peas</h4>
+    <h4>Whole Chicken + Chips + Cauli cheese</h4>
     <div class="food"><span>Whole Chicken</span><small class="soon">UB 27 Oct</small></div>
-    <div class="food"><span>Potatoes</span><small>added 20 Oct</small></div>
-    <div class="food"><span>Peas</span><small>Freezer</small></div>
-    <div class="why">Had 4 times · chicken needs using soon</div>
-    <div class="btns"><button class="btn go">Plan it</button><button class="btn">Change</button></div>
+    <div class="food"><span>Chips</span><small>Freezer</small></div>
+    <div class="food"><span>Cauli cheese</span><small class="last">UB 25 Oct · last day tomorrow</small></div>
+    <div class="why">From 2 pairs: Chicken + Chips, Chicken + Cauli cheese</div>
+    <div class="btns"><button class="btn go">Yes</button><button class="btn no">Never</button></div>
   </div>
   <div class="card">
     <h4>Pizza + Coleslaw</h4>
     <div class="food"><span>Pizza</span><small>UB 30 Oct</small></div>
     <div class="food"><span>Coleslaw</span><small class="soon">BB 26 Oct</small></div>
-    <div class="why">Had 2 times · coleslaw going off soon</div>
-    <div class="btns"><button class="btn go">Plan it</button><button class="btn">Change</button></div>
+    <div class="btns"><button class="btn go">Yes</button><button class="btn no">Never</button></div>
   </div>
+  <div class="card dim">
+    <h4>Ribs + Chips</h4>
+    <div class="food"><span>Ribs</span><small>UB 1 Nov</small></div>
+    <div class="food"><span>Chips</span><small>Freezer</small></div>
+    <div class="btns"><button class="btn go">Yes</button><button class="btn no">Never</button></div>
+  </div>
+  <div class="why">Shows every meal your pairs can make, soonest dates first. Skip one and it moves down tomorrow as the dates get closer.</div>
 </div>
 
-<!-- 2 -->
+<!-- 2 Yes -->
 <div class="phone">
-  <div class="cap">2 · Or pick the main yourself</div>
-  <div class="lbl">Main</div>
-  <div class="chips">
-    <span class="chip on">Whole Chicken</span><span class="chip">Ribs</span><span class="chip">Pizza</span><span class="chip">Chicken en croute</span>
+  <div class="cap">2 · Yes = plan it, pick the day</div>
+  <div class="card">
+    <h4>Whole Chicken + Chips + Cauli cheese</h4>
+    <div class="lbl">Which day?</div>
+    <div class="chips"><span class="chip on">Tonight</span><span class="chip">Sun</span><span class="chip">Mon</span><span class="chip">Tue</span></div>
+    <div class="why last">Cauli cheese runs out Sun. Tonight is best.</div>
+    <div class="btns"><button class="btn go">Plan</button><button class="btn">Cancel</button></div>
   </div>
-  <div class="lbl">Goes well with (from what you've had before)</div>
-  <div class="chips">
-    <span class="chip on"><span class="tick">✓</span> Potatoes</span>
-    <span class="chip on"><span class="tick">✓</span> Peas</span>
-    <span class="chip">Stuffing</span>
-    <span class="chip">Carrots <span class="soon">· soon</span></span>
+  <div class="lbl">Never = that pair goes to Hidden and won't be offered again.</div>
+</div>
+
+<!-- 3 Combos -->
+<div class="phone">
+  <div class="cap">3 · Meals tab: Combos (pairs)</div>
+  <div class="sec">Combos <button class="btn sm">+ Add pair</button></div>
+  <div class="card">
+    <div class="pair"><span>Chicken + Chips</span><small class="why">had 6×</small></div>
+    <div class="pair"><span>Chicken + Cauli cheese</span><small class="why">had 3×</small></div>
+    <div class="pair"><span>Pizza + Coleslaw</span><small class="why">AI</small></div>
+    <div class="pair"><span>Ribs + Chips</span><small class="why">by hand</small></div>
   </div>
-  <div class="lbl">Not in the fridge (add to shopping?)</div>
-  <div class="chips"><span class="chip">Gravy</span></div>
-  <div class="btns"><button class="btn go">Plan it</button></div>
+  <div class="sec" style="font-size:13px;color:var(--mut)">Hidden (said Never)</div>
+  <div class="card dim">
+    <div class="pair"><span>Fish + Rice</span><button class="btn sm">Bring back</button></div>
+  </div>
+  <div class="why">The app also learns pairs from meals you eat 2+ times.</div>
+</div>
+
+<!-- 4 Step 2 later -->
+<div class="phone">
+  <div class="cap later">4 · Step 2 (later): Ask an AI</div>
+  <div class="card">
+    <div class="btns" style="margin-top:0"><button class="btn">Copy for AI</button><button class="btn">Download</button></div>
+    <div class="lbl">What gets sent</div>
+    <pre>Instructions for the AI…
+food: fridge, freezer, cupboard + dates
+combos: your pairs (and Hidden ones)
+eaten: last 4 weeks</pre>
+    <div class="btns"><button class="btn go">Paste AI answer</button><button class="btn">Upload file</button></div>
+    <div class="why">New pairs go into Combos. Ones you already have are skipped.</div>
+  </div>
 </div>
 
 </div>
