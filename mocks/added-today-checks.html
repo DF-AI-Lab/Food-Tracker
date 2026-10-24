@@ -10,50 +10,73 @@ h1{font-size:18px;margin:0 0 4px}
 .wrap{display:flex;flex-wrap:wrap;gap:20px}
 .phone{width:360px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
 .cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
-.box{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
-.head{display:flex;justify-content:space-between;padding:12px 14px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line)}
-.head.amb{color:var(--amb)}
-.head.red{color:var(--red)}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.tab{border:1px solid var(--line);background:#111a16;border-radius:12px;padding:9px 4px;text-align:center;font-size:13px;font-weight:600}
+.tab b{display:block;font-size:18px}
+.tab.on{border-color:var(--grn);background:#1d3a2c;color:#9fe0bf}
+.tab.amb b{color:var(--amb)}
+.tab.red b{color:var(--red)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
 .k{width:42px;font-size:11px;font-weight:700;color:var(--mut)}
 .n{flex:1}
 .d{font-family:ui-monospace,monospace;font-size:13px}
 .ub{border:1px solid var(--line);border-radius:6px;padding:0 5px;font-size:11px;color:var(--mut);margin-right:6px}
-.qd{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px 66px}
+.qd{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px 66px;border-bottom:1px solid var(--line)}
+.qd:last-child{border-bottom:0}
 .qd span{border:1px solid var(--line);border-radius:10px;padding:5px 9px;font-size:13px;background:#111a16}
 .amb{color:var(--amb)}
 .red{color:var(--red)}
 .fix{border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:10px;padding:5px 10px;font-size:13px}
 </style></head><body>
-<h1>Added today: mock</h1>
-<p class="note">Mock only. The "Add date" step on each photo goes. Instead, you check the dates in one place at the bottom of the photo page.</p>
+<h1>Added today: mock 2 (tabs)</h1>
+<p class="note">Mock only. Three tabs, with the list for the tab you tap underneath.</p>
 
 <div class="wrap">
+
 <div class="phone">
-  <div class="cap">Bottom of the photo page</div>
-
-  <div class="box">
-    <div class="head"><span>Added today · 40 packs</span><span>⌃</span></div>
-    <div class="row"><span class="k">MAIN</span><span class="n">Bacon</span><span class="d"><span class="ub">UB</span>Sat 14 Nov</span></div>
-    <div class="row"><span class="k">MAIN</span><span class="n">Mince</span><span class="d"><span class="ub">UB</span>Tue 3 Nov</span></div>
-    <div class="row"><span class="k">MAIN</span><span class="n">…</span><span class="d"></span></div>
+  <div class="cap">Tab 1 · Added today</div>
+  <div class="tabs">
+    <div class="tab on"><b>40</b>Added today</div>
+    <div class="tab amb"><b>2</b>No date</div>
+    <div class="tab red"><b>2</b>Check dates</div>
   </div>
-
   <div class="box">
-    <div class="head amb"><span>No date · 2</span><span>not veg</span></div>
+    <div class="row"><span class="k">MAIN</span><span class="n">Bacon</span><span class="d"><span class="ub">UB</span>Sat 14 Nov</span></div>
+    <div class="row"><span class="k">MAIN</span><span class="n">Frankfurters</span><span class="d"><span class="ub">UB</span>Sat 14 Nov</span></div>
+    <div class="row"><span class="k">MAIN</span><span class="n">Mince</span><span class="d"><span class="ub">UB</span>Tue 3 Nov</span></div>
+    <div class="row"><span class="k">SIDE</span><span class="n">Cheese sauce</span><span class="d amb">no date</span></div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="cap">Tab 2 · No date (not veg)</div>
+  <div class="tabs">
+    <div class="tab"><b>40</b>Added today</div>
+    <div class="tab amb on"><b>2</b>No date</div>
+    <div class="tab red"><b>2</b>Check dates</div>
+  </div>
+  <div class="box">
     <div class="row"><span class="k">SIDE</span><span class="n">Cheese sauce</span><span class="d amb">no date</span></div>
     <div class="qd"><span>+1</span><span>+2</span><span>+3</span><span>+5</span><span>+7</span><span>Pick date</span></div>
     <div class="row"><span class="k">OTHER</span><span class="n">Ham</span><span class="d amb">no date</span></div>
     <div class="qd"><span>+1</span><span>+2</span><span>+3</span><span>+5</span><span>+7</span><span>Pick date</span></div>
   </div>
+</div>
 
+<div class="phone">
+  <div class="cap">Tab 3 · Check dates</div>
+  <div class="tabs">
+    <div class="tab"><b>40</b>Added today</div>
+    <div class="tab amb"><b>2</b>No date</div>
+    <div class="tab red on"><b>2</b>Check dates</div>
+  </div>
   <div class="box">
-    <div class="head red"><span>Check these dates · 2</span><span>?</span></div>
     <div class="row"><span class="k">MAIN</span><span class="n">Chicken</span><span class="d red">UB Mon 19 Oct</span><button class="fix">Fix</button></div>
     <div class="row"><span class="k">SIDE</span><span class="n">Coleslaw</span><span class="d red">BB Tue 20 Oct</span><button class="fix">Fix</button></div>
   </div>
-  <p class="note">"Check these dates" = the rule you pick (see question).</p>
 </div>
+
 </div>
 </body></html>
