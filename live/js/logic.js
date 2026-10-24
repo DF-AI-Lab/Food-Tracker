@@ -799,6 +799,126 @@
       .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
   }
 
+  // A pair of foods as one key, whatever the order or case: "chicken+chips"
+  function pairKey(a, b) {
+    return [a, b].map(n => String(n ?? "").trim().toLowerCase()).sort().join("+");
+  }
+
+  // Soonest first: dated packs by date, then undated packs; ties by id
+  function soonestFirst(a, b) {
+    if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return byId(a, b);
+  }
+
+  // Combos (pairs): learned from meals eaten at home (a main with each other food, 2+ times),
+  // plus the stored ones (by hand or AI). Returns { shown, hidden }, most had first, then A to Z.
+  function comboPairs(combos, meals) {
+    const learned = new Map(); // key -> { count, a, b } (casing from the first meal seen)
+    for (const m of meals || []) {
+      if (m.takeaway === true || !Array.isArray(m.items)) continue;
+      const items = m.items.map(i => ({ name: String(i.name ?? "").trim(), slot: i.slot })).filter(i => i.name);
+      const seen = new Set();
+      for (const main of items.filter(i => i.slot === "main")) {
+        for (const other of items) {
+          if (other === main) continue;
+          const key = pairKey(main.name, other.name);
+          if (key === pairKey(main.name, main.name) || seen.has(key)) continue;
+          seen.add(key);
+          if (!learned.has(key)) learned.set(key, { count: 0, a: main.name, b: other.name });
+          learned.get(key).count++;
+        }
+      }
+    }
+
+    const rows = new Map();
+    for (const [key, c] of learned) {
+      if (c.count >= 2) rows.set(key, { key, a: c.a, b: c.b, count: c.count, source: "learned", id: null, hidden: false });
+    }
+    const storedKeys = new Set();
+    for (const s of combos || []) {
+      const a = String(s.a ?? "").trim();
+      const b = String(s.b ?? "").trim();
+      if (!a || !b) continue;
+      const key = pairKey(a, b);
+      if (storedKeys.has(key)) continue; // the same pair stored twice: keep the first
+      storedKeys.add(key);
+      const have = rows.get(key);
+      if (have) {
+        have.id = s.id;
+        have.hidden = !!s.hidden;
+      } else {
+        rows.set(key, { key, a, b, count: 0, source: s.source || "hand", id: s.id, hidden: !!s.hidden });
+      }
+    }
+
+    const byOrder = (x, y) => (y.count - x.count) || `${x.a} + ${x.b}`.localeCompare(`${y.a} + ${y.b}`);
+    const all = [...rows.values()];
+    return {
+      shown: all.filter(r => !r.hidden).sort(byOrder),
+      hidden: all.filter(r => r.hidden).sort(byOrder)
+    };
+  }
+
+  // Ideas for tonight: each free main in the fridge with the sides its pairs can make (3 at most).
+  // skipKeys: mains said "Not tonight". Sorted by the soonest date among the foods, then main name.
+  // Returns [{ key, main, sides, pairs }]; pairs are the pairs of the sides shown.
+  function tonightIdeas(packs, pairs, today, skipKeys = []) {
+    const skip = new Set(skipKeys);
+    const free = (packs || []).filter(isFree);
+    const mains = new Map(); // name key -> soonest free main
+    for (const p of free.filter(p => p.kind === "main").sort(soonestFirst)) {
+      const key = keyOf(p.name);
+      if (!mains.has(key)) mains.set(key, p);
+    }
+
+    const ideas = [];
+    for (const [key, main] of mains) {
+      if (skip.has(key)) continue;
+      const found = [];
+      for (const pair of pairs || []) {
+        const other = keyOf(pair.a) === key ? pair.b : keyOf(pair.b) === key ? pair.a : null;
+        if (other == null || keyOf(other) === key) continue;
+        const side = free
+          .filter(p => p.id !== main.id && keyOf(p.name) === keyOf(other))
+          .sort(soonestFirst)[0];
+        if (side) found.push({ pair, side });
+      }
+      if (!found.length) continue;
+
+      found.sort((x, y) => soonestFirst(x.side, y.side));
+      const sides = [];
+      const shownPairs = [];
+      const names = new Set();
+      for (const f of found) {
+        const nk = keyOf(f.side.name);
+        if (names.has(nk)) continue;
+        if (sides.length === 3) break;
+        names.add(nk);
+        sides.push(f.side);
+        shownPairs.push(f.pair);
+      }
+      ideas.push({ key, main, sides, pairs: shownPairs });
+    }
+
+    // The soonest date among the foods (undated last), then the main's name
+    const soonestDate = idea => [idea.main, ...idea.sides].map(p => p.date).filter(Boolean).sort()[0] || null;
+    ideas.sort((x, y) => {
+      const dx = soonestDate(x), dy = soonestDate(y);
+      if (dx && dy && dx !== dy) return dx < dy ? -1 : 1;
+      if (dx && !dy) return -1;
+      if (!dx && dy) return 1;
+      return x.main.name.localeCompare(y.main.name);
+    });
+    return ideas.map(({ key, main, sides, pairs: used }) => ({ key, main, sides, pairs: used }));
+  }
+
+  // The foods in an idea that are out of date by the day (their date is before it)
+  function ideaWarn(idea, dayIso) {
+    return [idea.main, ...idea.sides].filter(p => p.date && p.date < dayIso);
+  }
+
   // Meal ideas: food combos eaten at home (2+ foods), most had first, then latest.
   // missing = food names with no free fridge pack (in fridge, not planned)
   function mealIdeas(meals, packs) {
@@ -1846,6 +1966,11 @@
     dayMeals,
     dayGroups,
     mealIdeas,
+    pairKey,
+    comboPairs,
+    tonightIdeas,
+    ideaWarn,
+    slotFor,
     tidyName,
     normMeal,
     makeMeal,

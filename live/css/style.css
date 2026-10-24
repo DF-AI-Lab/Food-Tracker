@@ -841,3 +841,41 @@ details.added[open] .chev{transform:rotate(180deg)}
 /* Phone add steps: step bar pinned at the top; quick-pick chips hide while typing your own food */
 .pane.af.stepped .addsteps{position:sticky;top:var(--vvtop,0px);z-index:30;background:var(--bg)}
 body.typing .pane.af.stepped #usuals{display:none}
+
+/* Meal ideas (step 1): Ideas for tonight, and Combos (pairs) on the Meals tab */
+#ideasTonight{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+#ideasTonight[hidden],#combosHidden[hidden]{display:none}
+.idea-list{display:flex;flex-direction:column;gap:10px}
+.idea-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.idea-title{margin:0 0 4px;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.idea-food{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0;font-size:14px}
+.idea-food small{font-size:12px;color:var(--muted);white-space:nowrap}
+.idea-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.idea-btns{display:flex;gap:8px;margin-top:6px}
+.idea-btns .act{flex:1;min-height:48px}
+.idea-nfm{font:inherit;font-size:13px;color:var(--muted);background:transparent;border:0;text-decoration:underline;min-height:36px;padding:0 8px;align-self:center;cursor:pointer}
+.idea-pairs{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;justify-content:center}
+.idea-pair{font:inherit;font-size:14px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:12px;min-height:40px;padding:0 12px;cursor:pointer}
+.idea-panel{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.idea-lbl{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.idea-days{display:flex;flex-wrap:wrap;gap:8px}
+.idea-day{font:inherit;font-size:14px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:20px;min-height:40px;padding:0 14px;cursor:pointer}
+.idea-day.on{border-color:var(--accent-line);background:var(--sel-bg);color:var(--accent);font-weight:600}
+.idea-warn{font-size:13px;color:var(--warn)}
+.idea-warn:empty{display:none}
+
+#combos{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-bottom:calc(var(--nav-h) + var(--safe-b) + 40px)}
+#combos>.note{margin:0 4px}
+.combo-add{display:flex;gap:8px;align-items:center}
+.combo-add input{flex:1}
+.combo-add .act{flex:none;min-height:48px;padding:0 12px;font-size:14px}
+#combos .combo-list .note{padding:14px 16px}
+.combo-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--divider)}
+.combo-row:last-child{border-bottom:0}
+.combo-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.combo-text span{font-size:15px;font-weight:500;overflow-wrap:anywhere}
+.combo-text small{font-size:12px;color:var(--muted)}
+.combo-hide,.combo-back{font:inherit;font-size:13px;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent-border);border-radius:10px;min-height:36px;padding:0 12px;flex:none;cursor:pointer}
+.combo-hide{color:var(--muted);border-color:var(--border)}
+#combosHidden{display:flex;flex-direction:column;gap:10px}
+#combosHidden .combo-text span{color:var(--muted)}

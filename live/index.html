@@ -180,6 +180,10 @@
       <button class="act ghost" id="nextSlot">Sides</button>
       <button class="act" id="nextDay">Next day</button>
     </div>
+    <div id="ideasTonight" hidden>
+      <div class="sechead"><h3 class="sec">Ideas for tonight</h3></div>
+      <div class="idea-list"></div>
+    </div>
     <div id="fancyMeals" hidden>
       <div class="sechead"><h3 class="sec">Meals I fancy</h3></div>
       <div class="ml card" id="fancyList"></div>
@@ -187,6 +191,20 @@
     <div id="myMeals" class="ideas">
       <div class="sechead"><h3 class="sec">My meals</h3><button class="act ghost" id="newMeal" type="button">New meal</button></div>
       <div class="ml card"></div>
+    </div>
+    <div id="combos">
+      <div class="sechead"><h3 class="sec">Combos</h3></div>
+      <p class="note">Foods that go together. The app also learns pairs you eat 2 or more times.</p>
+      <div class="combo-add">
+        <input id="comboA" type="text" placeholder="Food" aria-label="Food" autocomplete="off">
+        <input id="comboB" type="text" placeholder="Goes with" aria-label="Goes with" autocomplete="off">
+        <button class="act ghost" id="comboAdd" type="button">+ Add pair</button>
+      </div>
+      <div class="combo-list card"></div>
+      <div id="combosHidden" hidden>
+        <div class="sechead"><h3 class="sec">Hidden (not for me)</h3></div>
+        <div class="card combo-hidden"></div>
+      </div>
     </div>
   </div>
 
