@@ -856,8 +856,8 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 body.typing .pane.af.stepped #usuals{display:none}
 
 /* Meal ideas (step 1): Ideas for tonight, and Combos (pairs) on the Meals tab */
-#ideasTonight{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
-#ideasTonight[hidden],#combosHidden[hidden]{display:none}
+#ideasWeek{display:flex;flex-direction:column;gap:10px}
+#combosHidden[hidden]{display:none}
 .idea-list{display:flex;flex-direction:column;gap:10px}
 .idea-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
 .idea-title{margin:0 0 4px;font-size:15px;font-weight:600;overflow-wrap:anywhere}
@@ -973,3 +973,52 @@ button.combo-food{display:block;font:inherit;font-weight:700;font-size:15px;colo
 .ai-yes.on{border-color:var(--accent);color:var(--accent)}
 .ai-no.on{border-color:var(--danger);color:var(--danger)}
 #aiReview .ai-btns{padding:0 14px 14px}
+
+/* Meals page folds (v4.45): My meals, Combos, Edit meals, All combos. Open state is remembered per phone */
+.fold{margin-top:12px;min-width:0}
+.fold-in{margin-top:10px}
+.fold-sum{list-style:none;display:flex;align-items:center;gap:8px;min-height:46px;padding:0 4px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.fold-sum::-webkit-details-marker{display:none}
+.fold-sum:focus-visible{outline:2px solid var(--accent-line);outline-offset:2px;border-radius:8px}
+.fold-in>.fold-sum{min-height:40px}
+.fold-t{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.fold-n{font-size:13px;color:var(--faint)}
+.chev{margin-left:auto;font-size:20px;line-height:1;color:var(--muted);transition:transform .25s ease-out}
+.fold.fold-on>.fold-sum .chev{transform:rotate(90deg)}
+.fold-body{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+.edit-list{display:flex;flex-direction:column}
+.edit-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--divider)}
+.edit-row:last-child{border-bottom:0}
+.edit-row .mr-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.edit-row .act{min-height:38px;padding:0 14px;font-size:14px;flex:none}
+.edit-list .note{padding:14px 16px}
+
+/* Ideas for the week: a card per idea, its day button, Other day, and ✎ Edit */
+.idea-head{display:flex;align-items:flex-start;gap:8px}
+.idea-head .idea-title{flex:1;min-width:0}
+.idea-edit{font:inherit;font-size:13px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:10px;min-height:34px;padding:0 10px;cursor:pointer;flex:none}
+.idea-other{flex:1}
+.idea-plan-day{flex:1.4}
+.idea-editbox{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.idea-editbox button{font:inherit;font-size:14px;text-align:left;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-height:40px;padding:0 12px;cursor:pointer}
+.idea-editbox .idea-nolike{color:var(--danger)}
+.idea-editbox .idea-nfm{align-self:center;text-align:center;border:0;background:none;text-decoration:underline}
+.idea-editbox .idea-err{margin:0;font-size:13px;color:var(--danger)}
+.idea-cancel{font:inherit;font-size:13px;color:var(--muted);background:none;border:0;text-decoration:underline;align-self:center;min-height:36px;padding:0 8px;cursor:pointer}
+
+/* Drag to move: the ⠿ grab handle on a week row or a planned day, the lifted row or card, and the day it would land on */
+.wk-grab,.sit-grab{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;min-height:36px;padding:0;border:0;background:none;color:var(--faint);font:inherit;font-size:18px;line-height:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.wk-grab:active,.sit-grab:active{cursor:grabbing}
+.wk-day{position:relative}
+.grab-lift{position:relative;z-index:20;background:var(--surface);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.wk-day.drop-ok{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--accent)}
+.day.drop-ok{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-line)}
+
+/* A planned day: Change on a sitting, and its bar (Swap meal, Move day, Clear) */
+.sit-change,.chg-swap,.chg-move,.chg-clear,.chg-to{font:inherit;font-size:13px;font-weight:500;color:var(--text-2);background:transparent;border:1px dashed var(--accent-border);border-radius:10px;min-height:34px;padding:0 10px;cursor:pointer;white-space:nowrap}
+.sit-change{margin-left:auto}
+.chg-clear{color:var(--danger);border-color:var(--danger)}
+.chg-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 16px 10px}
+.chg-bar .chg-cancel{font:inherit;font-size:13px;color:var(--muted);background:none;border:0;text-decoration:underline;min-height:34px;padding:0 8px;cursor:pointer;margin-left:auto}
+.chg-bar .chg-lbl{width:100%;font-size:12px;color:var(--muted)}
+
