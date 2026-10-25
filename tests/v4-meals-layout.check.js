@@ -57,7 +57,6 @@ function startStatic() {
     assert.equal(await page.locator("#myMealsFold #myMeals .ml").count(), 1);
     assert.equal(await page.locator("#myMealsFold #editMealsFold #newMeal").count(), 1);
     assert.equal(await isOpen("#editMealsFold"), false);
-    assert.equal(await page.locator("#combosFold #ideasWeek").count(), 1);
     for (const s of ["#comboAdd", ".combo-list", "#aiAsk"]) assert.equal(await page.locator("#combosFold #allCombosFold " + s).count(), 1, s);
     assert.equal(await isOpen("#allCombosFold"), false);
     assert.equal(await page.locator("#ideasTonight").count(), 0, "Ideas for tonight is gone");
@@ -99,55 +98,29 @@ function startStatic() {
     await until(async () => assert.ok(await page.locator("#aiReview").isHidden()));
   });
 
-  const cards = page.locator("#ideasWeek .idea-card");
-  const card = name => page.locator("#ideasWeek .idea-card", { has: page.locator(".idea-title", { hasText: new RegExp("^" + name) }) });
   const day = i => page.locator("#dayList .day").nth(i);
 
-  await step("Ideas for the week: best 3 in day order; Plan tonight / Plan <day>, Other day, ✎ Edit; old buttons gone", async () => {
-    await until(async () => assert.ok((await cards.count()) >= 3));
-    assert.equal(await cards.locator(":visible").filter({ has: page.locator(".idea-title") }).count() <= 3, true);
-    assert.match(await cards.nth(0).locator(".idea-title").innerText(), /^Chicken/);
-    assert.equal((await cards.nth(0).locator(".idea-plan-day").innerText()).trim(), "Plan tonight");
-    assert.equal((await card("Gammon").locator(".idea-plan-day").innerText()).trim(), "Plan Mon");
-    for (const c of [".idea-other", ".idea-edit"]) assert.equal(await cards.nth(0).locator(c).count(), 1, c);
-    for (const c of [".idea-yes", ".idea-not", ".idea-x"]) assert.equal(await cards.nth(0).locator(c).count(), 0, c + " gone");
-    assert.equal(await cards.nth(0).locator(".idea-minor .idea-nfm").count(), 1, "Not for me sits under the buttons");
-  });
+  // Open a day's card (it may already be open) and return its top 3. The top 3 shows for the Dinner
+  // meal, so when it is missing (today's card starts on Tea) switch that card to Dinner.
+  const openDay = async i => {
+    const d = day(i);
+    const box = d.locator(".day-ideas");
+    const shown = async () => box.first().isVisible().catch(() => false);
+    if (!(await shown())) {
+      if (!(await d.evaluate(el => el.classList.contains("open")))) await d.locator(".dh").click();
+      if (!(await shown())) await d.locator("button", { hasText: /^Dinner/ }).first().click();
+    }
+    await until(async () => assert.ok(await shown()));
+    return box;
+  };
 
-  await step("Plan tonight: Chicken goes on Sunday and leaves the ideas", async () => {
-    await card("Chicken").locator(".idea-plan-day").click();
-    await until(async () => assert.match(await day(0).innerText(), /Chicken/));
-    await until(async () => assert.equal(await card("Chicken").count(), 0));
-  });
-
-  await step("Other day on Gammon: only free days it is in date (Mon–Wed); Wed plans it there", async () => {
-    await card("Gammon").locator(".idea-other").click();
-    const chips = card("Gammon").locator(".idea-days .idea-day");
-    await until(async () => assert.ok((await chips.count()) > 0));
-    assert.deepEqual((await chips.allInnerTexts()).map(t => t.trim()), ["Mon", "Tue", "Wed"]);
-    await chips.filter({ hasText: "Wed" }).click();
-    await until(async () => assert.match(await day(3).innerText(), /Gammon/));
-  });
-
-  await step("✎ Edit on Sausages: Not <day> moves it to another day", async () => {
-    const c = card("Sausages");
-    const before = (await c.locator(".idea-plan-day").innerText()).trim();
-    await c.locator(".idea-edit").click();
-    const box = c.locator(".idea-editbox");
-    await until(async () => assert.ok(await box.isVisible()));
-    for (const b of [".idea-notday", ".idea-nolike"]) assert.ok((await box.locator(b).count()) >= 1, b);
-    assert.equal(await box.locator(".idea-meal, .idea-nfm").count(), 0, "Make a meal and Not for me are not in Edit any more");
-    for (const b of [".idea-minor .idea-meal", ".idea-minor .idea-nfm"]) assert.equal(await c.locator(b).count(), 1, b);
-    assert.match(await box.locator(".idea-nolike").first().innerText(), /Chips with Sausages/);
-    assert.equal((await box.locator(".idea-notday").innerText()).trim(), before.replace(/^Plan/, "Not"));
-    await box.locator(".idea-notday").click();
-    await until(async () => assert.notEqual((await card("Sausages").locator(".idea-plan-day").innerText()).trim(), before));
-  });
-
-  await step("✎ Edit → Make it a meal: saved to My meals", async () => {
-    await card("Sausages").locator(".idea-edit").click();
-    await card("Sausages").locator(".idea-meal").click();
-    await until(async () => assert.match(await page.locator("#myMeals .ml").innerText(), /Sausages \+ Chips/));
+  // Plan a day's top-3 idea by its food (the removed ideas-card steps planned Chicken on Sunday, Gammon on Wednesday)
+  await step("Plan Chicken on Sunday and Gammon on Wednesday from each day's top 3", async () => {
+    for (const [i, food] of [[0, "Chicken"], [3, "Gammon"]]) {
+      const box = await openDay(i);
+      await box.locator(".dt-idea", { hasText: food }).first().locator(".dt-plan").click();
+      await until(async () => assert.match(await day(i).innerText(), new RegExp(food)));
+    }
   });
 
   const rows = page.locator("#weekPanel .wk-day");
@@ -179,6 +152,8 @@ function startStatic() {
   });
 
   await step("Change on Wednesday → Move day → Mon: Gammon moves to Monday", async () => {
+    // Gammon is planned for Wednesday's tea: its Change line shows with the card shut (an open card shows the meal to edit)
+    if (await day(3).evaluate(el => el.classList.contains("open"))) await day(3).locator(".dh").click();
     await day(3).locator(".sit-change").first().click();
     const bar = day(3).locator(".chg-bar");
     await until(async () => assert.ok(await bar.isVisible()));

@@ -30,3 +30,24 @@ Keep every feature, just in a simpler flow. These fold into the days:
   - Tests: `tests/v4-plates.test.js` and `tests/v4-ai-dinner.check.js`
 - **Live is still v4.14 and doesn't have plates or AI dinner.** Copy to live only once the simple page is done and Darren says so.
 - The AI dinner call has only been tested with a fake AI. No real request has been made yet.
+
+## Darren's review, 2026-10-25 (chat 2)
+
+Liked: the week list, the Plan my week panel (Swap / ✓ / Plan these), My meals, All combos + Ask AI for combos.
+Didn't like: the open day card ("a mess"), Ideas for the week (same as Plan my week), two AI buttons.
+
+### ✅ Built in demo d.v4.49
+1. **Use soon** strip at the top of Meals (3 days, orange = not planned)
+2. **One ✨ Plan my week** button. Ask AI for dinner removed from the page (logic kept in `logic.js` for later)
+3. Plan my week panel kept as it was
+9. Ideas for the week removed
+10. All combos + Ask AI for combos kept
+
+### 🎨 Mock next, then build
+- 4. **Open day card**: revamp. One list of ideas + Plan, "Build my own" tucked away, no tabs, no Next buttons
+- 5. Fri / Sat "Nothing left" → offer a My meal
+- 6. My meals: tap a card to edit it in place, remove "✎ Edit meals"
+- 7. **Musts vs extras** in each meal (less strict: musts in fridge = can plan, extras go on shopping)
+- 8. **"+ Peas?" add-on**: suggest a going-off food that goes with a planned meal
+- 3b. "🍽 Make a meal" link on Plan my week ideas
+- ❓ Dinner / Tea toggle: keep or remove? (ask Darren)

@@ -264,6 +264,14 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .week-btns{display:flex;gap:8px;flex-wrap:wrap}
 .week-btns .act{flex:1 1 40%}
+.msoon{margin-bottom:12px}
+.msoon .msoon-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.mpill{flex:none;text-align:left;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:10px 12px;min-width:110px;color:inherit;font:inherit}
+.mpill b{display:block}
+.mpill small{font-size:11px}
+.mpill.warn{border-color:var(--warn)}
+.mpill.warn small{color:var(--warn)}
+.mpill.ok small{color:var(--accent)}
 #dinnerBox{margin-top:10px}
 #dinnerBox:empty{display:none}
 .dinner-list{display:grid;gap:10px}
