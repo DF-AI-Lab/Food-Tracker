@@ -57,7 +57,7 @@ function startStatic() {
   };
   for (const [k, n, d] of [["main", "Chicken", 2], ["veg", "Peppers", 3], ["misc", "Wraps", 10], ["main", "Gammon", 5], ["side", "Mash", 4], ["veg", "Peas", 9]]) await addFood(k, n, d);
 
-  await page.evaluate(() => localStorage.setItem("v4demo.claudeKey", "sk-ant-test"));
+  await page.evaluate(k => localStorage.setItem(k, "sk-ant-test"), (APP_DIR === "live" ? "live." : "v4demo.") + "claudeKey");
   const pairs = [["Gammon", "Mash"], ["Gammon", "Peas"]].map(([a, b]) => ({ a, b, note: "" }));
   await page.route("https://api.anthropic.com/v1/messages", route => route.fulfill({ status: 200, contentType: "application/json",
     body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ pairs }) }] }) }));

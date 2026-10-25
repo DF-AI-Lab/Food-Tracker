@@ -13,13 +13,24 @@
   let meals = [];         // meals history, saved in DB.meals
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
-  let combos = [];        // meal combos (pairs): { a, b, source, hidden }, saved in DB.combos
+  let combos = [];        // meal combos: pairs { a, b, note?, source, hidden } and dishes { type: 'dish', name, foods, note }, saved in DB.combos
   let ideaOpenKey = null; // Ideas for tonight: the idea whose Yes panel is open (main's name key), or null
   let ideaOpenDay = null; // Ideas: the day picked in that panel (ISO)
   let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
+  let ideasAll = false;   // Ideas for tonight: all shown (false = the best 3 and a Show more button)
+  let ideaXOpen = null;   // Ideas: the side whose ✕ question is open, as 'idea key|side index', or null
+  let weekSwaps = {};     // Plan my week: idea keys swapped out, by day
+  let weekOff = new Set(); // Plan my week: days left out (unticked)
+  let dtEdit = null;      // Top 3 for a day: the idea whose Edit foods are open, as 'day|idea key', or null
+  let dtX = null;         // Top 3 for a day: the side whose ✕ question is open, as 'day|idea key|side index', or null
+  const dayOff = new Set(); // Top 3 for a day: left out for that day only, 'day|idea key' or 'day|pair:' + comboKey
+  let weekRows = [];      // Plan my week: the rows last shown, from FT.weekPlan
   let cpFood = null;      // Combos picker: the food picked in step 1 (null = still picking it)
-  let cpKind = 'main';    // Combos picker: the kind tab showing (main, side, veg, misc)
-  let cpTicked = [];      // Combos picker: the foods ticked in step 2, in the order ticked
+  let cpKind = 'main';    // Combos picker: the kind tab showing (main, side, veg, misc, dish)
+  let cpTicked = [];      // Combos picker: the names ticked (step 1: what it is made of; step 2: what goes with it)
+  let cpNotes = {};       // Combos picker, step 2: the note typed for each ticked name (by name)
+  let comboOpen = new Set(); // Combos list: groups open (lowercase names)
+  let aiRows = [];        // Ask an AI: the answer being reviewed, { a, b, note?, source, hidden, keep }
   let feedback = [];      // ideas & feedback (Settings), saved in DB.feedback
   let byDateOn = false;   // Fridge: the By date list shows instead of the sections
   let stockOpen = false;  // Fridge: the Stock check panel is open
@@ -290,11 +301,38 @@
   }
 
   function setupEventListeners() {
-    document.getElementById('comboAdd').addEventListener('click', openComboPicker);
+    document.getElementById('comboAdd').addEventListener('click', () => openComboPicker());
     document.getElementById('cpCancel').addEventListener('click', closeComboPicker);
+    document.getElementById('cpNext').addEventListener('click', nextComboStep);
     document.getElementById('cpSave').addEventListener('click', saveComboPicks);
-    document.querySelectorAll('#comboPick [data-cpkind]').forEach(tab => {
-      tab.addEventListener('click', () => { cpKind = tab.dataset.cpkind; renderComboPicker(); });
+    // Ask AI: Claude finds pairs, then keep or bin each
+    document.getElementById('aiAsk').addEventListener('click', askAi);
+    // Settings: the Claude key for Ask AI (its placeholder shows whether a key is saved)
+    document.getElementById('aiKeySave').addEventListener('click', saveAiKey);
+    document.getElementById('settingsBtn').addEventListener('click', showAiKeyState);
+    document.getElementById('aiAdd').addEventListener('click', addAiRows);
+    // Plan my week: the panel opens fresh each time
+    document.getElementById('weekBtn').addEventListener('click', () => {
+      weekSwaps = {};
+      weekOff = new Set();
+      document.getElementById('weekPanel').hidden = false;
+      renderWeek();
+    });
+    document.getElementById('weekCancel').addEventListener('click', closeWeek);
+    document.getElementById('weekPlan').addEventListener('click', planWeek);
+    document.getElementById('aiCancel').addEventListener('click', () => { aiRows = []; renderAiReview(); });
+    document.getElementById('cpTypeAdd').addEventListener('click', addTypedFood);
+    document.getElementById('cpType').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addTypedFood(); }
+    });
+    document.getElementById('cpName').addEventListener('input', updateComboButtons);
+    document.getElementById('cpNote').addEventListener('input', updateComboButtons);
+    // The kind tabs are drawn by renderComboPicker, so the clicks are caught on their row
+    document.querySelector('#comboPick .cp-tabs').addEventListener('click', e => {
+      const tab = e.target.closest('[data-cpkind]');
+      if (!tab) return;
+      cpKind = tab.dataset.cpkind;
+      renderComboPicker();
     });
     // Look: Dark | Light (Settings)
     document.getElementById('themeDark').addEventListener('click', () => setTheme('dark'));
@@ -2217,7 +2255,15 @@
       }
       const date = document.createElement('span');
       date.className = 'sr-date';
-      date.textContent = group.dateLabel;
+      const w = FT.stockWhen(group.packs, today);
+      date.textContent = w.main;
+      if (w.state) date.classList.add('st-' + w.state);
+      if (w.more) {
+        const more = document.createElement('span');
+        more.className = 'dim';
+        more.textContent = ' · ' + w.more;
+        date.append(more);
+      }
       text.append(name, date);
 
       const there = document.createElement('button');
@@ -2837,6 +2883,12 @@
     try { localStorage.setItem('live.notTonight', JSON.stringify(s)); } catch (e) { /* ignore */ }
   }
 
+  // The pairs the ideas, the week plan and a day's top 3 use: the shown pairs, less those Not tonight today
+  function planPairs() {
+    const nt = new Set(notTonightKeys());
+    return FT.comboPairs(combos, meals).shown.filter(p => !nt.has('pair:' + FT.comboKey(p.a, p.b, p.note)));
+  }
+
   // Short weekday for an ISO day ("Mon"), in UTC like the app's days
   function shortWeekday(day) {
     return new Date(day + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
@@ -2846,10 +2898,30 @@
   function renderMealIdeas() {
     const box = document.getElementById('ideasTonight');
     const list = box.querySelector('.idea-list');
-    const ideas = FT.tonightIdeas(packs, FT.comboPairs(combos, meals).shown, today, notTonightKeys());
+    const ideas = [
+      ...FT.savedMealIdeas(recipes, packs, today, notTonightKeys()),
+      ...FT.tonightIdeas(packs, planPairs(), today, notTonightKeys(), FT.comboDishes(combos), meals)
+    ];
     list.textContent = '';
     box.hidden = !ideas.length;
-    for (const idea of ideas) list.appendChild(ideaCard(idea));
+    ideas.forEach((idea, i) => {
+      const card = ideaCard(idea);
+      if (i >= 3 && !ideasAll) card.hidden = true;
+      list.appendChild(card);
+    });
+    box.querySelector('.idea-more')?.remove();
+    if (ideas.length > 3) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'act ghost idea-more';
+      const n = ideas.length - 3;
+      more.textContent = ideasAll ? 'Show fewer ▴' : `Show ${n} more ${n === 1 ? 'idea' : 'ideas'} ▾`;
+      more.addEventListener('click', () => {
+        ideasAll = !ideasAll;
+        renderMealIdeas();
+      });
+      list.after(more);
+    }
   }
 
   function ideaCard(idea) {
@@ -2858,9 +2930,15 @@
     card.className = 'idea-card';
     const title = document.createElement('h4');
     title.className = 'idea-title';
-    title.textContent = foods.map(p => p.name).join(' + ');
+    title.textContent = idea.title || foods.map(p => p.name).join(' + ');
     card.appendChild(title);
-    for (const p of foods) {
+    if (idea.why && idea.why.text) {
+      const why = document.createElement('div');
+      why.className = `idea-why st-${idea.why.state}`;
+      why.textContent = idea.why.text;
+      card.appendChild(why);
+    }
+    foods.forEach((p, n) => {
       const line = document.createElement('div');
       line.className = 'idea-food';
       const name = document.createElement('span');
@@ -2868,10 +2946,63 @@
       const when = document.createElement('small');
       when.textContent = FT.packDateLabel(p);
       line.append(name, when);
+      // The main has no ✕; a dish's sides have none either (its pairs are not one to one)
+      const side = n - 1;
+      const canX = side >= 0 && !idea.recipe && !idea.key.startsWith('dish:');
+      if (canX) line.appendChild(ideaXButton(idea, side));
       card.appendChild(line);
-    }
+      if (canX && ideaXOpen === `${idea.key}|${side}`) card.appendChild(ideaXPop(idea, side));
+    });
     card.appendChild(ideaOpenKey === idea.key ? ideaDayPanel(idea) : ideaButtons(idea));
     return card;
+  }
+
+  // The ✕ on a side: opens its question (Not tonight, Don't like), or shuts it
+  function ideaXButton(idea, i) {
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'idea-x';
+    x.textContent = '✕';
+    x.setAttribute('aria-label', `Remove ${idea.sides[i].name}`);
+    x.addEventListener('click', () => {
+      const key = `${idea.key}|${i}`;
+      ideaXOpen = ideaXOpen === key ? null : key;
+      renderMealIdeas();
+    });
+    return x;
+  }
+
+  // The question under a side: Not tonight hides this pair for today; Don't like hides it for good
+  function ideaXPop(idea, i) {
+    const side = idea.sides[i];
+    const pair = idea.pairs[i];
+    const pop = document.createElement('div');
+    pop.className = 'idea-xpop';
+    const q = document.createElement('div');
+    q.className = 'idea-xq';
+    q.textContent = `${side.name} with ${idea.main.name}?`;
+    const btns = document.createElement('div');
+    btns.className = 'idea-btns';
+    const not = document.createElement('button');
+    not.type = 'button';
+    not.className = 'act ghost idea-xnot';
+    not.textContent = 'Not tonight';
+    not.addEventListener('click', () => {
+      ideaXOpen = null;
+      addNotTonight('pair:' + FT.comboKey(pair.a, pair.b, pair.note));
+      renderMealIdeas();
+    });
+    const bad = document.createElement('button');
+    bad.type = 'button';
+    bad.className = 'act ghost idea-xbad';
+    bad.textContent = "Don't like";
+    bad.addEventListener('click', () => {
+      ideaXOpen = null;
+      setPairHidden(pair, true);
+    });
+    btns.append(not, bad);
+    pop.append(q, btns);
+    return pop;
   }
 
   function ideaButtons(idea) {
@@ -2903,7 +3034,8 @@
     nfm.className = 'idea-nfm';
     nfm.textContent = 'Not for me';
     nfm.addEventListener('click', () => notForMe(idea));
-    wrap.append(btns, nfm);
+    wrap.append(btns);
+    if (!idea.recipe) wrap.append(nfm); // a saved meal has no pairs to take out
     if (ideaNfmKey === idea.key) {
       // Two or more pairs: ask which one is not for me
       const pick = document.createElement('div');
@@ -2912,7 +3044,7 @@
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'idea-pair';
-        b.textContent = `${pair.a} + ${pair.b}`;
+        b.textContent = `${pair.a} + ${comboLabel(pair)}`;
         b.addEventListener('click', () => {
           ideaNfmKey = null;
           setPairHidden(pair, true);
@@ -2973,13 +3105,256 @@
     return panel;
   }
 
+  // A day's top 3 ideas: Plan puts the idea's foods on that day, for the meal shown.
+  // Edit lists its foods: ✕ on a side takes that pair off the day or for good; Not this day takes the idea off the day.
+  function dayIdeaBox(ideas, day) {
+    const box = document.createElement('div');
+    box.className = 'day-ideas';
+    const lbl = document.createElement('div');
+    lbl.className = 'dt-lbl';
+    lbl.textContent = 'Top 3 for this day';
+    box.appendChild(lbl);
+    for (const idea of ideas) {
+      const row = document.createElement('div');
+      row.className = 'dt-idea';
+      const text = document.createElement('span');
+      const title = document.createElement('b');
+      title.textContent = idea.title;
+      const why = document.createElement('small');
+      why.className = `st-${idea.why.state}`;
+      why.textContent = idea.why.text;
+      text.append(title, why);
+      const btns = document.createElement('span');
+      btns.className = 'dt-btns';
+      const plan = document.createElement('button');
+      plan.type = 'button';
+      plan.className = 'act ghost dt-plan';
+      plan.textContent = 'Plan';
+      plan.addEventListener('click', () => planDayIdea(idea, day));
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'act ghost dt-edit';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', () => {
+        const key = `${day}|${idea.key}`;
+        dtEdit = dtEdit === key ? null : key;
+        dtX = null;
+        renderMeals();
+      });
+      btns.append(plan, edit);
+      row.append(text, btns);
+      box.appendChild(row);
+      if (dtEdit === `${day}|${idea.key}`) box.appendChild(dayFoodsPanel(idea, day));
+    }
+    return box;
+  }
+
+  // Edit on a day's idea: its foods, ✕ on a combo's sides, and Not this day for the whole idea
+  function dayFoodsPanel(idea, day) {
+    const panel = document.createElement('div');
+    panel.className = 'dt-foods';
+    [idea.main, ...idea.sides].forEach((p, n) => {
+      const line = document.createElement('div');
+      line.className = 'idea-food';
+      const name = document.createElement('span');
+      name.textContent = p.name;
+      const when = document.createElement('small');
+      when.textContent = FT.packDateLabel(p);
+      line.append(name, when);
+      const side = n - 1;
+      const canX = side >= 0 && !idea.recipe && !idea.key.startsWith('dish:');
+      if (canX) line.appendChild(dayXButton(idea, day, side));
+      panel.appendChild(line);
+      if (canX && dtX === `${day}|${idea.key}|${side}`) panel.appendChild(dayXPop(idea, day, side));
+    });
+    const not = document.createElement('button');
+    not.type = 'button';
+    not.className = 'act ghost dt-not';
+    not.textContent = 'Not this day';
+    not.addEventListener('click', () => {
+      dayOff.add(`${day}|${idea.key}`);
+      dtEdit = null;
+      dtX = null;
+      renderMeals();
+    });
+    panel.appendChild(not);
+    return panel;
+  }
+
+  // The ✕ on a side in a day's Edit: opens its question, or shuts it
+  function dayXButton(idea, day, i) {
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'idea-x';
+    x.textContent = '✕';
+    x.setAttribute('aria-label', `Remove ${idea.sides[i].name}`);
+    x.addEventListener('click', () => {
+      const key = `${day}|${idea.key}|${i}`;
+      dtX = dtX === key ? null : key;
+      renderMeals();
+    });
+    return x;
+  }
+
+  // The question under a side: Not this day hides this pair for that day; Don't like hides it for good
+  function dayXPop(idea, day, i) {
+    const side = idea.sides[i];
+    const pair = idea.pairs[i];
+    const pop = document.createElement('div');
+    pop.className = 'idea-xpop';
+    const q = document.createElement('div');
+    q.className = 'idea-xq';
+    q.textContent = `${side.name} with ${idea.main.name}?`;
+    const btns = document.createElement('div');
+    btns.className = 'idea-btns';
+    const not = document.createElement('button');
+    not.type = 'button';
+    not.className = 'act ghost idea-xnot';
+    not.textContent = 'Not this day';
+    not.addEventListener('click', () => {
+      dtX = null;
+      dayOff.add(`${day}|pair:` + FT.comboKey(pair.a, pair.b, pair.note));
+      renderMeals();
+    });
+    const bad = document.createElement('button');
+    bad.type = 'button';
+    bad.className = 'act ghost idea-xbad';
+    bad.textContent = "Don't like";
+    bad.addEventListener('click', async () => {
+      dtX = null;
+      await setPairHidden(pair, true);
+      renderMeals();
+    });
+    btns.append(not, bad);
+    pop.append(q, btns);
+    return pop;
+  }
+
+  // A day's pairs and ideas, less those left out for that day (Edit: Not this day)
+  function dayPairs(day) {
+    return planPairs().filter(p => !dayOff.has(`${day}|pair:` + FT.comboKey(p.a, p.b, p.note)));
+  }
+
+  function dayIdeaSkips(day) {
+    const pre = `${day}|`;
+    return [...dayOff].filter(k => k.startsWith(pre) && !k.startsWith(pre + 'pair:')).map(k => k.slice(pre.length));
+  }
+
+  // Plan one idea on a day: a saved meal goes on as the meal, a combo puts its foods on
+  async function planDayIdea(idea, day) {
+    if (idea.recipe) {
+      await planRecipeIdea(idea, day, selMeal);
+    } else {
+      for (const p of [idea.main, ...idea.sides]) {
+        await savePack(FT.planPack(p, day, FT.slotFor(p.kind), selMeal));
+      }
+    }
+    renderMeals();
+    renderAll();
+  }
+
+  // A saved meal from the ideas: the meal on the day (as planMealFor does), its foods from the fridge
+  async function planRecipeIdea(idea, day, mealTime) {
+    const plan = { day, mealId: idea.recipe.id, skip: [] };
+    if (mealTime === 'dinner') plan.mealTime = 'dinner';
+    try {
+      plan.id = await DB.mealPlans.add(plan);
+    } catch (e) {
+      return;
+    }
+    mealPlans.push(plan);
+    await persistAll(FT.planMeal(idea.recipe, packs, day, plan.id, [], mealTime).map(p => setPack(p)));
+  }
+
   // Plan: every food of the idea goes on the day (tea), the soonest pack of each
   async function planIdea(idea, day) {
     ideaOpenKey = null;
     ideaOpenDay = null;
-    for (const p of [idea.main, ...idea.sides]) {
-      await savePack(FT.planPack(p, day, FT.slotFor(p.kind), 'tea'));
+    if (idea.recipe) {
+      await planRecipeIdea(idea, day, 'tea');
+    } else {
+      for (const p of [idea.main, ...idea.sides]) {
+        await savePack(FT.planPack(p, day, FT.slotFor(p.kind), 'tea'));
+      }
     }
+    renderMeals();
+    renderAll();
+  }
+
+  // ---- Plan my week ----
+
+  // The week's panel: one row a day (soonest out first), Swap picks another idea for that day, the tick leaves it out
+  function renderWeek() {
+    const list = document.querySelector('#weekPanel .wk-list');
+    const skipDays = FT.mealDays(today).filter(day => FT.dayGroups(packs, mealPlans, recipes, day, 'tea').length > 0);
+    weekRows = FT.weekPlan(packs, planPairs(), today, { dishes: FT.comboDishes(combos), meals, skipDays, swaps: weekSwaps, recipes });
+    list.textContent = '';
+    for (const row of weekRows) {
+      const line = document.createElement('div');
+      line.className = 'wk-day';
+      const d = document.createElement('span');
+      d.className = 'wk-d';
+      d.textContent = shortWeekday(row.day);
+      line.appendChild(d);
+      if (!row.idea) {
+        const none = document.createElement('span');
+        none.className = 'wk-m wk-none';
+        none.textContent = row.skipped ? 'Already planned' : 'Nothing left';
+        line.appendChild(none);
+      } else {
+        const idea = row.idea;
+        const m = document.createElement('span');
+        m.className = 'wk-m';
+        const title = document.createElement('b');
+        title.textContent = idea.title;
+        const why = document.createElement('small');
+        why.className = `st-${idea.why.state}`;
+        why.textContent = idea.why.text;
+        m.append(title, why);
+        const swap = document.createElement('button');
+        swap.type = 'button';
+        swap.className = 'wk-swap';
+        swap.textContent = 'Swap';
+        swap.addEventListener('click', () => {
+          weekSwaps[row.day] = [...(weekSwaps[row.day] || []), idea.key];
+          renderWeek();
+        });
+        const on = !weekOff.has(row.day);
+        const tick = document.createElement('button');
+        tick.type = 'button';
+        tick.className = 'wk-tick' + (on ? ' on' : '');
+        tick.textContent = '✓';
+        tick.setAttribute('aria-pressed', String(on));
+        tick.addEventListener('click', () => {
+          if (weekOff.has(row.day)) weekOff.delete(row.day);
+          else weekOff.add(row.day);
+          renderWeek();
+        });
+        line.append(m, swap, tick);
+      }
+      list.appendChild(line);
+    }
+    const n = weekRows.filter(r => r.idea && !weekOff.has(r.day)).length;
+    document.getElementById('weekPlan').textContent = `Plan these ${n}`;
+  }
+
+  function closeWeek() {
+    document.getElementById('weekPanel').hidden = true;
+  }
+
+  // Plan these: each ticked day gets its idea's foods (tea), then the panel closes
+  async function planWeek() {
+    const picked = weekRows.filter(r => r.idea && !weekOff.has(r.day));
+    for (const row of picked) {
+      if (row.idea.recipe) {
+        await planRecipeIdea(row.idea, row.day, 'tea');
+        continue;
+      }
+      for (const p of [row.idea.main, ...row.idea.sides]) {
+        await savePack(FT.planPack(p, row.day, FT.slotFor(p.kind), 'tea'));
+      }
+    }
+    closeWeek();
     renderMeals();
     renderAll();
   }
@@ -3011,76 +3386,220 @@
     renderAll();
   }
 
-  // Combos picker: + Add opens it on Main. Step 1 picks the food; step 2 ticks what goes with it.
-  function openComboPicker() {
+  // Combos picker. Step 1 (+ Add): tick what the item is made of. One food is the item itself;
+  // 2 or more make a dish, named (and noted). Step 2: tick what goes with the item, a note per food.
+  function openComboPicker(food = null) {
     cpFood = null;
-    cpKind = 'main';
     cpTicked = [];
-    document.getElementById('comboPick').hidden = false;
+    cpNotes = {};
+    cpKind = 'main';
+    if (food) startComboGoes(food, food);
+    resetComboFields();
+    const box = document.getElementById('comboPick');
+    box.hidden = false;
     renderComboPicker();
+    if (food) box.scrollIntoView({ block: 'nearest' });
   }
 
   function closeComboPicker() {
     cpFood = null;
     cpTicked = [];
+    cpNotes = {};
+    resetComboFields();
     document.getElementById('comboPick').hidden = true;
+  }
+
+  function resetComboFields() {
+    for (const id of ['cpType', 'cpName', 'cpNote']) document.getElementById(id).value = '';
+  }
+
+  // Step 2 for an item; its first tab is Side for a main, Main for anything else (kindFood decides)
+  function startComboGoes(item, kindFood) {
+    cpFood = item;
+    cpKind = comboKindOf(kindFood) === 'main' ? 'side' : 'main';
+    cpTicked = [];
+    cpNotes = {};
+  }
+
+  // The kind of a food (main, side, veg, misc) as the picker lists it, or null
+  function comboKindOf(name) {
+    for (const kind of ['main', 'side', 'veg', 'misc']) {
+      if (FT.comboFoods(packs, kind).some(n => sameName(n, name))) return kind;
+    }
+    return null;
+  }
+
+  function sameName(a, b) {
+    return String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+  }
+
+  function isTicked(name) {
+    return cpTicked.some(n => sameName(n, name));
+  }
+
+  // Tick or untick a name; unticking drops its note
+  function toggleTick(name) {
+    const was = cpTicked.find(n => sameName(n, name));
+    if (was) {
+      cpTicked = cpTicked.filter(n => n !== was);
+      delete cpNotes[was];
+    } else {
+      cpTicked = [...cpTicked, name];
+    }
+    renderComboPicker();
+  }
+
+  // Keys (FT.pairKey) of every pair listed, shown or hidden, whatever its note
+  function pairKeysHere() {
+    const all = FT.comboPairs(combos, meals);
+    return new Set([...all.shown, ...all.hidden].map(r => FT.pairKey(r.a, r.b)));
+  }
+
+  // Step 2 rows for the ticked names with their notes (see FT.newComboRows)
+  function comboSaveRows() {
+    const all = FT.comboPairs(combos, meals);
+    const picked = cpTicked.map(name => ({ name, note: cpNotes[name] || '' }));
+    return FT.newComboRows(cpFood, picked, [...all.shown, ...all.hidden]);
+  }
+
+  function addTypedFood() {
+    const input = document.getElementById('cpType');
+    const name = input.value.trim();
+    if (!name) return;
+    input.value = '';
+    if (cpFood && (sameName(name, cpFood) || pairKeysHere().has(FT.pairKey(cpFood, name)))) return;
+    if (!isTicked(name)) cpTicked = [...cpTicked, name];
+    renderComboPicker();
   }
 
   function renderComboPicker() {
     const box = document.getElementById('comboPick');
-    box.querySelector('.cp-title').textContent = cpFood ? `${cpFood} goes with…` : 'Pick a food';
-    box.querySelectorAll('[data-cpkind]').forEach(tab => {
-      tab.classList.toggle('on', tab.dataset.cpkind === cpKind);
-    });
-    // Step 2: pairs already listed (shown or hidden) are locked on
-    const have = new Set();
-    if (cpFood) {
-      const all = FT.comboPairs(combos, meals);
-      for (const r of [...all.shown, ...all.hidden]) have.add(r.key);
+    const goes = !!cpFood;
+    box.querySelector('.cp-title').textContent = goes ? `${cpFood} goes with…` : 'What is it made of?';
+
+    // Kind tabs; the Combos (dishes) tab only in step 2
+    const tabs = box.querySelector('.cp-tabs');
+    tabs.textContent = '';
+    const kinds = [['main', 'Main'], ['side', 'Side'], ['veg', 'Veg'], ['misc', 'Other']];
+    if (goes) kinds.push(['dish', 'Combos']);
+    for (const [kind, label] of kinds) {
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.dataset.cpkind = kind;
+      tab.textContent = label;
+      tab.classList.toggle('on', kind === cpKind);
+      tabs.appendChild(tab);
     }
+
+    // Chips: the foods of the tab (step 2: or the dishes), not the item itself. A food already
+    // paired with the item is on and locked.
+    const locked = goes ? pairKeysHere() : new Set();
+    const names = cpKind === 'dish'
+      ? FT.comboDishes(combos).map(d => d.name)
+      : FT.comboFoods(packs, cpKind);
     const chips = box.querySelector('.cp-chips');
     chips.textContent = '';
-    for (const name of FT.comboFoods(packs, cpKind)) {
-      if (cpFood && name.toLowerCase() === cpFood.toLowerCase()) continue;
+    for (const name of names) {
+      if (goes && sameName(name, cpFood)) continue;
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'cp-chip';
       chip.textContent = name;
-      if (!cpFood) {
-        chip.addEventListener('click', () => {
-          cpFood = name;
-          cpKind = cpKind === 'main' ? 'side' : 'main';
-          cpTicked = [];
-          renderComboPicker();
-        });
-      } else if (have.has(FT.pairKey(cpFood, name))) {
+      if (goes && locked.has(FT.pairKey(cpFood, name))) {
         chip.classList.add('on');
         chip.disabled = true;
       } else {
-        const ticked = cpTicked.includes(name);
-        chip.classList.toggle('on', ticked);
-        chip.addEventListener('click', () => {
-          cpTicked = ticked ? cpTicked.filter(n => n !== name) : [...cpTicked, name];
-          renderComboPicker();
-        });
+        chip.classList.toggle('on', isTicked(name));
+        chip.addEventListener('click', () => toggleTick(name));
       }
       chips.appendChild(chip);
     }
-    box.querySelector('.cp-ticked').textContent = cpFood && cpTicked.length
-      ? `Ticked: ${cpTicked.join(' · ')}`
-      : '';
+
+    // Ticked: step 1 a line of names; step 2 a row per name, with its note
+    const ticked = box.querySelector('.cp-ticked');
+    ticked.textContent = '';
+    if (!goes) {
+      ticked.textContent = cpTicked.length ? `Ticked: ${cpTicked.join(' · ')}` : '';
+    } else {
+      for (const name of cpTicked) {
+        const row = document.createElement('div');
+        row.className = 'cp-tick';
+        const label = document.createElement('span');
+        label.className = 'cp-tick-name';
+        label.textContent = name;
+        const note = document.createElement('input');
+        note.type = 'text';
+        note.className = 'cp-note';
+        note.placeholder = 'note, e.g. chips';
+        note.setAttribute('autocomplete', 'off');
+        note.value = cpNotes[name] || '';
+        note.addEventListener('input', () => {
+          cpNotes[name] = note.value;
+          updateComboButtons();
+        });
+        row.append(label, note);
+        ticked.appendChild(row);
+      }
+    }
+    updateComboButtons();
+  }
+
+  // The step's buttons and, in step 1 with 2+ foods, the dish name and note fields
+  function updateComboButtons() {
+    const goes = !!cpFood;
+    const name = document.getElementById('cpName');
+    const note = document.getElementById('cpNote');
+    const next = document.getElementById('cpNext');
     const save = document.getElementById('cpSave');
-    save.hidden = !cpFood;
-    const n = cpTicked.length;
+    const dish = !goes && cpTicked.length >= 2;
+    name.hidden = !dish;
+    note.hidden = !dish;
+    next.hidden = goes;
+    save.hidden = !goes;
+    next.disabled = !cpTicked.length || (dish && !name.value.trim());
+    const n = goes ? comboSaveRows().length : 0;
     save.textContent = `Save ${n} pair${n === 1 ? '' : 's'}`;
     save.disabled = n === 0;
   }
 
-  // Save: one hand pair per ticked food (see FT.newComboRows), then the picker closes
+  // Next (step 1): one food is the item; 2+ foods are a dish, saved under its name first
+  async function nextComboStep() {
+    if (cpFood || !cpTicked.length) return;
+    const foods = [...cpTicked];
+    let item = foods[0];
+    if (foods.length > 1) {
+      item = document.getElementById('cpName').value.trim();
+      if (!item) return;
+      await saveDish(item, foods, document.getElementById('cpNote').value.trim());
+    }
+    startComboGoes(item, foods[0]);
+    resetComboFields();
+    renderComboPicker();
+  }
+
+  // A dish: { type: 'dish', name, foods, note }. A dish with the same name is updated, not doubled.
+  async function saveDish(name, foods, note) {
+    const prev = combos.find(c => c.type === 'dish' && sameName(c.name, name));
+    if (prev) {
+      const next = { ...prev, foods, note };
+      combos = combos.map(c => (c === prev ? next : c));
+      renderAll();
+      await persistAll([DB.combos.put(next)]);
+      return;
+    }
+    const row = { type: 'dish', name, foods, note };
+    const id = await DB.combos.add(row);
+    combos = [...combos, { ...row, id }];
+    renderAll();
+  }
+
+  // Save (step 2): one pair per ticked name and note, then the picker closes
   async function saveComboPicks() {
-    const all = FT.comboPairs(combos, meals);
-    const rows = FT.newComboRows(cpFood, cpTicked, [...all.shown, ...all.hidden]);
+    if (!cpFood) return;
+    const rows = comboSaveRows();
+    const food = cpFood; // read before closeComboPicker resets it
     closeComboPicker();
+    comboOpen.add(food.toLowerCase()); // keep its group open to show the new pairs
     for (const row of rows) {
       const id = await DB.combos.add(row);
       combos = [...combos, { ...row, id }];
@@ -3088,18 +3607,19 @@
     renderAll();
   }
 
-  // Combos: the pairs in use (learned, by hand or AI), grouped by food. Hidden ones are listed below, with Bring back.
+  // Combos: the pairs in use (learned, by hand or AI) and the dishes, grouped by food. Hidden ones are listed below, with Bring back.
   function renderCombos() {
     const { shown, hidden } = FT.comboPairs(combos, meals);
+    const groups = FT.comboGroups(shown, FT.comboDishes(combos));
     const list = document.querySelector('#combos > .combo-list');
     list.textContent = '';
-    if (!shown.length) {
+    if (!groups.length) {
       const note = document.createElement('p');
       note.className = 'note';
       note.textContent = 'No pairs yet. Tap + Add.';
       list.appendChild(note);
     }
-    for (const g of FT.comboGroups(shown)) list.appendChild(comboGroup(g));
+    for (const g of groups) list.appendChild(comboGroup(g));
     const box = document.getElementById('combosHidden');
     const hlist = box.querySelector('.combo-hidden');
     hlist.textContent = '';
@@ -3107,19 +3627,50 @@
     for (const r of hidden) hlist.appendChild(comboRow(r));
   }
 
-  // One food with its pairs as chips; × hides that pair
+  // "Potatoes (chips)": the goes-with food, with its note
+  function comboLabel(r) {
+    return r.note ? `${r.b} (${r.note})` : r.b;
+  }
+
+  // One food (or dish) with its pairs as chips; × hides that pair. Tap the name to open or close it; + Add inside adds what goes with it.
   function comboGroup(g) {
+    const key = g.name.toLowerCase();
+    const open = comboOpen.has(key);
     const wrap = document.createElement('div');
-    wrap.className = 'combo-group';
-    const food = document.createElement('div');
+    wrap.className = 'combo-group' + (open ? ' open' : '');
+    // The name is the only text of .combo-food; the arrow and count sit beside it, and the whole row toggles
+    const head = document.createElement('div');
+    head.className = 'combo-head';
+    const arr = document.createElement('span');
+    arr.className = 'combo-arr';
+    arr.textContent = open ? '▾' : '▸';
+    const food = document.createElement('button');
+    food.type = 'button';
     food.className = 'combo-food';
     food.textContent = g.name;
+    const count = document.createElement('span');
+    count.className = 'combo-count';
+    count.textContent = g.rows.length;
+    head.append(arr, food, count);
+    head.addEventListener('click', () => {
+      if (comboOpen.has(key)) comboOpen.delete(key);
+      else comboOpen.add(key);
+      renderCombos();
+    });
+    wrap.appendChild(head);
+    if (g.dish) {
+      const made = document.createElement('div');
+      made.className = 'combo-made';
+      made.textContent = g.dish.foods.join(' + ') + (g.dish.note ? ` · ${g.dish.note}` : '');
+      wrap.appendChild(made);
+    }
     const chips = document.createElement('div');
     chips.className = 'combo-chips';
+    chips.hidden = !open;
     for (const r of g.rows) {
       const chip = document.createElement('span');
       chip.className = 'combo-chip';
-      chip.append(r.b);
+      chip.append(comboLabel(r));
       const x = document.createElement('button');
       x.type = 'button';
       x.className = 'combo-x';
@@ -3129,8 +3680,162 @@
       chip.appendChild(x);
       chips.appendChild(chip);
     }
-    wrap.append(food, chips);
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'combo-more';
+    more.textContent = '+ Add';
+    more.addEventListener('click', () => openComboPicker(g.name));
+    chips.appendChild(more);
+    wrap.appendChild(chips);
     return wrap;
+  }
+
+  // ---- Ask AI (combos): Claude finds pairs from the app's foods, then keep or bin each ----
+
+  function aiSay(text) {
+    const msg = document.getElementById('aiMsg');
+    msg.textContent = text;
+    msg.hidden = !text;
+  }
+
+  // The Claude key for Ask AI: kept on this phone only (try/catch: storage can be blocked)
+  function readAiKey() {
+    try { return localStorage.getItem('live.claudeKey') || ''; } catch (e) { return ''; }
+  }
+
+  function showAiKeyState() {
+    document.getElementById('aiKey').placeholder = readAiKey() ? 'Key saved · type to replace' : 'Claude API key (sk-ant-…)';
+  }
+
+  function saveAiKey() {
+    const input = document.getElementById('aiKey');
+    const note = document.getElementById('aiKeyNote');
+    const key = input.value.trim();
+    let saved = true;
+    try {
+      if (key) localStorage.setItem('live.claudeKey', key);
+      else localStorage.removeItem('live.claudeKey');
+    } catch (e) { saved = false; }
+    if (!saved) note.textContent = "Couldn't save the key on this phone.";
+    else if (!key) note.textContent = 'Key removed.';
+    else {
+      input.value = '';
+      note.textContent = 'Key saved on this phone.';
+    }
+    showAiKeyState();
+  }
+
+  // Ask Claude for combos: sends the app's foods, reads the answer into the review list
+  async function askAi() {
+    const key = readAiKey();
+    if (!key) { aiSay('Add your Claude key in Settings first.'); return; }
+    const btn = document.getElementById('aiAsk');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Asking AI…';
+    aiSay('Thinking… about 10 seconds.');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify(FT.aiComboRequest({ packs, combos, meals, today }))
+      });
+      if (!res.ok) {
+        if (res.status === 401) aiSay("That key didn't work. Check it in Settings.");
+        else if (res.status === 429 || res.status === 529) aiSay('AI is busy. Try again in a minute.');
+        else aiSay(`AI error (${res.status}).`);
+        return;
+      }
+      const text = FT.aiReplyText(await res.json());
+      if (!text) { aiSay("The AI didn't answer. Try again."); return; }
+      readAiAnswer(text);
+    } catch (e) {
+      aiSay('No connection to the AI.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  }
+
+  // Read the AI's answer into the review list
+  function readAiAnswer(text) {
+    const all = FT.comboPairs(combos, meals);
+    const r = FT.parseAiCombos(text, [...all.shown, ...all.hidden], FT.aiAllowedFoods(packs, combos));
+    if (!r.ok) {
+      aiSay(r.reason);
+      aiRows = [];
+      renderAiReview();
+      return;
+    }
+    if (!r.rows.length) {
+      aiSay('Nothing new that uses your foods.');
+      aiRows = [];
+      renderAiReview();
+      return;
+    }
+    aiSay('');
+    aiRows = r.rows.map(x => ({ ...x, keep: true }));
+    renderAiReview();
+  }
+
+  function renderAiReview() {
+    const box = document.getElementById('aiReview');
+    box.hidden = !aiRows.length;
+    if (!aiRows.length) return;
+    box.querySelector('.ai-title').textContent = `AI found ${aiRows.length} · keep which?`;
+    const list = box.querySelector('.ai-list');
+    list.textContent = '';
+    for (const row of aiRows) {
+      const line = document.createElement('div');
+      line.className = 'ai-row' + (row.keep ? '' : ' off');
+      const text = document.createElement('span');
+      text.className = 'ai-text';
+      text.append(`${row.a} + ${row.b}`);
+      if (row.note) {
+        const note = document.createElement('small');
+        note.textContent = row.note;
+        text.append(note);
+      }
+      const yn = document.createElement('span');
+      yn.className = 'ai-yn';
+      const yes = document.createElement('button');
+      yes.type = 'button';
+      yes.className = 'ai-yes' + (row.keep ? ' on' : '');
+      yes.textContent = '✓';
+      yes.setAttribute('aria-label', 'Keep');
+      yes.addEventListener('click', () => { row.keep = true; renderAiReview(); });
+      const no = document.createElement('button');
+      no.type = 'button';
+      no.className = 'ai-no' + (row.keep ? '' : ' on');
+      no.textContent = '✗';
+      no.setAttribute('aria-label', 'Bin');
+      no.addEventListener('click', () => { row.keep = false; renderAiReview(); });
+      yn.append(yes, no);
+      line.append(text, yn);
+      list.append(line);
+    }
+    const kept = aiRows.filter(r => r.keep).length;
+    const add = document.getElementById('aiAdd');
+    add.textContent = `Add ${kept}`;
+    add.disabled = !kept;
+  }
+
+  // Add the kept pairs (source ai, closed groups), then the review closes
+  // Pairs not kept are saved hidden too, so asking again does not bring them back
+  async function addAiRows() {
+    const rows = aiRows.map(({ keep, ...row }) => (keep ? row : { ...row, hidden: true }));
+    aiRows = [];
+    renderAiReview();
+    for (const row of rows) {
+      const id = await DB.combos.add(row);
+      combos = [...combos, { ...row, id }];
+    }
+    renderAll();
   }
 
   // A hidden pair, with Bring back
@@ -3140,7 +3845,7 @@
     const text = document.createElement('div');
     text.className = 'combo-text';
     const name = document.createElement('span');
-    name.textContent = `${r.a} + ${r.b}`;
+    name.textContent = `${r.a} + ${comboLabel(r)}`;
     const meta = document.createElement('small');
     meta.textContent = r.count > 0 ? `had ${r.count}×` : (r.source === 'ai' ? 'AI' : 'by hand');
     text.append(name, meta);
@@ -3503,6 +4208,12 @@
       line.className = 'meal-line';
       now.append(line, ...mealChips(line, day, selMeal, false));
       card.appendChild(now);
+
+      // Nothing planned for this meal yet: the day's top 3 ideas
+      if (FT.dayGroups(packs, mealPlans, recipes, day, selMeal).length === 0) {
+        const ideas = FT.dayIdeas(packs, dayPairs(day), day, dayIdeaSkips(day), FT.comboDishes(combos), meals, recipes);
+        if (ideas.length) card.appendChild(dayIdeaBox(ideas, day));
+      }
 
       const body = document.createElement('div');
       body.className = 'dbody';
@@ -4426,6 +5137,7 @@
       renderAddedToday();
     }
     renderMealIdeas();
+    if (!document.getElementById('weekPanel').hidden) renderWeek();
     renderCombos();
     renderPageCount();
     syncSearch(); // also at start-up, where updateNav has not run yet
@@ -4546,6 +5258,7 @@
         ratings: await DB.ratings.all(),
         recipes: await DB.recipes.all(),
         mealPlans: await DB.mealPlans.all(),
+        combos: await DB.combos.all(),
       };
       const backup = FT.backupFile(data, today, new Date().toISOString());
       // Android's Share menu won't take .json files, so a phone shares the same text as .txt
@@ -4599,9 +5312,10 @@
         ratings: await DB.ratings.all(),
         recipes: await DB.recipes.all(),
         mealPlans: await DB.mealPlans.all(),
+        combos: await DB.combos.all(),
       };
       const plan = FT.restorePlan(current, r.data);
-      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings, recipes: DB.recipes, mealPlans: DB.mealPlans };
+      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings, recipes: DB.recipes, mealPlans: DB.mealPlans, combos: DB.combos };
       for (const list of Object.keys(plan)) {
         for (const item of plan[list].put) await stores[list].put(item);
         for (const id of plan[list].remove) await stores[list].remove(id);

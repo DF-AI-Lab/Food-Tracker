@@ -813,6 +813,26 @@
     return [a, b].map(n => String(n ?? "").trim().toLowerCase()).sort().join("+");
   }
 
+  // A stored pair's key: the pair, plus its note (if any), so "Potatoes (chips)" and "Potatoes (mash)" are 2 rows
+  function comboKey(a, b, note) {
+    const n = String(note ?? "").trim().toLowerCase();
+    return n ? pairKey(a, b) + "|" + n : pairKey(a, b);
+  }
+
+  // Dishes: combo records with type "dish" (a name, its foods, an optional note), A to Z by name
+  function comboDishes(combos) {
+    return (combos || [])
+      .filter(s => s && s.type === "dish")
+      .map(s => ({
+        id: s.id,
+        name: String(s.name ?? "").trim(),
+        foods: (Array.isArray(s.foods) ? s.foods : []).map(f => String(f ?? "").trim()).filter(Boolean),
+        note: String(s.note ?? "").trim()
+      }))
+      .filter(d => d.name)
+      .sort((x, y) => x.name.localeCompare(y.name));
+  }
+
   // Soonest first: dated packs by date, then undated packs; ties by id
   function soonestFirst(a, b) {
     if (a.date && b.date) return a.date.localeCompare(b.date) || byId(a, b);
@@ -847,22 +867,25 @@
     }
     const storedKeys = new Set();
     for (const s of combos || []) {
+      if (s.type === "dish") continue; // dishes are not pairs (see comboDishes)
       const a = String(s.a ?? "").trim();
       const b = String(s.b ?? "").trim();
       if (!a || !b) continue;
-      const key = pairKey(a, b);
-      if (storedKeys.has(key)) continue; // the same pair stored twice: keep the first
+      const note = String(s.note ?? "").trim();
+      const key = comboKey(a, b, note);
+      if (storedKeys.has(key)) continue; // the same pair (and note) stored twice: keep the first
       storedKeys.add(key);
       const have = rows.get(key);
       if (have) {
         have.id = s.id;
         have.hidden = !!s.hidden;
       } else {
-        rows.set(key, { key, a, b, count: 0, source: s.source || "hand", id: s.id, hidden: !!s.hidden });
+        rows.set(key, { key, a, b, ...(note ? { note } : {}), count: 0, source: s.source || "hand", id: s.id, hidden: !!s.hidden });
       }
     }
 
-    const byOrder = (x, y) => (y.count - x.count) || `${x.a} + ${x.b}`.localeCompare(`${y.a} + ${y.b}`);
+    const byOrder = (x, y) => (y.count - x.count) || `${x.a} + ${x.b}`.localeCompare(`${y.a} + ${y.b}`)
+      || (x.note || "").localeCompare(y.note || "");
     const all = [...rows.values()];
     return {
       shown: all.filter(r => !r.hidden).sort(byOrder),
@@ -878,40 +901,238 @@
       .sort((a, b) => a.localeCompare(b));
   }
 
-  // Combos list: rows grouped by their first food (case-insensitive), groups A to Z, rows A to Z by b
-  function comboGroups(rows) {
-    const groups = new Map(); // lower-case name -> { name, rows }
-    for (const r of rows || []) {
-      const key = String(r.a ?? "").trim().toLowerCase();
-      if (!groups.has(key)) groups.set(key, { name: r.a, rows: [] });
-      groups.get(key).rows.push(r);
+  // Combos list: rows grouped by their first food (case-insensitive), groups A to Z, rows A to Z by b.
+  // A dish (see comboDishes) gets a group too, even with no rows; group.dish is its record or null.
+  function comboGroups(rows, dishes = []) {
+    const groups = new Map(); // lower-case name -> { name, rows, dish }
+    const groupFor = name => {
+      const key = String(name ?? "").trim().toLowerCase();
+      if (!groups.has(key)) groups.set(key, { name: String(name ?? "").trim(), rows: [], dish: null });
+      return groups.get(key);
+    };
+    for (const r of rows || []) groupFor(r.a).rows.push(r);
+    for (const d of dishes || []) {
+      const g = groupFor(d.name);
+      g.name = d.name;
+      g.dish = d;
     }
     return [...groups.values()]
       .sort((x, y) => x.name.localeCompare(y.name))
-      .map(g => ({ name: g.name, rows: g.rows.sort((x, y) => x.b.localeCompare(y.b)) }));
+      .map(g => ({
+        name: g.name,
+        dish: g.dish,
+        rows: g.rows.sort((x, y) => x.b.localeCompare(y.b) || (x.note || "").localeCompare(y.note || ""))
+      }));
   }
 
-  // Combos picker save: one new hand pair per ticked food. Skips blanks, the food itself,
-  // doubles in the list, and pairs already in existingRows (by key).
+  // Combos picker save: one new hand pair per ticked food and per note (a note with commas is one
+  // pair each). picked: names or { name, note }. Skips blanks, the food itself, doubles, and pairs
+  // already in existingRows (by key).
   function newComboRows(food, picked, existingRows) {
-    const have = new Set((existingRows || []).map(r => r.key));
+    const have = new Set((existingRows || []).map(r => r.key ?? comboKey(r.a, r.b, r.note)));
     const rows = [];
+    const self = String(food ?? "").trim().toLowerCase();
     for (const raw of picked || []) {
-      const name = String(raw ?? "").trim();
-      if (!name || name.toLowerCase() === String(food).trim().toLowerCase()) continue;
-      const key = pairKey(food, name);
-      if (have.has(key)) continue;
-      have.add(key);
-      rows.push({ a: food, b: name, source: "hand", hidden: false });
+      const item = typeof raw === "object" && raw !== null ? raw : { name: raw };
+      const name = String(item.name ?? "").trim();
+      if (!name || name.toLowerCase() === self) continue;
+      const notes = String(item.note ?? "").split(",").map(n => n.trim()).filter(Boolean);
+      for (const note of notes.length ? notes : [""]) {
+        const key = comboKey(food, name, note);
+        if (have.has(key)) continue;
+        have.add(key);
+        rows.push(note
+          ? { a: food, b: name, note, source: "hand", hidden: false }
+          : { a: food, b: name, source: "hand", hidden: false });
+      }
     }
     return rows;
   }
 
+  // Combos AI: the foods this household has bought (fridge, used or thrown, not deleted), by kind, A to Z
+  function boughtFoods(allPacks) {
+    const out = { main: [], side: [], veg: [], misc: [], cupboard: [] };
+    const seen = new Set();
+    for (const p of allPacks || []) {
+      if (p.status === "deleted") continue;
+      const name = String(p.name ?? "").trim();
+      const key = name.toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      const kind = rememberedKind(allPacks, name);
+      (out[kind] || out.misc).push(name);
+    }
+    for (const k of Object.keys(out)) out[k].sort((x, y) => x.localeCompare(y));
+    return out;
+  }
+
+  // Combos AI: every name the AI may use (foods bought, dishes, foods already in combos), lowercase
+  function aiAllowedFoods(allPacks, combos) {
+    const names = Object.values(boughtFoods(allPacks)).flat();
+    for (const c of combos || []) {
+      if (c.type === "dish") names.push(c.name, ...(c.foods || []));
+      else names.push(c.a, c.b);
+    }
+    return new Set(names.map(n => String(n ?? "").trim().toLowerCase()).filter(Boolean));
+  }
+
+  // Combos AI: what the AI is told (fixed), then this household's food (Darren 2026-10-25)
+  const AI_COMBO_SYSTEM = [
+    "You help a UK family plan dinners from the food they buy.",
+    "Suggest pairs: a main (or one of their dishes) and a food that goes with it on the same plate.",
+    "Rules:",
+    "- Only use foods from their lists or their dishes, spelled exactly as written. Never add a food they don't buy.",
+    "- \"a\" is a main or a dish. \"b\" is a side, veg, sauce or other food that goes with it.",
+    "- \"note\" is only for a raw food that turns into different things, like Potatoes (chips, mash, roast, jacket). Give one pair per way. Leave note empty for everything else: no boiled, steamed or fried.",
+    "- Normal family dinners only: pairs most people would happily eat together on one plate. No pizza toppings or breakfast foods with a roast.",
+    "- Don't repeat a pair they have, and never suggest anything under \"Don't suggest\".",
+    "- Give as many good pairs as you can find, up to 40. Every main and dish should get some.",
+    "Reply with JSON only."
+  ].join("\n");
+
+  function aiComboPrompt({ packs, combos, meals, today }) {
+    const all = comboPairs(combos, meals);
+    const foods = boughtFoods(packs);
+    const list = kind => foods[kind].length ? foods[kind].join(", ") : "none";
+    const or = lines => lines.length ? lines.join("\n") : "- none";
+    const pairLine = r => `- ${r.a} + ${r.b}` + (r.note ? ` (${r.note})` : "");
+    const dishes = comboDishes(combos).map(d => `- ${d.name} (${d.foods.join(" + ")})` + (d.note ? ` · ${d.note}` : ""));
+    const from = addDays(today, -28);
+    const eaten = (meals || [])
+      .filter(m => m.takeaway !== true && m.day && m.day >= from && m.day <= today && Array.isArray(m.items))
+      .map(m => ({ day: m.day, names: m.items.map(i => String(i.name ?? "").trim()).filter(Boolean) }))
+      .filter(m => m.names.length)
+      .sort((x, y) => y.day.localeCompare(x.day))
+      .map(m => `- ${m.day}: ${m.names.join(", ")}`);
+    const user = [
+      `Mains: ${list("main")}`,
+      `Sides: ${list("side")}`,
+      `Veg: ${list("veg")}`,
+      `Other: ${list("misc")}`,
+      `Cupboard: ${list("cupboard")}`,
+      "",
+      "Their dishes:",
+      or(dishes),
+      "",
+      "Pairs they have:",
+      or(all.shown.map(pairLine)),
+      "",
+      "Don't suggest:",
+      or(all.hidden.map(pairLine)),
+      "",
+      "Eaten in the last 4 weeks:",
+      or(eaten)
+    ].join("\n");
+    return { system: AI_COMBO_SYSTEM, user };
+  }
+
+  // The same, as one text to copy into an AI chat (with the reply shape spelled out)
+  function aiComboText(args) {
+    const p = aiComboPrompt(args);
+    return `${p.system}\nLike: {"pairs":[{"a":"Chicken","b":"Potatoes","note":"mash"}]}\n\n${p.user}`;
+  }
+
+  // Combos AI: the request body for the Claude API (Haiku: cheap; the answer is forced into the pairs shape)
+  const AI_COMBO_MODEL = "claude-haiku-5-5";
+  function aiComboRequest(args) {
+    const p = aiComboPrompt(args);
+    return {
+      model: AI_COMBO_MODEL,
+      max_tokens: 16000,
+      system: p.system,
+      messages: [{ role: "user", content: p.user }],
+      output_config: {
+        effort: "low",
+        format: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              pairs: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { a: { type: "string" }, b: { type: "string" }, note: { type: "string" } },
+                  required: ["a", "b", "note"],
+                  additionalProperties: false
+                }
+              }
+            },
+            required: ["pairs"],
+            additionalProperties: false
+          }
+        }
+      }
+    };
+  }
+
+  // Combos AI: the text of a Claude API reply (skips thinking blocks), or "" (refused, cut off, none)
+  function aiReplyText(reply) {
+    if (!reply || reply.stop_reason === "refusal") return "";
+    const block = (reply.content || []).find(b => b && b.type === "text");
+    return block ? String(block.text || "") : "";
+  }
+
+  function parseAiCombos(text, existingRows, allowed) {
+    const str = v => String(v ?? "").trim();
+    const s = str(text);
+    const slices = [s];
+    if (s.indexOf("{") >= 0 && s.lastIndexOf("}") > s.indexOf("{")) slices.push(s.slice(s.indexOf("{"), s.lastIndexOf("}") + 1));
+    if (s.indexOf("[") >= 0 && s.lastIndexOf("]") > s.indexOf("[")) slices.push(s.slice(s.indexOf("["), s.lastIndexOf("]") + 1));
+    let list = null;
+    for (const t of slices) {
+      let v;
+      try { v = JSON.parse(t); } catch (e) { continue; }
+      list = Array.isArray(v) ? v : (v && Array.isArray(v.pairs) ? v.pairs : null);
+      if (list) break;
+    }
+    if (!list) return { ok: false, reason: "Couldn't read the AI's answer. Try again." };
+    const have = new Set((existingRows || []).map(r => r.key ?? comboKey(r.a, r.b, r.note)));
+    const rows = [];
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      const a = str(item.a), b = str(item.b), note = str(item.note).toLowerCase();
+      if (!a || !b || a.toLowerCase() === b.toLowerCase()) continue;
+      if (allowed && (!allowed.has(a.toLowerCase()) || !allowed.has(b.toLowerCase()))) continue; // only foods in the app
+      const key = comboKey(a, b, note);
+      if (have.has(key)) continue;
+      have.add(key);
+      rows.push(note ? { a, b, note, source: "ai", hidden: false } : { a, b, source: "ai", hidden: false });
+    }
+    return { ok: true, rows };
+  }
+
+  // Stock check: the soonest date of a group of packs, with the later dates, and a state for its colour
+  // (out: today or past, soon: within 2 days, ok). { main, more, state }
+  function stockWhen(packs, today) {
+    const dated = (packs || []).filter(p => p.date).sort((x, y) => x.date.localeCompare(y.date));
+    if (!dated.length) {
+      const added = (packs || []).map(p => p.added).filter(Boolean).sort();
+      return { main: added.length ? "added " + dayMonth(added[0]) : "", more: "", state: "" };
+    }
+    const first = dated[0];
+    const d = daysLeft(first.date, today);
+    const words = d < 0 ? `${-d} day${d === -1 ? "" : "s"} out` : d === 0 ? "today" : d === 1 ? "1 day" : `${d} days`;
+    const main = (first.dateType === "best_before" ? "BB " : "") + dayMonth(first.date) + " · " + words;
+    const more = [...new Set(dated.map(p => p.date).filter(x => x !== first.date))].map(dayMonth).join(" · ");
+    const state = d <= 0 ? "out" : d <= 2 ? "soon" : "ok";
+    return { main, more, state };
+  }
+
   // Ideas for tonight: each free main in the fridge with the sides its pairs can make (3 at most).
   // skipKeys: mains said "Not tonight". Sorted by the soonest date among the foods, then main name.
-  // Returns [{ key, main, sides, pairs }]; pairs are the pairs of the sides shown.
-  function tonightIdeas(packs, pairs, today, skipKeys = []) {
+  // Dishes (comboDishes) too: a dish whose foods all have a free pack is an idea, key "dish:<name>",
+  // with its goes-with items from the pairs (3 at most). Returns [{ key, main, sides, pairs, title, why }];
+  // pairs are the pairs of the sides shown; why is the soonest-dated food's line and colour (whyLine).
+  // meals: no repeats. A main (or a dish whose foods are all) had in a meal (not takeaway) in the last 3 days is skipped.
+  function tonightIdeas(packs, pairs, today, skipKeys = [], dishes = [], meals = []) {
     const skip = new Set(skipKeys);
+    const from = addDays(today, -3);
+    const recent = new Set();
+    for (const m of meals || []) {
+      if (m.takeaway || !(m.day >= from && m.day < today)) continue;
+      for (const item of m.items || []) recent.add(keyOf(item.name));
+    }
     const free = (packs || []).filter(isFree);
     const mains = new Map(); // name key -> soonest free main
     for (const p of free.filter(p => p.kind === "main").sort(soonestFirst)) {
@@ -921,7 +1142,7 @@
 
     const ideas = [];
     for (const [key, main] of mains) {
-      if (skip.has(key)) continue;
+      if (skip.has(key) || recent.has(key)) continue;
       const found = [];
       for (const pair of pairs || []) {
         const other = keyOf(pair.a) === key ? pair.b : keyOf(pair.b) === key ? pair.a : null;
@@ -945,19 +1166,154 @@
         sides.push(f.side);
         shownPairs.push(f.pair);
       }
-      ideas.push({ key, main, sides, pairs: shownPairs });
+      ideas.push({ key, main, sides, pairs: shownPairs, title: [main, ...sides].map(p => p.name).join(" + ") });
     }
 
-    // The soonest date among the foods (undated last), then the main's name
+    // Dish ideas. A dish's foods take their soonest free packs (one each); each pair with the dish
+    // resolves its other side the same way (a dish: all its foods), soonest first, 3 at most.
+    const dishByKey = new Map((dishes || []).map(d => [keyOf(d.name), d]));
+    for (const dish of dishes || []) {
+      const key = "dish:" + keyOf(dish.name);
+      if (skip.has(key)) continue;
+      const foodKeys = (dish.foods || []).map(keyOf);
+      if (foodKeys.length && foodKeys.every(k => recent.has(k))) continue;
+      const dishPacks = takePacks(dish.foods, free, new Set());
+      if (!dishPacks || !dishPacks.length) continue;
+      const used = new Set(dishPacks.map(p => p.id));
+      const dk = keyOf(dish.name);
+      const goesWith = name => (dishByKey.get(keyOf(name)) ? dishByKey.get(keyOf(name)).foods : [name]);
+
+      const cands = [];
+      for (const pair of pairs || []) {
+        const other = keyOf(pair.a) === dk ? pair.b : keyOf(pair.b) === dk ? pair.a : null;
+        if (other == null || keyOf(other) === dk) continue;
+        const first = takePacks(goesWith(other), free, used);
+        if (first) cands.push({ pair, other, rank: first.slice().sort(soonestFirst)[0] });
+      }
+      cands.sort((x, y) => soonestFirst(x.rank, y.rank));
+
+      const sides = [...dishPacks.slice(1)];
+      const shownPairs = [];
+      const labels = [];
+      for (const c of cands) {
+        if (labels.length === 3) break;
+        const packs = takePacks(goesWith(c.other), free, used);
+        if (!packs) continue; // its packs went to an earlier item
+        packs.forEach(p => used.add(p.id));
+        sides.push(...packs);
+        shownPairs.push(c.pair);
+        labels.push(c.pair.note ? `${c.other} (${c.pair.note})` : c.other);
+      }
+      if (!labels.length) continue;
+      ideas.push({ key, main: dishPacks[0], sides, pairs: shownPairs, title: [dish.name, ...labels].join(" + ") });
+    }
+
+    // The soonest date among the foods (undated last), then the title (main's name for a main)
     const soonestDate = idea => [idea.main, ...idea.sides].map(p => p.date).filter(Boolean).sort()[0] || null;
     ideas.sort((x, y) => {
       const dx = soonestDate(x), dy = soonestDate(y);
       if (dx && dy && dx !== dy) return dx < dy ? -1 : 1;
       if (dx && !dy) return -1;
       if (!dx && dy) return 1;
-      return x.main.name.localeCompare(y.main.name);
+      return (x.title || x.main.name).localeCompare(y.title || y.main.name);
     });
-    return ideas.map(({ key, main, sides, pairs: used }) => ({ key, main, sides, pairs: used }));
+    return ideas.map(({ key, main, sides, pairs: used, title }) => ({ key, main, sides, pairs: used, title, why: whyLine([main, ...sides], today) }));
+  }
+
+  // My meals (saved recipes) the fridge can make on the day: every fresh food free and in date.
+  // Soonest dated pack first (undated last), then title.
+  function savedMealIdeas(recipes, packs, day, skipKeys = []) {
+    const skip = new Set(skipKeys);
+    const inDate = (packs || []).filter(p => !p.date || p.date >= day);
+    const ideas = [];
+    for (const r of recipes || []) {
+      const meal = normMeal(r);
+      if (!meal || !meal.fresh.length) continue;
+      const key = "meal:" + r.id;
+      if (skip.has(key)) continue;
+      const names = meal.fresh.flatMap(f => Array(f.qty).fill(f.name));
+      const { picks, missing } = pickFoods(names, inDate);
+      if (missing.length) continue;
+      const used = picks.map(x => x.pack);
+      ideas.push({ key, main: used[0], sides: used.slice(1), pairs: [], title: r.name, why: whyLine(used, day), recipe: r });
+    }
+    const soonestDate = idea => [idea.main, ...idea.sides].map(p => p.date).filter(Boolean).sort()[0] || null;
+    ideas.sort((x, y) => {
+      const dx = soonestDate(x), dy = soonestDate(y);
+      if (dx && dy && dx !== dy) return dx < dy ? -1 : 1;
+      if (dx && !dy) return -1;
+      if (!dx && dy) return 1;
+      return x.title.localeCompare(y.title);
+    });
+    return ideas;
+  }
+
+  // A day's top 3 ideas: my meals first, then the combos. Only foods still in date that day
+  function dayIdeas(packs, pairs, day, skipKeys = [], dishes = [], meals = [], recipes = []) {
+    const inDate = (packs || []).filter(p => !p.date || p.date >= day);
+    return [...savedMealIdeas(recipes, inDate, day, skipKeys), ...tonightIdeas(inDate, pairs, day, skipKeys, dishes, meals)].slice(0, 3);
+  }
+
+  // Plan my week: one idea per day (soonest out first), each food used once.
+  // Days in skipDays are left alone; swaps[day] lists idea keys not to use that day.
+  function weekPlan(packs, pairs, today, { dishes = [], meals = [], skipDays = [], swaps = {}, recipes = [] } = {}) {
+    let avail = (packs || []).filter(isFree);
+    const used = new Set();
+    const rows = [];
+    for (const day of mealDays(today)) {
+      if (skipDays.includes(day)) {
+        rows.push({ day, idea: null, skipped: true });
+        continue;
+      }
+      const skip = [...used, ...(swaps[day] || [])];
+      const candidates = [
+        ...savedMealIdeas(recipes, avail, day, skip),
+        ...tonightIdeas(avail.filter(p => !p.date || p.date >= day), pairs, day, skip, dishes, meals)
+      ];
+      const idea = candidates[0] || null;
+      if (idea) {
+        used.add(idea.key);
+        const taken = new Set([idea.main, ...idea.sides].map(p => p.id));
+        avail = avail.filter(p => !taken.has(p.id));
+      }
+      rows.push({ day, idea });
+    }
+    return rows;
+  }
+
+  // The soonest-dated food of an idea, as a line for its card and a colour state:
+  // out (today or past), soon (within 2 days), ok. No dated food: { text: "", state: "" }
+  function whyLine(foods, today) {
+    const dated = foods.filter(p => p && p.date).sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+    if (!dated.length) return { text: "", state: "" };
+    const p = dated[0];
+    const d = daysLeft(p.date, today);
+    const bb = p.dateType === "best_before";
+    const name = p.name;
+    let text;
+    if (d < -1) text = `⚠ ${name} ${bb ? "best before" : "went out"} ${-d} days ago`;
+    else if (d === -1) text = `⚠ ${name} ${bb ? "best before" : "went out"} yesterday`;
+    else if (d === 0) text = `⚠ ${name} ${bb ? "best before" : "goes out"} today`;
+    else if (d === 1) text = `${name} ${bb ? "best before" : "goes out"} tomorrow`;
+    else text = `${name} ${bb ? "best before in" : "goes out in"} ${d} days`;
+    const state = d <= 0 ? "out" : d <= 2 ? "soon" : "ok";
+    return { text, state };
+  }
+
+  // One free pack for each name, none of them in used (or taken twice); null when one is missing
+  function takePacks(names, free, used) {
+    const taken = new Set();
+    const out = [];
+    for (const name of names) {
+      const key = keyOf(name);
+      const pack = free
+        .filter(p => !used.has(p.id) && !taken.has(p.id) && keyOf(p.name) === key)
+        .sort(soonestFirst)[0];
+      if (!pack) return null;
+      taken.add(pack.id);
+      out.push(pack);
+    }
+    return out;
   }
 
   // The foods in an idea that are out of date by the day (their date is before it)
@@ -1580,7 +1936,7 @@
 
   // V2 step 9: backups. The file is plain JSON with every list in it.
   const BACKUP_APP = "food-tracker-v2";
-  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans"];
+  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans", "combos"];
   const NOT_BACKUP = "This isn't a Food Tracker backup file.";
   const BACKUP_EVERY = 5;
 
@@ -2026,12 +2382,25 @@
     dayMeals,
     dayGroups,
     mealIdeas,
+    savedMealIdeas,
     pairKey,
+    comboKey,
+    comboDishes,
     comboPairs,
     comboFoods,
+    aiComboText,
+    aiComboPrompt,
+    aiComboRequest,
+    aiReplyText,
+    aiAllowedFoods,
+    boughtFoods,
+    parseAiCombos,
+    stockWhen,
     comboGroups,
     newComboRows,
     tonightIdeas,
+    dayIdeas,
+    weekPlan,
     ideaWarn,
     slotFor,
     tidyName,
