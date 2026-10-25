@@ -124,8 +124,9 @@ function startStatic() {
     assert.match(t, /Cauli cheese/);
   });
 
-  await step("tap the card name: opens goes-with for it; Peas locked; Cancel", async () => {
-    await group("Pigs in blankets").locator(".combo-food").click();
+  await step("saved group is open; + Add inside opens goes-with for it; Peas locked; Cancel", async () => {
+    assert.ok(await group("Pigs in blankets").locator(".combo-chips").isVisible());
+    await group("Pigs in blankets").locator(".combo-more").click();
     await until(async () => assert.match(await pick.locator(".cp-title").innerText(), /Pigs in blankets goes with/));
     await kindTab("veg").click();
     assert.ok(await chip("Peas").isDisabled());
