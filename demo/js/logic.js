@@ -1122,10 +1122,17 @@
   // Ideas for tonight: each free main in the fridge with the sides its pairs can make (3 at most).
   // skipKeys: mains said "Not tonight". Sorted by the soonest date among the foods, then main name.
   // Dishes (comboDishes) too: a dish whose foods all have a free pack is an idea, key "dish:<name>",
-  // with its goes-with items from the pairs (3 at most). Returns [{ key, main, sides, pairs, title }];
-  // pairs are the pairs of the sides shown.
-  function tonightIdeas(packs, pairs, today, skipKeys = [], dishes = []) {
+  // with its goes-with items from the pairs (3 at most). Returns [{ key, main, sides, pairs, title, why }];
+  // pairs are the pairs of the sides shown; why is the soonest-dated food's line and colour (whyLine).
+  // meals: no repeats. A main (or a dish whose foods are all) had in a meal (not takeaway) in the last 3 days is skipped.
+  function tonightIdeas(packs, pairs, today, skipKeys = [], dishes = [], meals = []) {
     const skip = new Set(skipKeys);
+    const from = addDays(today, -3);
+    const recent = new Set();
+    for (const m of meals || []) {
+      if (m.takeaway || !(m.day >= from && m.day < today)) continue;
+      for (const item of m.items || []) recent.add(keyOf(item.name));
+    }
     const free = (packs || []).filter(isFree);
     const mains = new Map(); // name key -> soonest free main
     for (const p of free.filter(p => p.kind === "main").sort(soonestFirst)) {
@@ -1135,7 +1142,7 @@
 
     const ideas = [];
     for (const [key, main] of mains) {
-      if (skip.has(key)) continue;
+      if (skip.has(key) || recent.has(key)) continue;
       const found = [];
       for (const pair of pairs || []) {
         const other = keyOf(pair.a) === key ? pair.b : keyOf(pair.b) === key ? pair.a : null;
@@ -1168,6 +1175,8 @@
     for (const dish of dishes || []) {
       const key = "dish:" + keyOf(dish.name);
       if (skip.has(key)) continue;
+      const foodKeys = (dish.foods || []).map(keyOf);
+      if (foodKeys.length && foodKeys.every(k => recent.has(k))) continue;
       const dishPacks = takePacks(dish.foods, free, new Set());
       if (!dishPacks || !dishPacks.length) continue;
       const used = new Set(dishPacks.map(p => p.id));
@@ -1208,7 +1217,26 @@
       if (!dx && dy) return 1;
       return (x.title || x.main.name).localeCompare(y.title || y.main.name);
     });
-    return ideas.map(({ key, main, sides, pairs: used, title }) => ({ key, main, sides, pairs: used, title }));
+    return ideas.map(({ key, main, sides, pairs: used, title }) => ({ key, main, sides, pairs: used, title, why: whyLine([main, ...sides], today) }));
+  }
+
+  // The soonest-dated food of an idea, as a line for its card and a colour state:
+  // out (today or past), soon (within 2 days), ok. No dated food: { text: "", state: "" }
+  function whyLine(foods, today) {
+    const dated = foods.filter(p => p && p.date).sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+    if (!dated.length) return { text: "", state: "" };
+    const p = dated[0];
+    const d = daysLeft(p.date, today);
+    const bb = p.dateType === "best_before";
+    const name = p.name;
+    let text;
+    if (d < -1) text = `⚠ ${name} ${bb ? "best before" : "went out"} ${-d} days ago`;
+    else if (d === -1) text = `⚠ ${name} ${bb ? "best before" : "went out"} yesterday`;
+    else if (d === 0) text = `⚠ ${name} ${bb ? "best before" : "goes out"} today`;
+    else if (d === 1) text = `${name} ${bb ? "best before" : "goes out"} tomorrow`;
+    else text = `${name} ${bb ? "best before in" : "goes out in"} ${d} days`;
+    const state = d <= 0 ? "out" : d <= 2 ? "soon" : "ok";
+    return { text, state };
   }
 
   // One free pack for each name, none of them in used (or taken twice); null when one is missing

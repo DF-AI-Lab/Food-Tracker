@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tonight ideas mock</title>
+<style>
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#8FD4B0;--amb:#F2B35B;--red:#F08A7E}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.sec{font-weight:700;margin:2px 0 10px;display:flex;justify-content:space-between;align-items:center}
+.sec small{color:var(--mut);font-weight:400;font-size:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.t{font-weight:700;font-size:16px;margin:0 0 4px}
+.why{font-size:13px;margin-bottom:8px}
+.f{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--mut)}
+.f span{color:var(--txt)}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:12px;padding:9px 12px;font-weight:600;font-size:14px;text-align:center}
+.go{background:var(--grn);color:#062014;border:0}
+.ok{color:var(--grn)}.soon{color:var(--amb)}.out{color:var(--red)}
+.more{text-align:center;color:var(--grn);font-weight:600;padding:8px;font-size:14px}
+.new{outline:2px dashed var(--amb);outline-offset:3px;border-radius:6px}
+.list{font-size:13px;color:var(--mut);line-height:1.6}
+.list b{color:var(--txt)}
+</style></head><body>
+<h1>Ideas for tonight: mock 1</h1>
+<p class="note">Mock only. The dashed boxes are what's new. Everything else is already in the demo.</p>
+
+<div class="wrap">
+
+<div class="phone">
+  <div class="cap">Meals tab · top of the page</div>
+  <div class="sec">Ideas for tonight <small class="new">best 3</small></div>
+
+  <div class="card">
+    <div class="t">Chicken + Rice + Sweetcorn</div>
+    <div class="why out new">⚠ Chicken goes out today</div>
+    <div class="f"><span>Chicken</span><b class="out">today</b></div>
+    <div class="f"><span>Rice</span><b class="soon">1 day</b></div>
+    <div class="f"><span>Sweetcorn</span><b class="ok">9 days</b></div>
+    <div class="btns"><div class="btn go">Yes</div><div class="btn">Not tonight</div></div>
+  </div>
+
+  <div class="card">
+    <div class="t">Pigs in blankets + Potatoes (roast)</div>
+    <div class="why soon new">Sausages go out in 3 days</div>
+    <div class="f"><span>Sausages</span><b class="soon">3 days</b></div>
+    <div class="f"><span>Bacon</span><b class="ok">6 days</b></div>
+    <div class="f"><span>Potatoes</span><b class="ok">12 days</b></div>
+    <div class="btns"><div class="btn go">Yes</div><div class="btn">Not tonight</div></div>
+  </div>
+
+  <div class="card">
+    <div class="t">Gammon + Mash + Peas</div>
+    <div class="why ok new">Gammon 5 days · not had for 2 weeks</div>
+    <div class="f"><span>Gammon</span><b class="ok">5 days</b></div>
+    <div class="f"><span>Mash</span><b class="ok">3 days</b></div>
+    <div class="f"><span>Peas</span><b class="ok">freezer</b></div>
+    <div class="btns"><div class="btn go">Yes</div><div class="btn">Not tonight</div></div>
+  </div>
+
+  <div class="more new">Show 4 more ideas ▾</div>
+</div>
+
+<div class="phone">
+  <div class="cap">How the app picks (no AI, free, instant)</div>
+  <div class="card list">
+    <b>1. In stock</b> · every food in the fridge, cupboard <span class="new">or freezer</span><br>
+    <b>2. Use it up</b> · soonest out goes top<br>
+    <b class="new">3. No repeats</b> · skips a main you had in the last 3 days<br>
+    <b class="new">4. Best 3</b> · the rest behind "Show more"<br>
+    <b class="new">5. Why line</b> · says why it's suggested, in the fridge colours<br>
+    <b>6. Yes</b> plans it · <b>Not tonight</b> hides it till tomorrow
+  </div>
+</div>
+
+</div>
+</body></html>
