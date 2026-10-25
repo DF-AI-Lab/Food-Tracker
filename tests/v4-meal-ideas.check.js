@@ -61,7 +61,7 @@ function startStatic() {
     await pick.locator(".cp-chip", { hasText: new RegExp("^" + b + "$") }).click();
     await page.click("#cpSave");
   };
-  const idea = name => page.locator("#ideasTonight .idea-card", { hasText: name });
+  const idea = name => page.locator("#ideasWeek .idea-card", { hasText: name });
 
   await page.goto(url("2026-10-24", 10));
 
@@ -75,8 +75,9 @@ function startStatic() {
 
   await step("Meals: no pairs yet, so no ideas; Combos section is there", async () => {
     await page.click('[data-tab="meals"]');
+    await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
     await until(async () => assert.ok(await page.locator("#combos").isVisible()));
-    assert.equal(await page.locator("#ideasTonight .idea-card").count(), 0);
+    assert.equal(await page.locator("#ideasWeek .idea-card").count(), 0);
   });
 
   await step("add pairs by hand: they show in Combos", async () => {
@@ -86,35 +87,30 @@ function startStatic() {
     await until(async () => assert.equal(await page.locator("#combos .combo-chip").count(), 3));
   });
 
-  await step("Ideas for tonight: Chicken + Cauli cheese + Chips first, then Pizza + Coleslaw", async () => {
-    await until(async () => assert.equal(await page.locator("#ideasTonight .idea-card").count(), 2));
-    const first = page.locator("#ideasTonight .idea-card").first();
+  await step("Ideas for the week: Chicken + Cauli cheese + Chips today first, then Pizza + Coleslaw; Plan tonight, Other day, ✎ Edit", async () => {
+    await until(async () => assert.equal(await page.locator("#ideasWeek .idea-card").count(), 2));
+    const first = page.locator("#ideasWeek .idea-card").first();
     assert.match(await first.innerText(), /Chicken[\s\S]*Cauli cheese[\s\S]*Chips/);
-    assert.ok(await first.locator(".idea-yes").isVisible());
-    assert.ok(await first.locator(".idea-not").isVisible());
-    assert.match(await first.locator(".idea-not").innerText(), /Not tonight/);
+    assert.equal((await first.locator(".idea-plan-day").innerText()).trim(), "Plan tonight");
+    assert.ok(await first.locator(".idea-other").isVisible());
+    assert.ok(await first.locator(".idea-edit").isVisible());
+    assert.equal(await first.locator(".idea-nfm").count(), 0, "Not for me sits in ✎ Edit");
+    await first.locator(".idea-edit").click();
+    assert.match(await first.locator(".idea-notday").innerText(), /Not tonight/);
     assert.match(await first.locator(".idea-nfm").innerText(), /Not for me/);
+    await first.locator(".idea-edit").click();
   });
 
-  await step("Not tonight hides Pizza today; a day old it no longer counts", async () => {
-    await idea("Pizza").locator(".idea-not").click();
-    await until(async () => assert.equal(await idea("Pizza").count(), 0));
-    // kept on this phone with today's date, so tomorrow it no longer counts
-    const saved = await page.evaluate(() => {
-      const k = Object.keys(localStorage).find(x => x.endsWith(".notTonight"));
-      return k ? JSON.parse(localStorage.getItem(k)) : null;
-    });
-    assert.deepEqual(saved, { day: "2026-10-24", keys: ["pizza"] });
-    await page.evaluate(() => {
-      const k = Object.keys(localStorage).find(x => x.endsWith(".notTonight"));
-      localStorage.setItem(k, JSON.stringify({ day: "2026-10-23", keys: ["pizza"] }));
-    });
-    await page.click('[data-tab="fridge"]');
-    await page.click('[data-tab="meals"]');
-    await until(async () => assert.equal(await idea("Pizza").count(), 1));
+  await step("✎ Edit → Not tonight on Pizza: it moves off its day to another day", async () => {
+    const before = (await idea("Pizza").locator(".idea-plan-day").innerText()).trim();
+    await idea("Pizza").locator(".idea-edit").click();
+    await idea("Pizza").locator(".idea-notday").click();
+    await until(async () => assert.notEqual((await idea("Pizza").locator(".idea-plan-day").innerText()).trim(), before));
+    assert.equal(await idea("Pizza").count(), 1, "Pizza is still an idea, on another day");
   });
 
   await step("Not for me on Pizza (1 pair): pair goes to Hidden, idea gone", async () => {
+    await idea("Pizza").locator(".idea-edit").click();
     await idea("Pizza").locator(".idea-nfm").click();
     await until(async () => assert.equal(await idea("Pizza").count(), 0));
     await until(async () => assert.equal(await page.locator("#combosHidden .combo-row", { hasText: "Pizza" }).count(), 1));
@@ -127,6 +123,7 @@ function startStatic() {
   });
 
   await step("Not for me on Chicken (2 pairs): asks which pair", async () => {
+    await idea("Chicken").locator(".idea-edit").click();
     await idea("Chicken").locator(".idea-nfm").click();
     const opts = idea("Chicken").locator(".idea-pair");
     await until(async () => assert.equal(await opts.count(), 2));
@@ -137,19 +134,15 @@ function startStatic() {
     await until(async () => assert.match(await idea("Chicken").innerText(), /Cauli cheese/));
   });
 
-  await step("Yes: pick a day; a later day warns what runs out; Plan tonight", async () => {
-    await idea("Chicken").locator(".idea-yes").click();
+  await step("Other day: only the days its foods are in date (Tonight, Sun: Cauli cheese runs out); Cancel; Plan tonight", async () => {
+    await idea("Chicken").locator(".idea-other").click();
     const card = idea("Chicken");
-    await until(async () => assert.equal(await card.locator(".idea-day").count(), 4));
-    assert.match(await card.locator(".idea-day.on").innerText(), /Tonight/);
-    assert.equal((await card.locator(".idea-warn").innerText()).trim(), "");
-    await card.locator(".idea-day").nth(3).click(); // 3 days on: Cauli cheese (1 day) and Chicken (3 days) out
-    await until(async () => assert.match(await card.locator(".idea-warn").innerText(), /Cauli cheese/));
+    await until(async () => assert.equal(await card.locator(".idea-day").count(), 2));
+    assert.deepEqual((await card.locator(".idea-day").allInnerTexts()).map(t => t.trim()), ["Tonight", "Sun"]);
     await card.locator(".idea-cancel").click();
     await until(async () => assert.equal(await card.locator(".idea-day").count(), 0));
-    await card.locator(".idea-yes").click();
-    await until(async () => assert.equal(await card.locator(".idea-day").count(), 4));
-    await card.locator(".idea-plan").click();
+    await card.locator(".idea-other").click();
+    await card.locator(".idea-day").nth(0).click();
     await until(async () => assert.equal(await idea("Chicken").count(), 0));
     assert.equal(await idea("Pizza").count(), 1);
   });

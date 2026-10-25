@@ -64,6 +64,7 @@ function startStatic() {
   await page.route("https://api.anthropic.com/v1/messages", route => route.fulfill({ status: 200, contentType: "application/json",
     body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ pairs }) }] }) }));
   await page.click('[data-tab="meals"]');
+  await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
 
   await step("AI review: ✗ on Fish + Chips is saved as don't like; asking again brings nothing new", async () => {
     await page.click("#aiAsk");
@@ -77,24 +78,22 @@ function startStatic() {
     assert.ok(await review.isHidden());
   });
 
-  const idea = name => page.locator("#ideasTonight .idea-card", { has: page.locator(".idea-title", { hasText: new RegExp("^" + name) }) });
+  const idea = name => page.locator("#ideasWeek .idea-card", { has: page.locator(".idea-title", { hasText: new RegExp("^" + name) }) });
   const food = (card, name) => card.locator(".idea-food", { hasText: name });
 
-  await step("✕ on Sweetcorn → Not tonight: gone from Chicken's idea, Rice stays", async () => {
+  await step("✎ Edit: Don't like Sweetcorn with Chicken → gone from Chicken's idea, Rice stays; no ✕ on foods", async () => {
     const c = idea("Chicken");
     await until(async () => assert.equal(await c.count(), 1));
-    assert.equal(await food(c, "Chicken").locator(".idea-x").count(), 0, "no ✕ on the main");
-    await food(c, "Sweetcorn").locator(".idea-x").click();
-    await until(async () => assert.ok(await c.locator(".idea-xpop").isVisible()));
-    assert.match(await c.locator(".idea-xpop").innerText(), /Sweetcorn with Chicken/);
-    await c.locator(".idea-xnot").click();
+    assert.equal(await c.locator(".idea-x").count(), 0, "no ✕ on the foods");
+    await c.locator(".idea-edit").click();
+    await c.locator(".idea-nolike", { hasText: "Sweetcorn with Chicken" }).click();
     await until(async () => assert.equal(await food(idea("Chicken"), "Sweetcorn").count(), 0));
     assert.equal(await food(idea("Chicken"), "Rice").count(), 1);
   });
 
-  await step("✕ on Rice → Don't like: Chicken + Rice hidden, Chicken idea gone", async () => {
-    await food(idea("Chicken"), "Rice").locator(".idea-x").click();
-    await idea("Chicken").locator(".idea-xbad").click();
+  await step("✎ Edit: Don't like Rice with Chicken → Chicken + Rice hidden, Chicken idea gone", async () => {
+    await idea("Chicken").locator(".idea-edit").click();
+    await idea("Chicken").locator(".idea-nolike", { hasText: "Rice with Chicken" }).click();
     await until(async () => assert.equal(await idea("Chicken").count(), 0));
   });
 

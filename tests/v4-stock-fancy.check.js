@@ -163,6 +163,7 @@ function startStatic() {
 
   await step("Meals: new meal Tacos with Peppers (not in the fridge)", async () => {
     await page.click('[data-tab="meals"]');
+    await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
     await page.click("#newMeal");
     await page.fill("#mealName", "Tacos");
     await page.fill("#freshIn", "Peppers");
@@ -181,6 +182,7 @@ function startStatic() {
 
   await step("the star is kept after editing the meal", async () => {
     await page.click('[data-tab="meals"]');
+    await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
     await page.locator("#myMeals .meal-row", { hasText: "Tacos" }).click();
     await page.fill("#mealName", "Beef tacos");
     await page.click("#mealSave");

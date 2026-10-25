@@ -62,6 +62,7 @@ function startStatic() {
   await page.route("https://api.anthropic.com/v1/messages", route => route.fulfill({ status: 200, contentType: "application/json",
     body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ pairs }) }] }) }));
   await page.click('[data-tab="meals"]');
+  await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
   await page.click("#aiAsk");
   await until(async () => assert.ok(await page.locator("#aiReview").isVisible()));
   await page.click("#aiAdd");
@@ -79,7 +80,7 @@ function startStatic() {
   await page.click("#mealSave");
   await until(async () => assert.ok(await page.locator("#mealForm").isHidden()));
 
-  const cards = page.locator("#ideasTonight .idea-card");
+  const cards = page.locator("#ideasWeek .idea-card");
 
   await step("Ideas for tonight: Fajitas (my meal) first, then Gammon; no ✕ or Not for me on a meal", async () => {
     await until(async () => assert.match(await cards.first().locator(".idea-title").innerText(), /^Fajitas$/));
@@ -89,9 +90,8 @@ function startStatic() {
     assert.equal(await cards.first().locator(".idea-food").count(), 3);
   });
 
-  await step("Yes → Plan tonight: Fajitas planned as the meal", async () => {
-    await cards.first().locator(".idea-yes").click();
-    await cards.first().locator(".idea-plan").click();
+  await step("Plan tonight: Fajitas planned as the meal", async () => {
+    await cards.first().locator(".idea-plan-day").click();
     await until(async () => assert.match(await page.locator("#dayList .day").nth(0).innerText(), /Fajitas/));
   });
 
