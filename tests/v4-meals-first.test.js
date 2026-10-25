@@ -20,8 +20,8 @@ const recipes = [
 ];
 const pairs = [pair("Gammon", "Mash")];
 
-test("mealIdeas: saved meals with every fresh food free and in date", () => {
-  const m = FT.mealIdeas(recipes, fridge, T);
+test("savedMealIdeas: saved meals with every fresh food free and in date", () => {
+  const m = FT.savedMealIdeas(recipes, fridge, T);
   assert.equal(m.length, 1);
   assert.equal(m[0].key, "meal:1");
   assert.equal(m[0].title, "Fajitas");
@@ -29,16 +29,16 @@ test("mealIdeas: saved meals with every fresh food free and in date", () => {
   assert.deepEqual([m[0].main, ...m[0].sides].map(p => p.id), [1, 2, 3]);
   assert.deepEqual(m[0].pairs, []);
   assert.deepEqual(m[0].why, { text: "Chicken goes out in 2 days", state: "soon" });
-  assert.equal(FT.mealIdeas(recipes, fridge, "2026-10-29").length, 0, "peppers out by then");
-  assert.equal(FT.mealIdeas(recipes, fridge, T, ["meal:1"]).length, 0, "skip key");
+  assert.equal(FT.savedMealIdeas(recipes, fridge, "2026-10-29").length, 0, "peppers out by then");
+  assert.equal(FT.savedMealIdeas(recipes, fridge, T, ["meal:1"]).length, 0, "skip key");
   const planned = fridge.map(p => (p.id === 2 ? { ...p, plannedFor: "2026-10-26" } : p));
-  assert.equal(FT.mealIdeas(recipes, planned, T).length, 0, "planned pack not free");
+  assert.equal(FT.savedMealIdeas(recipes, planned, T).length, 0, "planned pack not free");
 });
 
-test("mealIdeas: qty 2 needs 2 packs", () => {
+test("savedMealIdeas: qty 2 needs 2 packs", () => {
   const r = [{ id: 3, name: "Big fajitas", fresh: [{ name: "Chicken", qty: 2 }, "Wraps"], other: [] }];
-  assert.equal(FT.mealIdeas(r, fridge, T).length, 0);
-  assert.equal(FT.mealIdeas(r, [...fridge, pack(9, "Chicken", "main", "2026-10-28")], T).length, 1);
+  assert.equal(FT.savedMealIdeas(r, fridge, T).length, 0);
+  assert.equal(FT.savedMealIdeas(r, [...fridge, pack(9, "Chicken", "main", "2026-10-28")], T).length, 1);
 });
 
 test("dayIdeas: my meals first, then combos (even if a combo goes out sooner)", () => {
