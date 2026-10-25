@@ -21,6 +21,9 @@
   let ideaXOpen = null;   // Ideas: the side whose ✕ question is open, as 'idea key|side index', or null
   let weekSwaps = {};     // Plan my week: idea keys swapped out, by day
   let weekOff = new Set(); // Plan my week: days left out (unticked)
+  let dtEdit = null;      // Top 3 for a day: the idea whose Edit foods are open, as 'day|idea key', or null
+  let dtX = null;         // Top 3 for a day: the side whose ✕ question is open, as 'day|idea key|side index', or null
+  const dayOff = new Set(); // Top 3 for a day: left out for that day only, 'day|idea key' or 'day|pair:' + comboKey
   let weekRows = [];      // Plan my week: the rows last shown, from FT.weekPlan
   let cpFood = null;      // Combos picker: the food picked in step 1 (null = still picking it)
   let cpKind = 'main';    // Combos picker: the kind tab showing (main, side, veg, misc, dish)
@@ -2895,7 +2898,10 @@
   function renderMealIdeas() {
     const box = document.getElementById('ideasTonight');
     const list = box.querySelector('.idea-list');
-    const ideas = FT.tonightIdeas(packs, planPairs(), today, notTonightKeys(), FT.comboDishes(combos), meals);
+    const ideas = [
+      ...FT.savedMealIdeas(recipes, packs, today, notTonightKeys()),
+      ...FT.tonightIdeas(packs, planPairs(), today, notTonightKeys(), FT.comboDishes(combos), meals)
+    ];
     list.textContent = '';
     box.hidden = !ideas.length;
     ideas.forEach((idea, i) => {
@@ -2942,7 +2948,7 @@
       line.append(name, when);
       // The main has no ✕; a dish's sides have none either (its pairs are not one to one)
       const side = n - 1;
-      const canX = side >= 0 && !idea.key.startsWith('dish:');
+      const canX = side >= 0 && !idea.recipe && !idea.key.startsWith('dish:');
       if (canX) line.appendChild(ideaXButton(idea, side));
       card.appendChild(line);
       if (canX && ideaXOpen === `${idea.key}|${side}`) card.appendChild(ideaXPop(idea, side));
@@ -3028,7 +3034,8 @@
     nfm.className = 'idea-nfm';
     nfm.textContent = 'Not for me';
     nfm.addEventListener('click', () => notForMe(idea));
-    wrap.append(btns, nfm);
+    wrap.append(btns);
+    if (!idea.recipe) wrap.append(nfm); // a saved meal has no pairs to take out
     if (ideaNfmKey === idea.key) {
       // Two or more pairs: ask which one is not for me
       const pick = document.createElement('div');
@@ -3098,7 +3105,8 @@
     return panel;
   }
 
-  // A day's top 3 ideas: Plan puts the idea's foods on that day, for the meal shown
+  // A day's top 3 ideas: Plan puts the idea's foods on that day, for the meal shown.
+  // Edit lists its foods: ✕ on a side takes that pair off the day or for good; Not this day takes the idea off the day.
   function dayIdeaBox(ideas, day) {
     const box = document.createElement('div');
     box.className = 'day-ideas';
@@ -3116,31 +3124,158 @@
       why.className = `st-${idea.why.state}`;
       why.textContent = idea.why.text;
       text.append(title, why);
+      const btns = document.createElement('span');
+      btns.className = 'dt-btns';
       const plan = document.createElement('button');
       plan.type = 'button';
       plan.className = 'act ghost dt-plan';
       plan.textContent = 'Plan';
       plan.addEventListener('click', () => planDayIdea(idea, day));
-      row.append(text, plan);
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'act ghost dt-edit';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', () => {
+        const key = `${day}|${idea.key}`;
+        dtEdit = dtEdit === key ? null : key;
+        dtX = null;
+        renderMeals();
+      });
+      btns.append(plan, edit);
+      row.append(text, btns);
       box.appendChild(row);
+      if (dtEdit === `${day}|${idea.key}`) box.appendChild(dayFoodsPanel(idea, day));
     }
     return box;
   }
 
+  // Edit on a day's idea: its foods, ✕ on a combo's sides, and Not this day for the whole idea
+  function dayFoodsPanel(idea, day) {
+    const panel = document.createElement('div');
+    panel.className = 'dt-foods';
+    [idea.main, ...idea.sides].forEach((p, n) => {
+      const line = document.createElement('div');
+      line.className = 'idea-food';
+      const name = document.createElement('span');
+      name.textContent = p.name;
+      const when = document.createElement('small');
+      when.textContent = FT.packDateLabel(p);
+      line.append(name, when);
+      const side = n - 1;
+      const canX = side >= 0 && !idea.recipe && !idea.key.startsWith('dish:');
+      if (canX) line.appendChild(dayXButton(idea, day, side));
+      panel.appendChild(line);
+      if (canX && dtX === `${day}|${idea.key}|${side}`) panel.appendChild(dayXPop(idea, day, side));
+    });
+    const not = document.createElement('button');
+    not.type = 'button';
+    not.className = 'act ghost dt-not';
+    not.textContent = 'Not this day';
+    not.addEventListener('click', () => {
+      dayOff.add(`${day}|${idea.key}`);
+      dtEdit = null;
+      dtX = null;
+      renderMeals();
+    });
+    panel.appendChild(not);
+    return panel;
+  }
+
+  // The ✕ on a side in a day's Edit: opens its question, or shuts it
+  function dayXButton(idea, day, i) {
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'idea-x';
+    x.textContent = '✕';
+    x.setAttribute('aria-label', `Remove ${idea.sides[i].name}`);
+    x.addEventListener('click', () => {
+      const key = `${day}|${idea.key}|${i}`;
+      dtX = dtX === key ? null : key;
+      renderMeals();
+    });
+    return x;
+  }
+
+  // The question under a side: Not this day hides this pair for that day; Don't like hides it for good
+  function dayXPop(idea, day, i) {
+    const side = idea.sides[i];
+    const pair = idea.pairs[i];
+    const pop = document.createElement('div');
+    pop.className = 'idea-xpop';
+    const q = document.createElement('div');
+    q.className = 'idea-xq';
+    q.textContent = `${side.name} with ${idea.main.name}?`;
+    const btns = document.createElement('div');
+    btns.className = 'idea-btns';
+    const not = document.createElement('button');
+    not.type = 'button';
+    not.className = 'act ghost idea-xnot';
+    not.textContent = 'Not this day';
+    not.addEventListener('click', () => {
+      dtX = null;
+      dayOff.add(`${day}|pair:` + FT.comboKey(pair.a, pair.b, pair.note));
+      renderMeals();
+    });
+    const bad = document.createElement('button');
+    bad.type = 'button';
+    bad.className = 'act ghost idea-xbad';
+    bad.textContent = "Don't like";
+    bad.addEventListener('click', async () => {
+      dtX = null;
+      await setPairHidden(pair, true);
+      renderMeals();
+    });
+    btns.append(not, bad);
+    pop.append(q, btns);
+    return pop;
+  }
+
+  // A day's pairs and ideas, less those left out for that day (Edit: Not this day)
+  function dayPairs(day) {
+    return planPairs().filter(p => !dayOff.has(`${day}|pair:` + FT.comboKey(p.a, p.b, p.note)));
+  }
+
+  function dayIdeaSkips(day) {
+    const pre = `${day}|`;
+    return [...dayOff].filter(k => k.startsWith(pre) && !k.startsWith(pre + 'pair:')).map(k => k.slice(pre.length));
+  }
+
+  // Plan one idea on a day: a saved meal goes on as the meal, a combo puts its foods on
   async function planDayIdea(idea, day) {
-    for (const p of [idea.main, ...idea.sides]) {
-      await savePack(FT.planPack(p, day, FT.slotFor(p.kind), selMeal));
+    if (idea.recipe) {
+      await planRecipeIdea(idea, day, selMeal);
+    } else {
+      for (const p of [idea.main, ...idea.sides]) {
+        await savePack(FT.planPack(p, day, FT.slotFor(p.kind), selMeal));
+      }
     }
     renderMeals();
     renderAll();
+  }
+
+  // A saved meal from the ideas: the meal on the day (as planMealFor does), its foods from the fridge
+  async function planRecipeIdea(idea, day, mealTime) {
+    const plan = { day, mealId: idea.recipe.id, skip: [] };
+    if (mealTime === 'dinner') plan.mealTime = 'dinner';
+    try {
+      plan.id = await DB.mealPlans.add(plan);
+    } catch (e) {
+      return;
+    }
+    mealPlans.push(plan);
+    await persistAll(FT.planMeal(idea.recipe, packs, day, plan.id, [], mealTime).map(p => setPack(p)));
   }
 
   // Plan: every food of the idea goes on the day (tea), the soonest pack of each
   async function planIdea(idea, day) {
     ideaOpenKey = null;
     ideaOpenDay = null;
-    for (const p of [idea.main, ...idea.sides]) {
-      await savePack(FT.planPack(p, day, FT.slotFor(p.kind), 'tea'));
+    if (idea.recipe) {
+      await planRecipeIdea(idea, day, 'tea');
+    } else {
+      for (const p of [idea.main, ...idea.sides]) {
+        await savePack(FT.planPack(p, day, FT.slotFor(p.kind), 'tea'));
+      }
     }
     renderMeals();
     renderAll();
@@ -3152,7 +3287,7 @@
   function renderWeek() {
     const list = document.querySelector('#weekPanel .wk-list');
     const skipDays = FT.mealDays(today).filter(day => FT.dayGroups(packs, mealPlans, recipes, day, 'tea').length > 0);
-    weekRows = FT.weekPlan(packs, planPairs(), today, { dishes: FT.comboDishes(combos), meals, skipDays, swaps: weekSwaps });
+    weekRows = FT.weekPlan(packs, planPairs(), today, { dishes: FT.comboDishes(combos), meals, skipDays, swaps: weekSwaps, recipes });
     list.textContent = '';
     for (const row of weekRows) {
       const line = document.createElement('div');
@@ -3211,6 +3346,10 @@
   async function planWeek() {
     const picked = weekRows.filter(r => r.idea && !weekOff.has(r.day));
     for (const row of picked) {
+      if (row.idea.recipe) {
+        await planRecipeIdea(row.idea, row.day, 'tea');
+        continue;
+      }
       for (const p of [row.idea.main, ...row.idea.sides]) {
         await savePack(FT.planPack(p, row.day, FT.slotFor(p.kind), 'tea'));
       }
@@ -4072,7 +4211,7 @@
 
       // Nothing planned for this meal yet: the day's top 3 ideas
       if (FT.dayGroups(packs, mealPlans, recipes, day, selMeal).length === 0) {
-        const ideas = FT.dayIdeas(packs, planPairs(), day, [], FT.comboDishes(combos), meals);
+        const ideas = FT.dayIdeas(packs, dayPairs(day), day, dayIdeaSkips(day), FT.comboDishes(combos), meals, recipes);
         if (ideas.length) card.appendChild(dayIdeaBox(ideas, day));
       }
 

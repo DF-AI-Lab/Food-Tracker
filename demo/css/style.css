@@ -898,6 +898,9 @@ body.typing .addbar{top:calc(var(--vvtop,0px) + var(--demo-h))}
 .dt-lbl{font-size:12px;opacity:.7;margin-bottom:4px}
 .dt-idea{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
 .dt-idea:last-child{border-bottom:0}
+.dt-btns{display:flex;gap:6px;flex:none}
+.dt-foods{padding:4px 0 10px}
+.dt-not{width:100%;margin-top:6px}
 .dt-idea small{display:block;font-size:12px}
 .dt-idea small.st-out{color:var(--danger)}
 .dt-idea small.st-soon{color:var(--warn)}

@@ -1220,15 +1220,43 @@
     return ideas.map(({ key, main, sides, pairs: used, title }) => ({ key, main, sides, pairs: used, title, why: whyLine([main, ...sides], today) }));
   }
 
-  // A day's top 3 ideas: only foods still in date that day
-  function dayIdeas(packs, pairs, day, skipKeys = [], dishes = [], meals = []) {
+  // My meals (saved recipes) the fridge can make on the day: every fresh food free and in date.
+  // Soonest dated pack first (undated last), then title.
+  function savedMealIdeas(recipes, packs, day, skipKeys = []) {
+    const skip = new Set(skipKeys);
     const inDate = (packs || []).filter(p => !p.date || p.date >= day);
-    return tonightIdeas(inDate, pairs, day, skipKeys, dishes, meals).slice(0, 3);
+    const ideas = [];
+    for (const r of recipes || []) {
+      const meal = normMeal(r);
+      if (!meal || !meal.fresh.length) continue;
+      const key = "meal:" + r.id;
+      if (skip.has(key)) continue;
+      const names = meal.fresh.flatMap(f => Array(f.qty).fill(f.name));
+      const { picks, missing } = pickFoods(names, inDate);
+      if (missing.length) continue;
+      const used = picks.map(x => x.pack);
+      ideas.push({ key, main: used[0], sides: used.slice(1), pairs: [], title: r.name, why: whyLine(used, day), recipe: r });
+    }
+    const soonestDate = idea => [idea.main, ...idea.sides].map(p => p.date).filter(Boolean).sort()[0] || null;
+    ideas.sort((x, y) => {
+      const dx = soonestDate(x), dy = soonestDate(y);
+      if (dx && dy && dx !== dy) return dx < dy ? -1 : 1;
+      if (dx && !dy) return -1;
+      if (!dx && dy) return 1;
+      return x.title.localeCompare(y.title);
+    });
+    return ideas;
+  }
+
+  // A day's top 3 ideas: my meals first, then the combos. Only foods still in date that day
+  function dayIdeas(packs, pairs, day, skipKeys = [], dishes = [], meals = [], recipes = []) {
+    const inDate = (packs || []).filter(p => !p.date || p.date >= day);
+    return [...savedMealIdeas(recipes, inDate, day, skipKeys), ...tonightIdeas(inDate, pairs, day, skipKeys, dishes, meals)].slice(0, 3);
   }
 
   // Plan my week: one idea per day (soonest out first), each food used once.
   // Days in skipDays are left alone; swaps[day] lists idea keys not to use that day.
-  function weekPlan(packs, pairs, today, { dishes = [], meals = [], skipDays = [], swaps = {} } = {}) {
+  function weekPlan(packs, pairs, today, { dishes = [], meals = [], skipDays = [], swaps = {}, recipes = [] } = {}) {
     let avail = (packs || []).filter(isFree);
     const used = new Set();
     const rows = [];
@@ -1237,9 +1265,12 @@
         rows.push({ day, idea: null, skipped: true });
         continue;
       }
-      const ideas = tonightIdeas(avail.filter(p => !p.date || p.date >= day), pairs, day,
-        [...used, ...(swaps[day] || [])], dishes, meals);
-      const idea = ideas[0] || null;
+      const skip = [...used, ...(swaps[day] || [])];
+      const candidates = [
+        ...savedMealIdeas(recipes, avail, day, skip),
+        ...tonightIdeas(avail.filter(p => !p.date || p.date >= day), pairs, day, skip, dishes, meals)
+      ];
+      const idea = candidates[0] || null;
       if (idea) {
         used.add(idea.key);
         const taken = new Set([idea.main, ...idea.sides].map(p => p.id));
@@ -2351,6 +2382,7 @@
     dayMeals,
     dayGroups,
     mealIdeas,
+    savedMealIdeas,
     pairKey,
     comboKey,
     comboDishes,
