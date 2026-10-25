@@ -47,8 +47,54 @@ function startStatic() {
   const answer = JSON.stringify({ pairs: [{ a: "Chicken", b: "Rice" }, { a: "Chicken", b: "Sweetcorn" }, { a: "Gammon", b: "Pineapple" }] });
 
   await page.goto(url("2026-10-25", 10));
+  const addFood = async (kind, name, days) => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click(`[data-kind="${kind}"]`);
+    await page.fill("#name", name);
+    await page.fill("#days", String(days));
+    await page.click("#addBtn");
+    await until(async () => assert.match(await page.locator("#addMsg").innerText(), /added/i));
+  };
+  for (const [k, n, d] of [["main", "Chicken", 0], ["side", "Rice", 1], ["veg", "Sweetcorn", 9], ["main", "Gammon", 5], ["misc", "Pineapple", 6], ["main", "Sausages", 4], ["side", "Mash", 3], ["misc", "Gravy", 20]]) await addFood(k, n, d);
+
   await page.click('[data-tab="meals"]');
   await until(async () => assert.ok(await page.locator("#combos").isVisible()));
+
+  // The Claude API, faked: records the request, answers with 3 pairs (1 uses a food not in the app)
+  let apiReq = null;
+  await page.route("https://api.anthropic.com/v1/messages", async route => {
+    apiReq = { headers: route.request().headers(), body: JSON.parse(route.request().postData()) };
+    const pairs = [{ a: "Sausages", b: "Gravy", note: "" }, { a: "Gammon", b: "Rice", note: "" }, { a: "Gammon", b: "Quinoa", note: "" }];
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "thinking", thinking: "" }, { type: "text", text: JSON.stringify({ pairs }) }] }) });
+  });
+
+  await step("Ask AI with no key: says to add it in Settings, no call", async () => {
+    await page.click("#aiAsk");
+    await until(async () => assert.match(await page.locator("#aiMsg").innerText(), /key in Settings/));
+    assert.equal(apiReq, null);
+  });
+
+  await step("Settings: save a Claude key (kept on this phone)", async () => {
+    await page.evaluate(() => { document.getElementById("settings").hidden = false; }); // local mode hides the cog (no sign-in)
+    await until(async () => assert.ok(await page.locator("#aiKey").isVisible()));
+    await page.fill("#aiKey", "sk-ant-test-123");
+    await page.click("#aiKeySave");
+    await until(async () => assert.match(await page.locator("#aiKeyNote").innerText(), /saved/i));
+    await page.evaluate(() => { document.getElementById("settings").hidden = true; });
+    await page.click('[data-tab="meals"]');
+  });
+
+  await step("Ask AI: calls Claude (Haiku, key, browser header), review shows only foods in the app", async () => {
+    await page.click("#aiAsk");
+    await until(async () => assert.ok(await review.isVisible()));
+    assert.equal(apiReq.headers["x-api-key"], "sk-ant-test-123");
+    assert.equal(apiReq.headers["anthropic-dangerous-direct-browser-access"], "true");
+    assert.equal(apiReq.body.model, "claude-haiku-5-5");
+    assert.match(apiReq.body.messages[0].content, /Mains: [^\n]*Gammon/);
+    assert.equal(await review.locator(".ai-row").count(), 2, "Quinoa dropped");
+    await page.click("#aiCancel");
+  });
 
   await step("AI box: Copy for AI puts the instructions and food on the clipboard", async () => {
     await page.click("#aiCopy");
@@ -123,17 +169,6 @@ function startStatic() {
     await until(async () => assert.ok(await page.locator("#aiMsg").isVisible()));
     assert.ok(await review.isHidden());
   });
-
-  const addFood = async (kind, name, days) => {
-    await page.click('[data-tab="add"]');
-    await page.click('[data-sub="fridge"]');
-    await page.click(`[data-kind="${kind}"]`);
-    await page.fill("#name", name);
-    await page.fill("#days", String(days));
-    await page.click("#addBtn");
-    await until(async () => assert.match(await page.locator("#addMsg").innerText(), /added/i));
-  };
-  await addFood("main", "Chicken", 0); await addFood("side", "Rice", 1); await addFood("misc", "Gravy", 20);
 
   await step("Stock check: every dated row shows days, coloured", async () => {
     await page.click('[data-tab="fridge"]');
