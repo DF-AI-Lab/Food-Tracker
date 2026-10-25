@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Combos v4 mock</title>
+<style>
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#8FD4B0;--amb:#F2B35B;--red:#F08A7E}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 12px;margin-bottom:10px}
+.sec{font-weight:700;margin:2px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.btn{border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:12px;padding:9px 12px;font-weight:600;font-size:14px}
+.go{background:var(--grn);color:#062014;border:0}
+.btns{display:flex;gap:8px;margin-top:10px}.btns .btn{flex:1}
+.grp{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.grp:last-child{border-bottom:0}
+.grp b{font-weight:600}.grp small{color:var(--mut);font-family:ui-monospace,monospace}
+.arr{color:var(--mut);margin-right:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 12px}
+.chip{border:1px solid var(--line);border-radius:20px;padding:5px 10px;font-size:13px;background:#111a16}
+.why{font-size:12px;color:var(--mut);margin-top:8px}
+.ai{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:8px}
+.ai:last-child{border-bottom:0}
+.ai .t small{display:block;color:var(--mut);font-size:12px}
+.yn{display:flex;gap:6px}
+.yn span{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700}
+.yn .y.on{background:#1d3a2c;border-color:var(--grn);color:var(--grn)}
+.yn .n.on{background:#3a1d1d;border-color:var(--red);color:var(--red)}
+.ai.off .t{opacity:.45;text-decoration:line-through}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:8px}
+.sr:last-child{border-bottom:0}
+.sr .d{font-family:ui-monospace,monospace;font-size:12px;margin-top:2px}
+.ok{color:var(--grn)}.soon{color:var(--amb)}.out{color:var(--red)}
+.new{outline:2px dashed var(--amb);outline-offset:2px;border-radius:4px}
+</style></head><body>
+<h1>Combos: mock 4</h1>
+<p class="note">Mock only. 1 collapse · 2 AI fill-in · 3 stock check days and colours. The dashed boxes are what's new.</p>
+
+<div class="wrap">
+
+<div class="phone">
+  <div class="cap">1 · Combos collapsed</div>
+  <div class="sec">Combos <button class="btn go">+ Add</button></div>
+  <div class="card">
+    <div class="grp"><span><span class="arr">▸</span><b>Chicken</b></span><small>11</small></div>
+    <div class="grp"><span><span class="arr">▾</span><b>sausages wrapped in bacon</b></span><small>17</small></div>
+    <div class="chips"><span class="chip">Broccoli ×</span><span class="chip">Chips ×</span><span class="chip">Potatoes (mash) ×</span><span class="chip">Peas ×</span><span class="chip">+13 more</span></div>
+    <div class="grp"><span><span class="arr">▸</span><b>Cauli cheese</b></span><small>4</small></div>
+  </div>
+  <div class="why">Tap a name to open or close it. Tap + inside to add more.</div>
+</div>
+
+<div class="phone">
+  <div class="cap">2 · AI fill-in</div>
+  <div class="card new" style="padding:12px">
+    <div class="btns" style="margin-top:0"><button class="btn">Copy for AI</button><button class="btn">Download</button></div>
+    <div class="btns"><button class="btn go">Paste answer</button><button class="btn">Upload</button></div>
+    <div class="why">Copy, paste into Claude or ChatGPT, then paste its answer back here.</div>
+  </div>
+  <div class="sec" style="margin-top:14px">AI found 5 · keep which?</div>
+  <div class="card">
+    <div class="ai"><span class="t">Chicken + Rice<small>side</small></span><span class="yn"><span class="y on">✓</span><span class="n">✗</span></span></div>
+    <div class="ai"><span class="t">Chicken + Sweetcorn<small>veg</small></span><span class="yn"><span class="y on">✓</span><span class="n">✗</span></span></div>
+    <div class="ai off"><span class="t">Gammon + Pineapple<small>other</small></span><span class="yn"><span class="y">✓</span><span class="n on">✗</span></span></div>
+    <div class="ai"><span class="t">Pigs in blankets + Potatoes<small>side · roast</small></span><span class="yn"><span class="y on">✓</span><span class="n">✗</span></span></div>
+  </div>
+  <div class="btns"><button class="btn go">Add 3</button><button class="btn">Cancel</button></div>
+</div>
+
+<div class="phone">
+  <div class="cap">3 · Stock check with days</div>
+  <div class="card">
+    <div class="sr"><div><b>Scotch eggs</b> <small class="ok">×2</small><div class="d"><span class="out new">8 days out</span> · <span class="ok">24 Oct</span></div></div><button class="btn">All there</button></div>
+    <div class="sr"><div><b>Dauphinoise potatoes</b><div class="d out new">19 Oct · 6 days out</div></div><button class="btn">All there</button></div>
+    <div class="sr"><div><b>Garlic bread</b><div class="d soon new">27 Oct · 2 days</div></div><button class="btn">All there</button></div>
+    <div class="sr"><div><b>Potato gratin</b><div class="d ok new">2 Dec · 38 days</div></div><button class="btn">All there</button></div>
+  </div>
+  <div class="why">Same colours as the fridge list: red = out, amber = soon, green = fine. Edit stays where it is.</div>
+</div>
+
+</div>
+</body></html>

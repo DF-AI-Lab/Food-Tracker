@@ -21,6 +21,8 @@
   let cpKind = 'main';    // Combos picker: the kind tab showing (main, side, veg, misc, dish)
   let cpTicked = [];      // Combos picker: the names ticked (step 1: what it is made of; step 2: what goes with it)
   let cpNotes = {};       // Combos picker, step 2: the note typed for each ticked name (by name)
+  let comboOpen = new Set(); // Combos list: groups open (lowercase names)
+  let aiRows = [];        // Ask an AI: the answer being reviewed, { a, b, note?, source, hidden, keep }
   let feedback = [];      // ideas & feedback (Settings), saved in DB.feedback
   let byDateOn = false;   // Fridge: the By date list shows instead of the sections
   let stockOpen = false;  // Fridge: the Stock check panel is open
@@ -295,6 +297,22 @@
     document.getElementById('cpCancel').addEventListener('click', closeComboPicker);
     document.getElementById('cpNext').addEventListener('click', nextComboStep);
     document.getElementById('cpSave').addEventListener('click', saveComboPicks);
+    // Ask an AI: copy or download the text, paste or upload the answer, then keep or bin each pair
+    document.getElementById('aiCopy').addEventListener('click', copyAiText);
+    document.getElementById('aiDownload').addEventListener('click', downloadAiText);
+    document.getElementById('aiPaste').addEventListener('click', () => {
+      document.getElementById('aiPasteWrap').hidden = false;
+      document.getElementById('aiPasteText').focus();
+    });
+    document.getElementById('aiCheck').addEventListener('click', () => readAiAnswer(document.getElementById('aiPasteText').value));
+    document.getElementById('aiUpload').addEventListener('click', () => document.getElementById('aiFile').click());
+    document.getElementById('aiFile').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (file) readAiAnswer(await file.text());
+    });
+    document.getElementById('aiAdd').addEventListener('click', addAiRows);
+    document.getElementById('aiCancel').addEventListener('click', () => { aiRows = []; renderAiReview(); });
     document.getElementById('cpTypeAdd').addEventListener('click', addTypedFood);
     document.getElementById('cpType').addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); addTypedFood(); }
@@ -2229,7 +2247,15 @@
       }
       const date = document.createElement('span');
       date.className = 'sr-date';
-      date.textContent = group.dateLabel;
+      const w = FT.stockWhen(group.packs, today);
+      date.textContent = w.main;
+      if (w.state) date.classList.add('st-' + w.state);
+      if (w.more) {
+        const more = document.createElement('span');
+        more.className = 'dim';
+        more.textContent = ' · ' + w.more;
+        date.append(more);
+      }
       text.append(name, date);
 
       const there = document.createElement('button');
@@ -3234,7 +3260,9 @@
   async function saveComboPicks() {
     if (!cpFood) return;
     const rows = comboSaveRows();
+    const food = cpFood; // read before closeComboPicker resets it
     closeComboPicker();
+    comboOpen.add(food.toLowerCase()); // keep its group open to show the new pairs
     for (const row of rows) {
       const id = await DB.combos.add(row);
       combos = [...combos, { ...row, id }];
@@ -3267,16 +3295,32 @@
     return r.note ? `${r.b} (${r.note})` : r.b;
   }
 
-  // One food (or dish) with its pairs as chips; × hides that pair. Tap the name to add what goes with it.
+  // One food (or dish) with its pairs as chips; × hides that pair. Tap the name to open or close it; + Add inside adds what goes with it.
   function comboGroup(g) {
+    const key = g.name.toLowerCase();
+    const open = comboOpen.has(key);
     const wrap = document.createElement('div');
-    wrap.className = 'combo-group';
+    wrap.className = 'combo-group' + (open ? ' open' : '');
+    // The name is the only text of .combo-food; the arrow and count sit beside it, and the whole row toggles
+    const head = document.createElement('div');
+    head.className = 'combo-head';
+    const arr = document.createElement('span');
+    arr.className = 'combo-arr';
+    arr.textContent = open ? '▾' : '▸';
     const food = document.createElement('button');
     food.type = 'button';
     food.className = 'combo-food';
     food.textContent = g.name;
-    food.addEventListener('click', () => openComboPicker(g.name));
-    wrap.appendChild(food);
+    const count = document.createElement('span');
+    count.className = 'combo-count';
+    count.textContent = g.rows.length;
+    head.append(arr, food, count);
+    head.addEventListener('click', () => {
+      if (comboOpen.has(key)) comboOpen.delete(key);
+      else comboOpen.add(key);
+      renderCombos();
+    });
+    wrap.appendChild(head);
     if (g.dish) {
       const made = document.createElement('div');
       made.className = 'combo-made';
@@ -3285,6 +3329,7 @@
     }
     const chips = document.createElement('div');
     chips.className = 'combo-chips';
+    chips.hidden = !open;
     for (const r of g.rows) {
       const chip = document.createElement('span');
       chip.className = 'combo-chip';
@@ -3298,8 +3343,123 @@
       chip.appendChild(x);
       chips.appendChild(chip);
     }
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'combo-more';
+    more.textContent = '+ Add';
+    more.addEventListener('click', () => openComboPicker(g.name));
+    chips.appendChild(more);
     wrap.appendChild(chips);
     return wrap;
+  }
+
+  // ---- Ask an AI (combos): copy or download the text, paste or upload the answer, then keep or bin each pair ----
+
+  function aiText() {
+    return FT.aiComboText({ packs, combos, meals, today });
+  }
+
+  function aiSay(text) {
+    const msg = document.getElementById('aiMsg');
+    msg.textContent = text;
+    msg.hidden = !text;
+  }
+
+  async function copyAiText() {
+    try {
+      await navigator.clipboard.writeText(aiText());
+      aiSay('Copied. Paste it into the AI.');
+    } catch (e) {
+      aiSay("Couldn't copy. Try Download.");
+    }
+  }
+
+  function downloadAiText() {
+    const url = URL.createObjectURL(new Blob([aiText()], { type: 'text/plain' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `combos-for-ai-${today}.txt`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // Read the AI's answer (pasted or uploaded) into the review list
+  function readAiAnswer(text) {
+    const all = FT.comboPairs(combos, meals);
+    const r = FT.parseAiCombos(text, [...all.shown, ...all.hidden]);
+    if (!r.ok) {
+      aiSay(r.reason);
+      aiRows = [];
+      renderAiReview();
+      return;
+    }
+    if (!r.rows.length) {
+      aiSay('Nothing new in that answer.');
+      aiRows = [];
+      renderAiReview();
+      return;
+    }
+    aiSay('');
+    document.getElementById('aiPasteWrap').hidden = true;
+    document.getElementById('aiPasteText').value = '';
+    aiRows = r.rows.map(x => ({ ...x, keep: true }));
+    renderAiReview();
+  }
+
+  function renderAiReview() {
+    const box = document.getElementById('aiReview');
+    box.hidden = !aiRows.length;
+    if (!aiRows.length) return;
+    box.querySelector('.ai-title').textContent = `AI found ${aiRows.length} · keep which?`;
+    const list = box.querySelector('.ai-list');
+    list.textContent = '';
+    for (const row of aiRows) {
+      const line = document.createElement('div');
+      line.className = 'ai-row' + (row.keep ? '' : ' off');
+      const text = document.createElement('span');
+      text.className = 'ai-text';
+      text.append(`${row.a} + ${row.b}`);
+      if (row.note) {
+        const note = document.createElement('small');
+        note.textContent = row.note;
+        text.append(note);
+      }
+      const yn = document.createElement('span');
+      yn.className = 'ai-yn';
+      const yes = document.createElement('button');
+      yes.type = 'button';
+      yes.className = 'ai-yes' + (row.keep ? ' on' : '');
+      yes.textContent = '✓';
+      yes.setAttribute('aria-label', 'Keep');
+      yes.addEventListener('click', () => { row.keep = true; renderAiReview(); });
+      const no = document.createElement('button');
+      no.type = 'button';
+      no.className = 'ai-no' + (row.keep ? '' : ' on');
+      no.textContent = '✗';
+      no.setAttribute('aria-label', 'Bin');
+      no.addEventListener('click', () => { row.keep = false; renderAiReview(); });
+      yn.append(yes, no);
+      line.append(text, yn);
+      list.append(line);
+    }
+    const kept = aiRows.filter(r => r.keep).length;
+    const add = document.getElementById('aiAdd');
+    add.textContent = `Add ${kept}`;
+    add.disabled = !kept;
+  }
+
+  // Add the kept pairs (source ai, closed groups), then the review closes
+  async function addAiRows() {
+    const kept = aiRows.filter(r => r.keep).map(({ keep, ...row }) => row);
+    aiRows = [];
+    renderAiReview();
+    for (const row of kept) {
+      const id = await DB.combos.add(row);
+      combos = [...combos, { ...row, id }];
+    }
+    renderAll();
   }
 
   // A hidden pair, with Bring back
@@ -4715,6 +4875,7 @@
         ratings: await DB.ratings.all(),
         recipes: await DB.recipes.all(),
         mealPlans: await DB.mealPlans.all(),
+        combos: await DB.combos.all(),
       };
       const backup = FT.backupFile(data, today, new Date().toISOString());
       // Android's Share menu won't take .json files, so a phone shares the same text as .txt
@@ -4768,9 +4929,10 @@
         ratings: await DB.ratings.all(),
         recipes: await DB.recipes.all(),
         mealPlans: await DB.mealPlans.all(),
+        combos: await DB.combos.all(),
       };
       const plan = FT.restorePlan(current, r.data);
-      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings, recipes: DB.recipes, mealPlans: DB.mealPlans };
+      const stores = { packs: DB, shop: DB.shop, meals: DB.meals, sheets: DB.sheets, ratings: DB.ratings, recipes: DB.recipes, mealPlans: DB.mealPlans, combos: DB.combos };
       for (const list of Object.keys(plan)) {
         for (const item of plan[list].put) await stores[list].put(item);
         for (const id of plan[list].remove) await stores[list].remove(id);
