@@ -49,7 +49,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .item .s.ok{color:var(--accent)}
 .item.on{border-color:var(--accent);background:var(--sel)}
 .item.dim{opacity:.5}
-.take{color:var(--accent);font-weight:600;font-size:14px;align-self:flex-start;padding:4px 0}
+.tabs{display:flex;align-items:center;gap:10px;min-width:0;border-bottom:1px solid var(--border)}
+.tabs .t{padding:8px 0;font-size:14px;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .t.on{color:var(--text);font-weight:700;border-color:var(--accent)}
+.tabs .take{margin-left:auto;color:var(--accent);font-weight:600;font-size:13px;border:1px dashed var(--sel-b);border-radius:10px;padding:3px 7px;white-space:nowrap;flex:none}
+.body{padding:0 12px 14px}
+.dh{padding:14px 12px}
 .note{border:1px solid var(--sel-b);background:var(--sel);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .note h2{font-size:16px;margin:0}
 .note p{margin:0;font-size:14px}
@@ -68,29 +73,23 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   <div class="note">
     <h2>What changed in the open day</h2>
-    <p><b>Gone:</b> Top 3 (Plan my week does that), the 5 tabs, Next: Sides, Next day.</p>
-    <p><b>Kept:</b> Dinner | Tea.</p>
-    <p><b>Now:</b> one list. My meals first, then the fridge, going off soonest at the top. Tap to put it on the plate. Tap again or × to take it off.</p>
+    <p><b>Kept:</b> Dinner | Tea and the tabs.</p>
+    <p><b>Takeaway</b> sits at the end of the tab row.</p>
+    <p><b>Gone:</b> Top 3, "Adding to…", the Takeaway row, Next: Sides, Next day.</p>
+    <p>Tap a food to put it on the plate. Tap again or ✕ to take it off.</p>
     <p>Tap the day's name to close it.</p>
   </div>
 </div>
 
 <script>
-const fridge=[
-  {n:'Whole chicken',left:'2 days',warn:true},
-  {n:'Potatoes',left:'2 days',warn:true},
-  {n:'Hotdog rolls',left:'4 days'},
-  {n:'Grated cheese',left:'3 days'},
-  {n:'Frankfurters ×2',left:'14 days'},
-  {n:'Bacon ×2',left:'20 days'},
-  {n:'Tagliatelle',left:'38 days'}
-].sort((a,b)=>parseInt(a.left)-parseInt(b.left));
-const myMeals=[
-  {n:'Frankfurters + Hotdog rolls',s:'All in fridge',c:'ok'},
-  {n:'Sausages wrapped in bacon',s:'Need sausages',c:'warn'},
-  {n:'Lasagne',s:'Planned Mon',c:''},
-  {n:'Fajita recipe for 4',s:'Planned Tue',c:''}
-];
+const tabs={
+  meal:[{n:'Frankfurters + Hotdog rolls',s:'All in fridge',c:'ok'},{n:'Sausages wrapped in bacon',s:'Need sausages',c:'warn'},{n:'Lasagne',s:''},{n:'Fajita recipe for 4',s:''}],
+  main:[{n:'Whole chicken',s:'2 days',c:'warn'},{n:'Frankfurters ×2',s:'14 days'},{n:'Bacon ×2',s:'20 days'},{n:'Tagliatelle',s:'38 days'}],
+  side:[{n:'Potatoes',s:'2 days',c:'warn'},{n:'Hotdog rolls',s:'4 days'}],
+  veg:[{n:'Peas',s:'freezer'},{n:'Sweetcorn',s:'tin'}],
+  misc:[{n:'Grated cheese',s:'3 days'},{n:'Carbonara sauce',s:'added 24 Oct'}]
+};
+const tabNames=[['meal','Meals'],['main','Mains'],['side','Sides'],['veg','Veg'],['misc','Other']];
 const days=[
   {d:'Sun',dt:'25 Oct',today:true,open:true,tea:[],dinner:[]},
   {d:'Mon',dt:'26 Oct',tea:['Lasagne'],dinner:[]},
@@ -100,7 +99,7 @@ const days=[
   {d:'Fri',dt:'30 Oct',tea:[],dinner:[]},
   {d:'Sat',dt:'31 Oct',tea:[],dinner:[]}
 ];
-days.forEach(x=>x.sit='tea');
+days.forEach(x=>{x.sit='tea';x.tab='main'});
 const soon=[{n:'Whole chicken',when:'2 days'},{n:'Potatoes',when:'2 days'},{n:'Grated cheese',when:'3 days'}];
 
 function plannedOn(name){const x=days.find(x=>x.tea.includes(name)||x.dinner.includes(name));return x?x.d:null}
@@ -108,7 +107,7 @@ function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className
 
 function draw(){
   const s=document.getElementById('soon');s.innerHTML='';
-  soon.forEach(f=>{const on=plannedOn(f.n);const p=el('div','pill '+(on?'ok':'warn'),`<b>${f.n}</b><small>${on?'✓ '+on:'out in '+f.when+' · not planned'}</small>`);s.appendChild(p)});
+  soon.forEach(f=>{const on=plannedOn(f.n);const p=el('div','pill '+(on?'ok':'warn'),`<b>${f.n}</b><small>${on?'✓ '+on:'out in '+f.when+''}</small>`);s.appendChild(p)});
   const box=document.getElementById('days');box.innerHTML='';
   days.forEach(x=>{
     const card=el('div','day'+(x.open?' open':''));
@@ -127,18 +126,14 @@ function draw(){
       cur.forEach(n=>{const c=el('span','chip',n+' ');const xb=el('button','','✕');xb.type='button';xb.setAttribute('aria-label','Take off '+n);xb.onclick=()=>{x[x.sit]=cur.filter(m=>m!==n);draw()};c.appendChild(xb);plate.appendChild(c)});
       b.appendChild(plate);
       const toggle=n=>{if(cur.includes(n))x[x.sit]=cur.filter(m=>m!==n);else x[x.sit]=[...cur,n];draw()};
-      b.appendChild(el('div','lab','My meals'));
-      const ml=el('div','list');
-      myMeals.forEach(m=>{const on=cur.includes(m.n);const other=!on&&plannedOn(m.n);
-        const it=el('button','item'+(on?' on':'')+(other?' dim':''),`<span class="n">${m.n}</span><span class="s ${on?'ok':other?'':m.c}">${on?'✓ on plate':other?'Planned '+other:m.s}</span>`);it.type='button';it.onclick=()=>toggle(m.n);ml.appendChild(it)});
-      b.appendChild(ml);
-      b.appendChild(el('div','lab','From the fridge · soonest first'));
-      const fl=el('div','list');
-      fridge.forEach(f=>{const on=cur.includes(f.n);const other=!on&&plannedOn(f.n);
-        const it=el('button','item'+(on?' on':'')+(other?' dim':''),`<span class="n">${f.n}</span><span class="s ${on?'ok':other?'':(f.warn?'warn':'')}">${on?'✓ on plate':other?'Planned '+other:f.left}</span>`);it.type='button';it.onclick=()=>toggle(f.n);fl.appendChild(it)});
-      b.appendChild(fl);
-      const tk=el('button','take','🛍 Takeaway instead');tk.type='button';tk.onclick=()=>{x[x.sit]=['Takeaway'];draw()};
-      b.appendChild(tk);
+      const tr=el('div','tabs');
+      tabNames.forEach(([k,lab])=>{const t=el('button','t'+(x.tab===k?' on':''),lab);t.type='button';t.onclick=()=>{x.tab=k;draw()};tr.appendChild(t)});
+      const tk=el('button','take','Takeaway');tk.type='button';tk.onclick=()=>{x[x.sit]=['Takeaway'];draw()};tr.appendChild(tk);
+      b.appendChild(tr);
+      const l=el('div','list');
+      tabs[x.tab].forEach(f=>{const on=cur.includes(f.n);const other=!on&&plannedOn(f.n);
+        const it=el('button','item'+(on?' on':'')+(other?' dim':''),`<span class="n">${f.n}</span><span class="s ${on?'ok':other?'':(f.c||'')}">${on?'✓ on plate':other?'Planned '+other:f.s}</span>`);it.type='button';it.onclick=()=>toggle(f.n);l.appendChild(it)});
+      b.appendChild(l);
       card.appendChild(b);
     }
     box.appendChild(card);
