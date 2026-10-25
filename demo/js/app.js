@@ -22,8 +22,7 @@
   let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
   let ideasAll = false;   // Ideas for the week: all shown (false = the best 3 and a Show more button)
   let weekSwaps = {};     // Plan my week: idea keys swapped out, by day
-  let weekMoves = {};     // Plan my week: ideas moved between days (Move), by day; null = the day is left empty
-  let weekMoveOpen = null; // Plan my week: the day whose Move bar is open, or null
+  let weekMoves = {};     // Plan my week: ideas moved between days (drag), by day; null = the day is left empty
   let chgKey = null;      // A planned day: the sitting whose Change bar is open (FT.sitKey), or null
   let chgMove = false;    // A planned day: the Change bar's Move day choices are open
   let weekOff = new Set(); // Plan my week: days left out (unticked)
@@ -321,7 +320,6 @@
     document.getElementById('weekBtn').addEventListener('click', () => {
       weekSwaps = {};
       weekMoves = {};
-      weekMoveOpen = null;
       weekOff = new Set();
       document.getElementById('weekPanel').hidden = false;
       renderWeek();
@@ -2899,8 +2897,14 @@
     }
   }
 
-  // Meals page folds: open or shut, remembered on this phone (try/catch: storage can be blocked)
+  // Meals page folds: open or shut, remembered on this phone (try/catch: storage can be blocked).
+  // The summary click is taken over: the body slides open or shut (FOLD_MS), and the state is saved
+  // once it settles. Reduced motion toggles at once. A click mid-slide reverses from where it is.
   const FOLD_IDS = ['myMealsFold', 'combosFold', 'editMealsFold', 'allCombosFold'];
+  const FOLD_MS = 250;
+  function foldSave(el) {
+    try { localStorage.setItem('v4demo.fold.' + el.id, el.open ? 'open' : 'shut'); } catch (e) { /* ignore */ }
+  }
   function setupFolds() {
     for (const id of FOLD_IDS) {
       const el = document.getElementById(id);
@@ -2909,10 +2913,58 @@
       try { saved = localStorage.getItem('v4demo.fold.' + id); } catch (e) { /* ignore */ }
       if (saved === 'open') el.open = true;
       else if (saved === 'shut') el.open = false;
-      el.addEventListener('toggle', () => {
-        try { localStorage.setItem('v4demo.fold.' + id, el.open ? 'open' : 'shut'); } catch (e) { /* ignore */ }
+      el.classList.toggle('fold-on', el.open);
+      const body = el.querySelector(':scope > .fold-body');
+      el._foldPad = body ? parseFloat(getComputedStyle(body).paddingTop) || 0 : 0;
+      el.querySelector(':scope > summary').addEventListener('click', e => {
+        e.preventDefault();
+        foldToggle(el);
       });
     }
+  }
+  function foldToggle(el) {
+    const body = el.querySelector(':scope > .fold-body');
+    let reduce = false;
+    try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* ignore */ }
+    const cur = el._foldRun; // a slide in progress: { anim, opening }
+    let opening, from, fromPad;
+    if (cur) {
+      from = body.getBoundingClientRect().height;
+      fromPad = parseFloat(getComputedStyle(body).paddingTop) || 0;
+      cur.anim.cancel(); // no onfinish for a cancel
+      opening = !cur.opening;
+    } else if (el.open) {
+      opening = false;
+      from = body.getBoundingClientRect().height;
+      fromPad = el._foldPad;
+    } else {
+      opening = true;
+      from = 0;
+      fromPad = 0;
+    }
+    el._foldRun = null;
+    el.classList.toggle('fold-on', opening);
+    if (reduce || !body) {
+      el.open = opening;
+      body && (body.style.overflow = '');
+      foldSave(el);
+      return;
+    }
+    if (opening) el.open = true; // the body shows for the slide
+    const to = opening ? body.scrollHeight : 0;
+    body.style.overflow = 'hidden';
+    const anim = body.animate(
+      [{ height: from + 'px', paddingTop: fromPad + 'px' }, { height: to + 'px', paddingTop: (opening ? el._foldPad : 0) + 'px' }],
+      { duration: FOLD_MS, easing: 'ease-out' });
+    const run = { anim, opening };
+    el._foldRun = run;
+    anim.onfinish = () => {
+      if (el._foldRun !== run) return;
+      el._foldRun = null;
+      if (!opening) el.open = false;
+      body.style.overflow = '';
+      foldSave(el);
+    };
   }
 
   // ---- Ideas for the week, and Combos (pairs) ----
@@ -3368,8 +3420,93 @@
 
   // ---- Plan my week ----
 
+  // Drag by a grab handle (Pointer Events). The row or card follows the finger, lifted. targetAt(x, y)
+  // gives the valid target under the pointer (or null) and it is highlighted; release over one runs
+  // onDrop(target), else the row slides back. Under 5px of movement is a tap, not a drag. Near the top
+  // or bottom of the screen the page scrolls on, so a row further down can be reached.
+  function attachGrab(handle, el, targetAt, onDrop) {
+    let start = null; // { id, x, y, sy, cx, cy, drag, target, raf } while a pointer is down
+    const aim = s => {
+      const t = targetAt(s.cx, s.cy);
+      if (t !== s.target) {
+        if (s.target) s.target.classList.remove('drop-ok');
+        if (t) t.classList.add('drop-ok');
+        s.target = t;
+      }
+    };
+    const place = s => { el.style.transform = `translateY(${s.cy - s.y + (scrollY - s.sy)}px) scale(1.02)`; };
+    const frame = () => {
+      const s = start;
+      if (!s || !s.drag) return;
+      if (s.cy >= 0 && s.cy <= innerHeight) {
+        if (s.cy > innerHeight - 60) window.scrollBy(0, 12);
+        else if (s.cy < 60) window.scrollBy(0, -12);
+      }
+      place(s);
+      aim(s);
+      s.raf = requestAnimationFrame(frame);
+    };
+    handle.addEventListener('click', e => e.stopPropagation());
+    handle.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      if (e.button !== 0 || start) return;
+      handle.setPointerCapture(e.pointerId);
+      start = { id: e.pointerId, x: e.clientX, y: e.clientY, sy: scrollY, cx: e.clientX, cy: e.clientY, drag: false, target: null, raf: 0 };
+    });
+    handle.addEventListener('pointermove', e => {
+      if (!start || e.pointerId !== start.id) return;
+      e.stopPropagation();
+      start.cx = e.clientX;
+      start.cy = e.clientY;
+      if (!start.drag) {
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 5) return;
+        start.drag = true;
+        el.classList.add('grab-lift');
+        start.raf = requestAnimationFrame(frame);
+      }
+      place(start);
+      aim(start);
+    });
+    const end = (e, drop) => {
+      if (!start || e.pointerId !== start.id) return;
+      e.stopPropagation();
+      const s = start;
+      start = null;
+      cancelAnimationFrame(s.raf);
+      if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+      if (!s.drag) return;
+      if (drop) { s.cx = e.clientX; s.cy = e.clientY; aim(s); }
+      if (s.target) s.target.classList.remove('drop-ok');
+      el.classList.remove('grab-lift');
+      el.style.transition = 'transform .2s ease-out';
+      el.style.transform = '';
+      setTimeout(() => { el.style.transition = ''; }, 220);
+      if (drop && s.target) onDrop(s.target);
+    };
+    handle.addEventListener('pointerup', e => end(e, true));
+    handle.addEventListener('pointercancel', e => end(e, false));
+  }
+
+  // The first of els (not skip, the dragged one) whose box holds the point. Boxes, not hit tests, so a point past the
+  // screen edge still counts, and a lifted row over the spot does not hide the row under it
+  function boxAt(els, x, y, skip) {
+    for (const el of els) {
+      if (el === skip) continue;
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return el;
+    }
+    return null;
+  }
+
+  // Plan my week: a row's idea can go to another row's day when both fit (the rule Move used)
+  function weekDropOk(src, r) {
+    return r.day !== src.day && !r.skipped &&
+      FT.ideaDays(src.idea, [r.day]).length > 0 &&
+      (!r.idea || FT.ideaDays(r.idea, [src.day]).length > 0);
+  }
+
   // The week's panel: one row a day (soonest out first), Swap picks another idea for that day,
-  // Move swaps a day's idea with another day's, the tick leaves it out
+  // the ⠿ handle drags a day's idea onto another day (they swap), the tick leaves it out
   function renderWeek() {
     const list = document.querySelector('#weekPanel .wk-list');
     weekRows = FT.weekPlan(packs, planPairs(), today, { dishes: FT.comboDishes(combos), meals, skipDays: teaSkipDays(), swaps: weekSwaps, recipes });
@@ -3378,6 +3515,28 @@
     for (const row of weekRows) {
       const line = document.createElement('div');
       line.className = 'wk-day';
+      line.dataset.day = row.day;
+      if (row.idea) {
+        const grab = document.createElement('button');
+        grab.type = 'button';
+        grab.className = 'wk-grab';
+        grab.textContent = '⠿';
+        grab.setAttribute('aria-label', 'Drag to move');
+        attachGrab(grab, line,
+          (x, y) => {
+            const t = boxAt(document.querySelectorAll('#weekPanel .wk-day[data-day]'), x, y, line);
+            if (!t) return null;
+            const r = weekRows.find(q => q.day === t.dataset.day);
+            return r && weekDropOk(row, r) ? t : null;
+          },
+          t => {
+            const r = weekRows.find(q => q.day === t.dataset.day);
+            weekMoves[row.day] = r.idea;
+            weekMoves[r.day] = row.idea;
+            renderWeek();
+          });
+        line.appendChild(grab);
+      }
       const d = document.createElement('span');
       d.className = 'wk-d';
       d.textContent = shortWeekday(row.day);
@@ -3404,16 +3563,6 @@
         swap.addEventListener('click', () => {
           weekSwaps[row.day] = [...(weekSwaps[row.day] || []), idea.key];
           delete weekMoves[row.day];
-          if (weekMoveOpen === row.day) weekMoveOpen = null;
-          renderWeek();
-        });
-        const move = document.createElement('button');
-        move.type = 'button';
-        move.className = 'wk-move';
-        move.textContent = 'Move';
-        move.setAttribute('aria-expanded', String(weekMoveOpen === row.day));
-        move.addEventListener('click', () => {
-          weekMoveOpen = weekMoveOpen === row.day ? null : row.day;
           renderWeek();
         });
         const on = !weekOff.has(row.day);
@@ -3427,48 +3576,18 @@
           else weekOff.add(row.day);
           renderWeek();
         });
-        line.append(m, swap, move, tick);
+        line.append(m, swap, tick);
       }
       list.appendChild(line);
-      if (weekMoveOpen === row.day && row.idea) list.appendChild(weekMoveBar(row));
     }
     const n = weekRows.filter(r => r.idea && !weekOff.has(r.day)).length;
     document.getElementById('weekPlan').textContent = `Plan these ${n}`;
   }
 
-  // Move: the other days (not already planned) this idea fits, with the other day's idea if it fits here
-  function weekMoveBar(row) {
-    const bar = document.createElement('div');
-    bar.className = 'wk-movebar';
-    const targets = weekRows.filter(r => r.day !== row.day && !r.skipped &&
-      FT.ideaDays(row.idea, [r.day]).length > 0 &&
-      (!r.idea || FT.ideaDays(r.idea, [row.day]).length > 0));
-    if (!targets.length) {
-      const none = document.createElement('span');
-      none.className = 'wk-movebar-lbl';
-      none.textContent = 'No other day fits it';
-      bar.appendChild(none);
-    }
-    for (const r of targets) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'wk-to';
-      b.textContent = shortWeekday(r.day);
-      b.addEventListener('click', () => {
-        weekMoves[row.day] = r.idea;
-        weekMoves[r.day] = row.idea;
-        weekMoveOpen = null;
-        renderWeek();
-      });
-      bar.appendChild(b);
-    }
-    return bar;
-  }
-
   function closeWeek() {
-    weekMoveOpen = null;
     document.getElementById('weekPanel').hidden = true;
   }
+
 
   // Plan these: each ticked day gets its idea's foods (tea), then the panel closes
   async function planWeek() {
@@ -3482,6 +3601,7 @@
         await savePack(FT.planPack(p, row.day, FT.slotFor(p.kind), 'tea'));
       }
     }
+    openDay = null; // the planned days show as their closed lines (Change, and the ⠿ handle to move one)
     closeWeek();
     renderMeals();
     renderAll();
@@ -4376,6 +4496,7 @@
     const asked = pastDays();
     const card = document.createElement('div');
     card.className = 'day' + (isOpen ? ' open' : '') + (isToday ? ' today' : '');
+    card.dataset.day = day;
 
     const head = document.createElement('div');
     head.className = 'dh';
@@ -4487,6 +4608,19 @@
           renderMeals();
         });
         line.appendChild(change);
+        // Drag the ⠿ handle onto another upcoming day: the same as Change → Move day to that day
+        const grab = document.createElement('button');
+        grab.type = 'button';
+        grab.className = 'sit-grab';
+        grab.textContent = '⠿';
+        grab.setAttribute('aria-label', 'Drag to move');
+        attachGrab(grab, card,
+          (x, y) => {
+            const t = boxAt(document.querySelectorAll('#dayList .day[data-day]'), x, y, card);
+            return t && FT.mealDays(today).includes(t.dataset.day) ? t : null;
+          },
+          t => moveSitting(day, t.dataset.day, meal));
+        line.prepend(grab);
         card.appendChild(line);
         if (chgKey === FT.sitKey(day, meal)) card.appendChild(changeBar(day, meal));
         blocks.forEach(b => card.appendChild(b));
