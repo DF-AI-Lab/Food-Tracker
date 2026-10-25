@@ -128,6 +128,8 @@ function startStatic() {
     const day = i => page.locator("#dayList .day").nth(i);
     await until(async () => assert.match(await day(0).innerText(), /Fish/));
     assert.doesNotMatch(await day(5).innerText(), /Fish/);
+    // Plan these no longer closes the open day card: close today's card, so its planned sitting shows as a closed line
+    if (await page.locator("#dayList .day.open").count()) await page.locator("#dayList .day.open .dh").click();
     const grab = day(0).locator(".sit-grab").first();
     assert.equal(await grab.count(), 1, "planned day has a grab handle");
     await drag(grab, day(5));

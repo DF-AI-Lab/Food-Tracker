@@ -19,7 +19,8 @@
   let ideaOtherKey = null; // Ideas for the week: the idea whose Other day choices are open, or null
   let ideaEditKey = null; // Ideas for the week: the idea whose ✎ Edit box is open, or null
   let ideaMealErr = null; // Ideas: a message for the idea's Edit box ({ key, text }), or null
-  let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
+  let ideaUndo = null;    // Ideas: the last idea action that can be undone ({ text, undo }), or null
+  let ideaUndoTimer = null; // Ideas: the timer that drops ideaUndo after 10 seconds
   let ideasAll = false;   // Ideas for the week: all shown (false = the best 3 and a Show more button)
   let weekSwaps = {};     // Plan my week: idea keys swapped out, by day
   let weekMoves = {};     // Plan my week: ideas moved between days (drag), by day; null = the day is left empty
@@ -2998,6 +2999,7 @@
       dishes: FT.comboDishes(combos), meals, skipDays: teaSkipDays(), swaps: ideaSwaps, recipes
     });
     list.textContent = '';
+    if (ideaUndo) list.appendChild(ideaUndoBar());
     if (!rows.length) {
       const note = document.createElement('p');
       note.className = 'note';
@@ -3041,12 +3043,21 @@
     edit.textContent = '✎ Edit';
     edit.setAttribute('aria-expanded', String(ideaEditKey === idea.key));
     edit.addEventListener('click', () => {
+      clearIdeaUndo();
       ideaEditKey = ideaEditKey === idea.key ? null : idea.key;
       ideaOtherKey = null;
       ideaMealErr = null;
       renderMealIdeas();
     });
-    head.append(title, edit);
+    const saved = mealFor(idea);
+    if (saved) {
+      const tag = document.createElement('span');
+      tag.className = 'idea-mealtag';
+      tag.textContent = '🍽 Meal';
+      head.append(title, tag, edit);
+    } else {
+      head.append(title, edit);
+    }
     card.appendChild(head);
     if (idea.why && idea.why.text) {
       const why = document.createElement('div');
@@ -3077,14 +3088,35 @@
     other.textContent = 'Other day';
     other.setAttribute('aria-expanded', String(ideaOtherKey === idea.key));
     other.addEventListener('click', () => {
+      clearIdeaUndo();
       ideaOtherKey = ideaOtherKey === idea.key ? null : idea.key;
       ideaEditKey = null;
       renderMealIdeas();
     });
     btns.append(plan, other);
     card.appendChild(btns);
+    // Under the buttons: Make a meal (not once a saved meal matches) and Not for me (not for a saved meal)
+    if (!idea.recipe) {
+      const minor = document.createElement('div');
+      minor.className = 'idea-minor';
+      if (!saved) {
+        const meal = document.createElement('button');
+        meal.type = 'button';
+        meal.className = 'idea-meal';
+        meal.textContent = '🍽 Make a meal';
+        meal.addEventListener('click', () => makeIdeaMeal(idea));
+        minor.appendChild(meal);
+      }
+      const nfm = document.createElement('button');
+      nfm.type = 'button';
+      nfm.className = 'idea-nfm';
+      nfm.textContent = 'Not for me';
+      nfm.addEventListener('click', () => notForMe(idea, card));
+      minor.appendChild(nfm);
+      card.appendChild(minor);
+    }
     if (ideaOtherKey === idea.key) card.appendChild(ideaOtherDays(idea));
-    if (ideaEditKey === idea.key) card.appendChild(ideaEditBox(row));
+    if (ideaEditKey === idea.key) card.appendChild(ideaEditBox(row, card));
     return card;
   }
 
@@ -3123,28 +3155,24 @@
     return panel;
   }
 
-  // ✎ Edit: Make it a meal, Not <day>, Don't like <side> with <main> (one per pair), Not for me
-  function ideaEditBox(row) {
+  // ✎ Edit: Not this time (Not <day>), then Don't like (one per pair: "<side> with <main>").
+  // Make a meal and Not for me sit under the card's buttons (.idea-minor).
+  function ideaEditBox(row, card) {
     const { idea } = row;
     const box = document.createElement('div');
     box.className = 'idea-editbox';
-    if (!idea.recipe) {
-      const meal = document.createElement('button');
-      meal.type = 'button';
-      meal.className = 'idea-meal';
-      meal.textContent = '🍽 Make it a meal';
-      meal.addEventListener('click', () => makeIdeaMeal(idea));
-      box.appendChild(meal);
-    }
+    const heading = text => {
+      const h = document.createElement('div');
+      h.className = 'idea-lbl';
+      h.textContent = text;
+      return h;
+    };
+    box.appendChild(heading('Not this time'));
     const notday = document.createElement('button');
     notday.type = 'button';
     notday.className = 'idea-notday';
     notday.textContent = 'Not ' + dayWord(row.day);
-    notday.addEventListener('click', () => {
-      ideaSwaps[row.day] = [...(ideaSwaps[row.day] || []), idea.key];
-      ideaEditKey = null;
-      renderMealIdeas();
-    });
+    notday.addEventListener('click', () => notDayIdea(idea, row, card));
     box.appendChild(notday);
     if (ideaMealErr && ideaMealErr.key === idea.key) {
       const err = document.createElement('p');
@@ -3152,46 +3180,118 @@
       err.textContent = ideaMealErr.text;
       box.appendChild(err);
     }
-    if (!idea.recipe) {
+    if (!idea.recipe && idea.pairs.length) {
+      box.appendChild(heading("Don't like"));
       const anchor = ideaAnchor(idea);
       for (const pair of idea.pairs) {
-        const other = low(pair.a) === low(anchor) ? pair.b : pair.a;
+        const side = (low(pair.a) === low(anchor) ? pair.b : pair.a) + (pair.note ? ` (${pair.note})` : '');
         const nolike = document.createElement('button');
         nolike.type = 'button';
         nolike.className = 'idea-nolike';
-        nolike.textContent = `Don't like ${pair.note ? `${other} (${pair.note})` : other} with ${anchor}`;
-        nolike.addEventListener('click', () => {
-          ideaEditKey = null;
-          setPairHidden(pair, true);
-        });
+        nolike.textContent = `${side} with ${anchor}`;
+        nolike.addEventListener('click', () => dontLikeIdea(idea, pair, card));
         box.appendChild(nolike);
-      }
-      const nfm = document.createElement('button');
-      nfm.type = 'button';
-      nfm.className = 'idea-nfm';
-      nfm.textContent = 'Not for me';
-      nfm.addEventListener('click', () => notForMe(idea));
-      box.appendChild(nfm);
-      if (ideaNfmKey === idea.key) {
-        // Two or more pairs: ask which one is not for me
-        const pick = document.createElement('div');
-        pick.className = 'idea-pairs';
-        for (const pair of idea.pairs) {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'idea-pair';
-          b.textContent = `${pair.a} + ${comboLabel(pair)}`;
-          b.addEventListener('click', () => {
-            ideaNfmKey = null;
-            ideaEditKey = null;
-            setPairHidden(pair, true);
-          });
-          pick.appendChild(b);
-        }
-        box.appendChild(pick);
       }
     }
     return box;
+  }
+
+  // The saved meal that already is this idea: same name (any case), or the same foods (names, any case)
+  function mealFor(idea) {
+    const title = low(idea.title);
+    const foods = new Set([idea.main, ...idea.sides].map(p => low(p.name)));
+    return (recipes || []).find(r => {
+      if (low(r.name) === title) return true;
+      const meal = FT.normMeal(r);
+      if (!meal) return false;
+      const mine = new Set(meal.fresh.map(f => low(f.name)));
+      return mine.size === foods.size && [...mine].every(n => foods.has(n));
+    }) || null;
+  }
+
+  // The Undo bar: its text and one Undo button. It is shown at the top of the ideas list.
+  function ideaUndoBar() {
+    const bar = document.createElement('div');
+    bar.className = 'idea-undo';
+    const text = document.createElement('span');
+    text.textContent = ideaUndo.text;
+    const undo = document.createElement('button');
+    undo.type = 'button';
+    undo.textContent = 'Undo';
+    undo.addEventListener('click', () => {
+      const { undo: back } = ideaUndo;
+      clearIdeaUndo();
+      back();
+    });
+    bar.append(text, undo);
+    return bar;
+  }
+
+  // Drop the Undo bar (another idea action, the 10 seconds, or Undo itself)
+  function clearIdeaUndo() {
+    ideaUndo = null;
+    clearTimeout(ideaUndoTimer);
+    ideaUndoTimer = null;
+  }
+
+  // Show the Undo bar for the action just taken; it goes after 10 seconds
+  function setIdeaUndo(text, undo) {
+    clearIdeaUndo();
+    ideaUndo = { text, undo };
+    ideaUndoTimer = setTimeout(() => {
+      clearIdeaUndo();
+      renderMealIdeas();
+    }, 10000);
+  }
+
+  // Slide an idea card shut (about 250ms, fading); at once when reduced motion is asked for
+  async function slideShut(card) {
+    if (!card || !card.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cs = getComputedStyle(card);
+    card.style.overflow = 'hidden';
+    const anim = card.animate([
+      { height: card.offsetHeight + 'px', opacity: 1, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom },
+      { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px' }
+    ], { duration: 250, easing: 'ease-in', fill: 'forwards' });
+    await anim.finished.catch(() => {});
+  }
+
+  // Not for me: every pair of the idea is hidden (Undo brings them back)
+  async function notForMe(idea, card) {
+    clearIdeaUndo();
+    await slideShut(card);
+    ideaEditKey = null;
+    const pairs = idea.pairs;
+    setIdeaUndo(`${idea.title} hidden`, async () => {
+      for (const pair of pairs) await setPairHidden(pair, false);
+    });
+    for (const pair of pairs) await setPairHidden(pair, true);
+  }
+
+  // Don't like <side> with <main>: that pair is hidden (Undo brings it back)
+  async function dontLikeIdea(idea, pair, card) {
+    clearIdeaUndo();
+    await slideShut(card);
+    ideaEditKey = null;
+    const anchor = ideaAnchor(idea);
+    const side = (low(pair.a) === low(anchor) ? pair.b : pair.a) + (pair.note ? ` (${pair.note})` : '');
+    setIdeaUndo(`${side} with ${anchor} hidden`, () => setPairHidden(pair, false));
+    await setPairHidden(pair, true);
+  }
+
+  // Not <day>: the idea comes off that day (Undo puts it back on)
+  async function notDayIdea(idea, row, card) {
+    clearIdeaUndo();
+    await slideShut(card);
+    const { day } = row;
+    const key = idea.key;
+    ideaEditKey = null;
+    setIdeaUndo(`Moved off ${day === today ? 'tonight' : shortWeekday(day)}`, () => {
+      ideaSwaps[day] = (ideaSwaps[day] || []).filter(k => k !== key);
+      renderMealIdeas();
+    });
+    ideaSwaps[day] = [...(ideaSwaps[day] || []), key];
+    renderMealIdeas();
   }
 
   // The name an idea's pairs hang off: its main, or a dish's name
@@ -3205,6 +3305,7 @@
 
   // ✎ Edit → Make it a meal: the idea's foods become a saved meal (fresh foods, nothing else)
   async function makeIdeaMeal(idea) {
+    clearIdeaUndo();
     const res = FT.makeMeal({
       name: idea.title,
       fresh: [idea.main, ...idea.sides].map(p => ({ name: p.name, some: false, qty: 1 })),
@@ -3229,17 +3330,6 @@
     ideaMealErr = null;
     renderMeals();
     renderAll();
-  }
-
-  // Not for me: one pair left goes straight to Hidden; with more, ask which pair first
-  function notForMe(idea) {
-    if (idea.pairs.length === 1) {
-      ideaNfmKey = null;
-      setPairHidden(idea.pairs[0], true);
-      return;
-    }
-    ideaNfmKey = ideaNfmKey === idea.key ? null : idea.key;
-    renderMealIdeas();
   }
 
   // A day's top 3 ideas: Plan puts the idea's foods on that day, for the meal shown.
@@ -3405,6 +3495,7 @@
 
   // Plan: every food of the idea goes on the day (tea), the soonest pack of each
   async function planIdea(idea, day) {
+    clearIdeaUndo();
     ideaOtherKey = null;
     ideaEditKey = null;
     if (idea.recipe) {
@@ -3601,8 +3692,7 @@
         await savePack(FT.planPack(p, row.day, FT.slotFor(p.kind), 'tea'));
       }
     }
-    openDay = null; // the planned days show as their closed lines (Change, and the ⠿ handle to move one)
-    closeWeek();
+    closeWeek(); // the open day card stays open
     renderMeals();
     renderAll();
   }
@@ -4604,8 +4694,7 @@
           const key = FT.sitKey(day, meal);
           chgKey = chgKey === key ? null : key;
           chgMove = false;
-          openDay = null; // only one card open: a Change bar is on a closed card
-          renderMeals();
+          renderMeals(); // the open day card stays open
         });
         line.appendChild(change);
         // Drag the ⠿ handle onto another upcoming day: the same as Change → Move day to that day

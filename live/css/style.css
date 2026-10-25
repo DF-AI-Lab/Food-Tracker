@@ -903,9 +903,11 @@ body.typing .pane.af.stepped #usuals{display:none}
 .idea-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px}
 .idea-btns{display:flex;gap:8px;margin-top:6px}
 .idea-btns .act{flex:1;min-height:48px}
-.idea-nfm{font:inherit;font-size:13px;color:var(--muted);background:transparent;border:0;text-decoration:underline;min-height:36px;padding:0 8px;align-self:center;cursor:pointer}
-.idea-pairs{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;justify-content:center}
-.idea-pair{font:inherit;font-size:14px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:12px;min-height:40px;padding:0 12px;cursor:pointer}
+.idea-minor{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:2px}
+.idea-minor button{font:inherit;font-size:13px;color:var(--muted);background:transparent;border:0;text-decoration:underline;min-height:36px;padding:0 8px;cursor:pointer}
+.idea-mealtag{flex:none;align-self:flex-start;margin-top:2px;font-size:12px;font-weight:600;color:var(--accent);background:var(--sel-bg);border-radius:10px;padding:3px 8px;white-space:nowrap}
+.idea-undo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);font-size:14px}
+.idea-undo button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent-border);border-radius:10px;min-height:36px;padding:0 12px;cursor:pointer;flex:none}
 .idea-panel{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .idea-lbl{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .idea-days{display:flex;flex-wrap:wrap;gap:8px}
@@ -1002,7 +1004,6 @@ button.combo-food{display:block;font:inherit;font-weight:700;font-size:15px;colo
 .idea-editbox{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
 .idea-editbox button{font:inherit;font-size:14px;text-align:left;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-height:40px;padding:0 12px;cursor:pointer}
 .idea-editbox .idea-nolike{color:var(--danger)}
-.idea-editbox .idea-nfm{align-self:center;text-align:center;border:0;background:none;text-decoration:underline}
 .idea-editbox .idea-err{margin:0;font-size:13px;color:var(--danger)}
 .idea-cancel{font:inherit;font-size:13px;color:var(--muted);background:none;border:0;text-decoration:underline;align-self:center;min-height:36px;padding:0 8px;cursor:pointer}
 

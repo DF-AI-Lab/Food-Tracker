@@ -124,7 +124,7 @@ function startStatic() {
     await until(async () => assert.equal(await card().locator(".idea-mealtag").count(), 1));
     assert.match(await card().locator(".idea-mealtag").innerText(), /Meal/);
     assert.equal(await card().locator(".idea-meal").count(), 0);
-    const names = await page.locator("#myMeals .ml").innerText();
+    const names = await page.locator("#myMeals .ml").textContent(); // textContent: the My meals fold is closed
     assert.equal(names.split("Bacon").length - 1, 1, "one meal");
   });
 

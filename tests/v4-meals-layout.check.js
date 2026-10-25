@@ -110,7 +110,8 @@ function startStatic() {
     assert.equal((await cards.nth(0).locator(".idea-plan-day").innerText()).trim(), "Plan tonight");
     assert.equal((await card("Gammon").locator(".idea-plan-day").innerText()).trim(), "Plan Mon");
     for (const c of [".idea-other", ".idea-edit"]) assert.equal(await cards.nth(0).locator(c).count(), 1, c);
-    for (const c of [".idea-yes", ".idea-not", ".idea-x", ".idea-nfm"]) assert.equal(await cards.nth(0).locator(c).count(), 0, c + " gone");
+    for (const c of [".idea-yes", ".idea-not", ".idea-x"]) assert.equal(await cards.nth(0).locator(c).count(), 0, c + " gone");
+    assert.equal(await cards.nth(0).locator(".idea-minor .idea-nfm").count(), 1, "Not for me sits under the buttons");
   });
 
   await step("Plan tonight: Chicken goes on Sunday and leaves the ideas", async () => {
@@ -134,7 +135,9 @@ function startStatic() {
     await c.locator(".idea-edit").click();
     const box = c.locator(".idea-editbox");
     await until(async () => assert.ok(await box.isVisible()));
-    for (const b of [".idea-meal", ".idea-notday", ".idea-nolike", ".idea-nfm"]) assert.ok((await box.locator(b).count()) >= 1, b);
+    for (const b of [".idea-notday", ".idea-nolike"]) assert.ok((await box.locator(b).count()) >= 1, b);
+    assert.equal(await box.locator(".idea-meal, .idea-nfm").count(), 0, "Make a meal and Not for me are not in Edit any more");
+    for (const b of [".idea-minor .idea-meal", ".idea-minor .idea-nfm"]) assert.equal(await c.locator(b).count(), 1, b);
     assert.match(await box.locator(".idea-nolike").first().innerText(), /Chips with Sausages/);
     assert.equal((await box.locator(".idea-notday").innerText()).trim(), before.replace(/^Plan/, "Not"));
     await box.locator(".idea-notday").click();
@@ -193,6 +196,8 @@ function startStatic() {
   });
 
   await step("Change on Sunday → Swap meal: something else, not Chicken", async () => {
+    // Change no longer closes the open day card: close today's card, so its planned sitting shows its Change line
+    if (await page.locator("#dayList .day.open").count()) await page.locator("#dayList .day.open .dh").click();
     await day(0).locator(".sit-change").first().click();
     await day(0).locator(".chg-swap").click();
     await until(async () => assert.doesNotMatch(await day(0).innerText(), /Chicken/));
