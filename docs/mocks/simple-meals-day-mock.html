@@ -1,0 +1,149 @@
+<title>Meals Day Card</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone column, same look as the demo app. Use soon as one small card, a line per food, one Plan my week button, the week; an open day = Dinner|Tea, the plate, one list. */
+:root{
+  --bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;
+  --accent:#8FD4B0;--on-accent:#0A1210;--warn:#F2B35B;--sel:#1B3329;--sel-b:#2E5444;
+  --font:'Geist',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--text);font:15px/1.4 var(--font);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
+.wrap{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.wk{color:var(--muted);font-size:14px;margin:0}
+h1{font-size:30px;margin:-8px 0 0}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0;text-align:left}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
+.soonc{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.srow{display:flex;justify-content:space-between;gap:12px;font-size:15px;font-weight:600}
+.srow em{font-style:normal;font-family:var(--mono);font-size:13px;font-weight:500;color:var(--warn);white-space:nowrap}
+.srow.ok em{color:var(--accent)}
+.smore{font-size:13px;color:var(--muted);text-decoration:underline;margin-top:4px;align-self:flex-start}
+.planwk{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:16px;text-align:center;font-weight:600;font-size:16px}
+.days{display:flex;flex-direction:column;gap:10px}
+.day{background:var(--surface);border:1px solid var(--border);border-radius:16px}
+.day.open{border-color:var(--sel-b)}
+.dh{display:flex;align-items:center;gap:10px;width:100%;padding:16px}
+.dh .d{font-weight:700;font-size:17px}
+.dh .dt{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.dh .today{background:var(--accent);color:var(--on-accent);font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;letter-spacing:.05em}
+.dh .r{margin-left:auto;color:var(--accent);font-weight:600;font-size:15px}
+.dh .r.meal{color:var(--text);font-weight:600;max-width:55%;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.body{padding:0 16px 16px;display:flex;flex-direction:column;gap:14px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:4px}
+.seg button{text-align:center;padding:10px;border-radius:10px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--accent);color:var(--on-accent)}
+.sits{display:flex;flex-direction:column;gap:6px;padding:0 12px 14px}
+.open .sits{padding-bottom:12px}
+.sr{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:8px}
+.sr .k{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+.sr .m{font-weight:600;min-width:0}
+.sr button{color:var(--muted);font-size:14px;padding:2px 4px}
+.chip{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-2);border-radius:10px;padding:6px 10px;font-weight:600}
+.chip button{color:var(--muted);font-size:14px}
+.lab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;justify-content:space-between;gap:12px;align-items:center;width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:12px;padding:13px 14px}
+.item .n{font-weight:600;min-width:0}
+.item .s{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.item .s.warn{color:var(--warn)}
+.item .s.ok{color:var(--accent)}
+.item.on{border-color:var(--accent);background:var(--sel)}
+.item.dim{opacity:.5}
+.tabs{display:flex;align-items:center;gap:9px;min-width:0;border-bottom:1px solid var(--border)}
+.tabs .t{padding:8px 0;font-size:14px;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .t.on{color:var(--text);font-weight:700;border-color:var(--accent)}
+.tabs .t.meals{background:var(--sel);border:1px solid var(--sel-b);color:var(--accent);font-weight:700;border-radius:10px;padding:4px 10px;margin-bottom:0;white-space:nowrap}
+.tabs .t.meals.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.tabs .take{margin-left:auto;color:var(--accent);font-weight:600;font-size:12px;border:1px dashed var(--sel-b);border-radius:10px;padding:3px 6px;white-space:nowrap;flex:none}
+.body{padding:0 12px 14px}
+.dh{padding:14px 12px}
+.note{border:1px solid var(--sel-b);background:var(--sel);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.note h2{font-size:16px;margin:0}
+.note p{margin:0;font-size:14px}
+</style>
+
+<div class="wrap">
+  <p class="wk">Sun 25 – 31 Oct</p>
+  <h1>Meals</h1>
+
+  <div class="soonc"><div class="eyebrow">Use soon</div><div id="soon"></div><button class="smore" type="button">+2 more soon</button></div>
+
+  <button class="planwk" type="button">✨ Plan my week</button>
+
+  <div class="days" id="days"></div>
+
+  <div class="note">
+    <h2>What changed in the open day</h2>
+    <p><b>Kept:</b> Dinner | Tea and the tabs.</p>
+    <p><b>Takeaway</b> sits at the end of the tab row.</p>
+    <p><b>Gone:</b> Top 3, "Adding to…", the Takeaway row, Next: Sides, Next day.</p>
+    <p><b>Each day:</b> the day on top, then a DINNER line and a TEA line under it. ✕ clears that meal.</p>
+    <p>Pick Dinner or Tea, then tap a food to add it. Tap again to take it off.</p>
+    <p>Tap the day's name to close it.</p>
+  </div>
+</div>
+
+<script>
+const tabs={
+  meal:[{n:'Frankfurters + Hotdog rolls',s:'All in fridge',c:'ok'},{n:'Sausages wrapped in bacon',s:'Need sausages',c:'warn'},{n:'Lasagne',s:''},{n:'Fajita recipe for 4',s:''}],
+  main:[{n:'Whole chicken',s:'2 days',c:'warn'},{n:'Frankfurters ×2',s:'14 days'},{n:'Bacon ×2',s:'20 days'},{n:'Tagliatelle',s:'38 days'}],
+  side:[{n:'Potatoes',s:'2 days',c:'warn'},{n:'Hotdog rolls',s:'4 days'}],
+  veg:[{n:'Peas',s:'freezer'},{n:'Sweetcorn',s:'tin'}],
+  misc:[{n:'Grated cheese',s:'3 days'},{n:'Carbonara sauce',s:'added 24 Oct'}]
+};
+const tabNames=[['meal','Meals'],['main','Mains'],['side','Sides'],['veg','Veg'],['misc','Other']];
+const days=[
+  {d:'Sun',dt:'25 Oct',today:true,open:true,tea:['Sausages wrapped in bacon'],dinner:['Frankfurters + Hotdog rolls']},
+  {d:'Mon',dt:'26 Oct',tea:['Lasagne'],dinner:[]},
+  {d:'Tue',dt:'27 Oct',tea:['Fajita recipe for 4'],dinner:[]},
+  {d:'Wed',dt:'28 Oct',tea:[],dinner:[]},
+  {d:'Thu',dt:'29 Oct',tea:[],dinner:[]},
+  {d:'Fri',dt:'30 Oct',tea:[],dinner:[]},
+  {d:'Sat',dt:'31 Oct',tea:[],dinner:[]}
+];
+days.forEach(x=>{x.sit='tea';x.tab='main'});
+const soon=[{n:'Whole chicken',when:'2 days'},{n:'Potatoes',when:'2 days'},{n:'Grated cheese',when:'3 days'}];
+
+function plannedOn(name){const x=days.find(x=>x.tea.includes(name)||x.dinner.includes(name));return x?x.d:null}
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+
+function draw(){
+  const s=document.getElementById('soon');s.innerHTML='';
+  soon.forEach(f=>{const on=plannedOn(f.n);s.appendChild(el('div','srow'+(on?' ok':''),`<span>${f.n}</span><em>${on?'✓ '+on:f.when}</em>`))});
+  const box=document.getElementById('days');box.innerHTML='';
+  days.forEach(x=>{
+    const card=el('div','day'+(x.open?' open':''));
+    const all=[...x.dinner,...x.tea];
+    const right=x.open?'<span class="r">⌃</span>':all.length?'':'<span class="r">+ Plan</span>';
+    const h=el('button','dh',`<span class="d">${x.d}</span><span class="dt">${x.dt}</span>${x.today?'<span class="today">TODAY</span>':''}${right}`);
+    h.type='button';h.onclick=()=>{const was=x.open;days.forEach(y=>y.open=false);x.open=!was;draw()};
+    card.appendChild(h);
+    if(all.length){const sits=el('div','sits');
+      ['dinner','tea'].forEach(k=>{if(!x[k].length)return;const r=el('div','sr',`<span class="k">${k.toUpperCase()}</span><span class="m">${x[k].join(' + ')}</span>`);
+        const xb=el('button','','✕');xb.type='button';xb.setAttribute('aria-label','Clear '+k);xb.onclick=()=>{x[k]=[];draw()};r.appendChild(xb);sits.appendChild(r)});
+      card.appendChild(sits)}
+    if(x.open){
+      const b=el('div','body');
+      const seg=el('div','seg');
+      ['dinner','tea'].forEach(k=>{const btn=el('button',x.sit===k?'on':'',k==='dinner'?'Dinner':'Tea');btn.type='button';btn.onclick=()=>{x.sit=k;draw()};seg.appendChild(btn)});
+      b.appendChild(seg);
+      const cur=x[x.sit];
+      const toggle=n=>{if(cur.includes(n))x[x.sit]=cur.filter(m=>m!==n);else x[x.sit]=[...cur,n];draw()};
+      const tr=el('div','tabs');
+      tabNames.forEach(([k,lab])=>{const t=el('button','t'+(k==='meal'?' meals':'')+(x.tab===k?' on':''),lab);t.type='button';t.onclick=()=>{x.tab=k;draw()};tr.appendChild(t)});
+      const tk=el('button','take','Takeaway');tk.type='button';tk.onclick=()=>{x[x.sit]=['Takeaway'];draw()};tr.appendChild(tk);
+      b.appendChild(tr);
+      const l=el('div','list');
+      tabs[x.tab].forEach(f=>{const on=cur.includes(f.n);const other=!on&&plannedOn(f.n);
+        const it=el('button','item'+(on?' on':'')+(other?' dim':''),`<span class="n">${f.n}</span><span class="s ${on?'ok':other?'':(f.c||'')}">${on?'✓ on plate':other?'Planned '+other:f.s}</span>`);it.type='button';it.onclick=()=>toggle(f.n);l.appendChild(it)});
+      b.appendChild(l);
+      card.appendChild(b);
+    }
+    box.appendChild(card);
+  });
+}
+draw();
+</script>

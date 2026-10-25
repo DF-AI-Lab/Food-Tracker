@@ -123,16 +123,14 @@ function startStatic() {
     assert.doesNotMatch(await days.nth(2).innerText(), /Fish/);
   });
 
-  await step("Open Wednesday: its top 3 shows Fish + Peas; Plan puts it on Wednesday", async () => {
+  await step("Open Wednesday: pick Fish from the picker's Mains; Wednesday shows Fish", async () => {
     const wed = page.locator("#dayList .day").nth(3);
     await wed.locator(".dh").click();
-    const box = page.locator("#dayList .day.open .day-ideas");
-    await until(async () => assert.ok(await box.isVisible()));
-    const opts = box.locator(".dt-idea");
-    assert.ok((await opts.count()) >= 1 && (await opts.count()) <= 3);
-    const fish = opts.filter({ hasText: "Fish" });
+    await wed.locator('.meal-seg button[data-meal="tea"]').click();
+    await page.click('#mtabs [data-s="main"]');
+    const fish = page.locator("#pickList .item", { hasText: "Fish" });
     assert.equal(await fish.count(), 1);
-    await fish.locator(".dt-plan").click();
+    await fish.click();
     await until(async () => assert.match(await page.locator("#dayList .day").nth(3).innerText(), /Fish/));
   });
 

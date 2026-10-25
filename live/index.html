@@ -123,7 +123,8 @@
 
   <!-- Meals Tab -->
   <div data-tab-pane="meals" style="display:none;">
-    <div id="weekBox"><button id="weekBtn" class="act ghost" type="button">✨ Plan my week</button><div id="weekPanel" class="card" hidden><div class="wk-list"></div><div class="btns"><button class="act" id="weekPlan" type="button">Plan these 0</button><button class="act ghost" id="weekCancel" type="button">Cancel</button></div><p class="note">Soonest out goes first. Each food used once. Days already planned are left.</p></div></div>
+    <div id="mealsSoon" class="card eat msoon" hidden><div class="eyebrow">Use soon</div><div class="eatlist msoon-list"></div><button type="button" class="eatmore" id="mealsSoonMore" hidden></button></div>
+    <div id="weekBox"><div class="week-btns"><button id="weekBtn" class="act ghost" type="button">✨ Plan my week</button></div><div id="weekPanel" class="card" hidden><div class="wk-list"></div><div class="btns"><button class="act" id="weekPlan" type="button">Plan these 0</button><button class="act ghost" id="weekCancel" type="button">Cancel</button></div><p class="note">Soonest out goes first. Each food used once. Days already planned are left.</p></div></div>
     <div id="dayList" class="timeline"></div>
     <div id="mealShop" class="card rform" hidden>
       <h3 class="sec" id="mealShopTitle"></h3>
@@ -169,17 +170,15 @@
     <!-- One picker, moved into the open day card by app.js; hidden when no day is open -->
     <div id="picker" class="picker" hidden>
       <div class="mtabs utabs" id="mtabs">
-        <button class="sb" data-s="meal">Meals</button>
+        <button class="sb mtab-meals" data-s="meal">Meals</button>
         <button class="sb on" data-s="main">Mains</button>
         <button class="sb" data-s="side">Sides</button>
         <button class="sb" data-s="veg">Veg</button>
         <button class="sb" data-s="misc">Other</button>
+        <button type="button" class="mtake" id="mtabTake">Takeaway</button>
       </div>
-      <div class="tag" id="pickFor"></div>
       <div class="warnbar" id="warnBar" hidden></div>
       <div id="pickList"></div>
-      <button class="act ghost" id="nextSlot">Sides</button>
-      <button class="act" id="nextDay">Next day</button>
     </div>
     <details id="myMealsFold" class="fold">
       <summary class="fold-sum"><span class="fold-t">My meals</span><span class="fold-n" id="myMealsCount"></span><span class="chev" aria-hidden="true">›</span></summary>
@@ -203,11 +202,6 @@
     <details id="combosFold" class="fold" open>
       <summary class="fold-sum"><span class="fold-t">Combos</span><span class="chev" aria-hidden="true">›</span></summary>
       <div class="fold-body">
-        <div id="ideasWeek">
-          <div class="sechead"><h3 class="sec">Ideas for the week</h3></div>
-          <p class="note">Best first. The app picks the day from what runs out soonest.</p>
-          <div class="idea-list"></div>
-        </div>
         <details id="allCombosFold" class="fold fold-in">
           <summary class="fold-sum"><span class="fold-t">All combos</span><span class="chev" aria-hidden="true">›</span></summary>
           <div class="fold-body">

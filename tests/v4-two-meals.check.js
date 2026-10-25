@@ -64,8 +64,8 @@ function startStatic() {
 
   const seg = meal => todayCard().locator(`.meal-seg button[data-meal="${meal}"]`);
   const isOn = async meal => /\bon\b/.test(await seg(meal).getAttribute("class"));
-  const now = () => todayCard().locator(".meal-now");
-  const other = () => todayCard().locator(".other-meal");
+  // The day's meal lines (DINNER, TEA) as text: the open card shows each planned meal as a line
+  const nowText = async () => (await todayCard().locator(".sit").allInnerTexts()).join("\n");
 
   await step("fridge has chicken, sausage rolls and chips", async () => {
     for (const [name, kind] of [["Chicken", "main"], ["Sausage rolls", "main"], ["Chips", "side"]]) {
@@ -88,30 +88,29 @@ function startStatic() {
     const [a, b] = [await seg("dinner").boundingBox(), await seg("tea").boundingBox()];
     assert.ok(Math.abs(a.width - b.width) <= 2, "same width");
     assert.ok(Math.abs(a.y - b.y) <= 2, "side by side");
-    assert.match(await page.locator("#pickFor").innerText(), /Tea/);
   });
 
   await step("tap Dinner: main AND side both go to dinner (the side used to jump to tea)", async () => {
     await seg("dinner").click();
     await until(async () => assert.equal(await isOn("dinner"), true));
-    assert.match(await page.locator("#pickFor").innerText(), /Dinner/);
+    assert.equal(await isOn("dinner"), true);
     await pick("Sausage rolls");
-    await until(async () => assert.match(await now().innerText(), /Sausage rolls/));
+    await until(async () => assert.match(await nowText(), /Sausage rolls/));
     assert.equal(await isOn("dinner"), true, "still on Dinner after a pick");
     await page.locator('#mtabs [data-s="side"]').click();
     await pick("Chips");
-    await until(async () => assert.match(await now().innerText(), /Chips/));
+    await until(async () => assert.match(await nowText(), /Chips/));
     assert.equal(await isOn("dinner"), true, "still on Dinner after the side");
   });
 
   await step("tap Tea: tea's foods show, dinner is one quiet line underneath", async () => {
     await seg("tea").click();
     await until(async () => assert.equal(await isOn("tea"), true));
-    assert.doesNotMatch(await now().innerText(), /Sausage rolls|Chips/);
+    assert.equal(await todayCard().locator('.sit[data-meal="tea"]').count(), 0, "no tea foods yet");
     await pick("Chicken");
-    await until(async () => assert.match(await now().innerText(), /Chicken/));
-    const o = await other().innerText();
-    assert.match(o, /Dinner/);
+    await until(async () => assert.match(await nowText(), /Chicken/));
+    const o = await todayCard().locator('.sit[data-meal="dinner"]').innerText();
+    assert.match(o, /DINNER/);
     assert.match(o, /Sausage rolls/);
     assert.match(o, /Chips/);
   });
@@ -191,11 +190,12 @@ function startStatic() {
     await until(async () => assert.ok(await seg("dinner").isVisible()));
     await seg("dinner").click();
     await until(async () => assert.equal(await isOn("dinner"), true));
-    await page.locator("#pickList .item.ta").click();
-    await until(async () => assert.match(await now().innerText(), /Takeaway/));
+    await page.locator("#mtabTake").click();
+    await until(async () => assert.match(await nowText(), /Takeaway/));
     await seg("tea").click();
     await until(async () => assert.equal(await isOn("tea"), true));
-    assert.doesNotMatch(await now().innerText(), /Takeaway/);
+    const teaLine = todayCard().locator('.sit[data-meal="tea"]');
+    if (await teaLine.count()) assert.doesNotMatch(await teaLine.innerText(), /Takeaway/);
 
     await setHour("2026-10-21", 15);
     await until(async () => assert.equal(await past("dinner").count(), 1));

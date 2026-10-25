@@ -51,3 +51,24 @@ Didn't like: the open day card ("a mess"), Ideas for the week (same as Plan my w
 - 8. **"+ Peas?" add-on**: suggest a going-off food that goes with a planned meal
 - 3b. "🍽 Make a meal" link on Plan my week ideas
 - ❓ Dinner / Tea toggle: keep or remove? (ask Darren)
+
+## Status at end of chat 2 (2026-10-25)
+
+**Demo d.v4.50 and Live v4.15 are the same app now** (live jumped from v4.14, so it also has plates and everything from the demo). Darren will test live and come back.
+
+Built (in both):
+- **Use soon**: one small card at the top of Meals (like Fridge "Eat first", smaller). 3 lines, then "+N more soon". Planned shows "✓ Sun".
+- **One ✨ Plan my week** button. Ask AI for dinner and Ideas for the week removed from the page (AI dinner logic kept in `logic.js`).
+- **Day cards**: DINNER / TEA lines under the day line (open and closed). Closed cards keep ⠿ drag and Change.
+- **Open day**: lines, then Dinner | Tea (no counts), then the tabs. Meals tab is a green pill; Takeaway sits at the end of the tab row. Top 3, "Adding to…", the Takeaway row, Next: Sides and Next day are gone.
+- Mock: `docs/mocks/simple-meals-day-mock.html` (artifact https://claude.ai/artifact/WEwGUArn7qSZmX68J5qtF7)
+- Tests: `tests/v4-simple-meals.test.js`, `tests/v4-simple-day.check.js`
+
+### 🎨 Next chat: mock, then build (in this order)
+1. **Musts vs extras** in each meal (less strict): musts in the fridge = the meal can be planned; extras missing go on shopping. Build with #2.
+2. **My meals: tap a card to edit it in place**, remove the "✎ Edit meals" fold.
+3. **"+ Peas?" add-on**: when a meal is planned, suggest a going-off food that goes with it (from combos). Needs #1.
+4. **"🍽 Make a meal"** link on Plan my week ideas.
+- Dropped: Fri/Sat "Nothing left" (just demo data).
+- Decided: keep Dinner / Tea.
+- Look rules are in CLAUDE.md: no sideways sliders; keep the app's look.

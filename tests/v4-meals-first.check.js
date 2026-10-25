@@ -1,4 +1,4 @@
-// My meals first, then combos; Edit on a day's top 3 (✕ a food: Not this day / Don't like; Not this day for the idea) (Darren 2026-10-25).
+// My meals first, then combos; a saved meal is planned from the picker's Meals tab (the day's top 3 is gone, Darren 2026-10-25).
 // Run with: node tests/v4-meals-first.check.js  (demo)   (Chrome, phone size, local data, ?today= and ?hour= faked)
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
@@ -80,59 +80,13 @@ function startStatic() {
   await page.click("#mealSave");
   await until(async () => assert.ok(await page.locator("#mealForm").isHidden()));
 
-  // Open a day's card (it may already be open) and return its top 3. The top 3 shows for the Dinner
-  // meal, so when it is missing (today's card starts on Tea) switch that card to Dinner.
-  const openDay = async i => {
-    const d = page.locator("#dayList .day").nth(i);
-    const box = d.locator(".day-ideas");
-    const shown = async () => box.first().isVisible().catch(() => false);
-    if (!(await shown())) {
-      if (!(await d.evaluate(el => el.classList.contains("open")))) await d.locator(".dh").click();
-      if (!(await shown())) await d.locator("button", { hasText: /^Dinner/ }).first().click();
-    }
-    await until(async () => assert.ok(await shown()));
-    return box;
-  };
-  const first = box => box.locator(".dt-idea").first();
-
-  await step("Plan tonight: Fajitas planned as the meal (from today's top 3)", async () => {
-    const box = await openDay(0);
-    await box.locator(".dt-idea", { hasText: "Fajitas" }).locator(".dt-plan").click();
+  await step("Plan tonight: Fajitas from the picker's Meals tab, on today's Dinner", async () => {
+    const d = page.locator("#dayList .day").nth(0);
+    if (!(await d.evaluate(el => el.classList.contains("open")))) await d.locator(".dh").click();
+    await d.locator('.meal-seg button[data-meal="dinner"]').click();
+    await page.click('#mtabs [data-s="meal"]');
+    await page.locator("#pickList .item", { hasText: "Fajitas" }).first().click();
     await until(async () => assert.match(await page.locator("#dayList .day").nth(0).innerText(), /Fajitas/));
-  });
-
-  await step("Tuesday's top 3: Gammon + Mash + Peas; Edit shows its foods with ✕ on the sides", async () => {
-    const box = await openDay(2);
-    assert.match(await first(box).locator("b").first().innerText(), /^Gammon \+ Mash \+ Peas/);
-    await first(box).locator(".dt-edit").click();
-    await until(async () => assert.equal(await box.locator(".idea-food").count(), 3));
-    assert.equal(await box.locator(".idea-food", { hasText: "Gammon" }).locator(".idea-x").count(), 0);
-  });
-
-  await step("✕ Peas → Not this day: Gammon + Mash on Tuesday", async () => {
-    const box = page.locator("#dayList .day.open .day-ideas");
-    await box.locator(".idea-food", { hasText: "Peas" }).locator(".idea-x").click();
-    await until(async () => assert.ok(await box.locator(".idea-xpop").isVisible()));
-    assert.match(await box.locator(".idea-xnot").innerText(), /Not this day/);
-    await box.locator(".idea-xnot").click();
-    await until(async () => assert.match(await first(box).locator("b").first().innerText(), /^Gammon \+ Mash$/));
-  });
-
-  await step("Not this day on the whole idea: Tuesday has no ideas left", async () => {
-    const box = page.locator("#dayList .day.open .day-ideas");
-    if (!(await box.locator(".dt-not").count())) await first(box).locator(".dt-edit").click();
-    await box.locator(".dt-not").first().click();
-    await until(async () => assert.equal(await page.locator("#dayList .day.open .day-ideas").count(), 0));
-  });
-
-  await step("Wednesday: Gammon + Mash + Peas is back; ✕ Peas → Don't like hides it for good", async () => {
-    await page.locator("#dayList .day").nth(3).locator(".dh").click();
-    const box = page.locator("#dayList .day.open .day-ideas");
-    await until(async () => assert.match(await first(box).locator("b").first().innerText(), /^Gammon \+ Mash \+ Peas/));
-    await first(box).locator(".dt-edit").click();
-    await box.locator(".idea-food", { hasText: "Peas" }).locator(".idea-x").click();
-    await box.locator(".idea-xbad").click();
-    await until(async () => assert.match(await first(box).locator("b").first().innerText(), /^Gammon \+ Mash$/));
   });
 
   assert.deepEqual(errors, []);
