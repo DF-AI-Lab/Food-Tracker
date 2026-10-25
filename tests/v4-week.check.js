@@ -78,23 +78,18 @@ function startStatic() {
     assert.ok(await review.isHidden());
   });
 
-  const idea = name => page.locator("#ideasWeek .idea-card", { has: page.locator(".idea-title", { hasText: new RegExp("^" + name) }) });
-  const food = (card, name) => card.locator(".idea-food", { hasText: name });
+  // Don't like a pair (the removed ✎ Edit steps did this): × on its chip under All combos hides it for good
+  const dontLike = async (food, other) => {
+    const g = group(food);
+    const chip = g.locator(".combo-chip", { hasText: other });
+    if (!(await chip.isVisible())) await g.locator(".combo-head").click();
+    await chip.locator(".combo-x").click();
+    await until(async () => assert.equal(await page.locator(".combo-row", { hasText: `${food} + ${other}` }).count(), 1));
+  };
 
-  await step("✎ Edit: Don't like Sweetcorn with Chicken → gone from Chicken's idea, Rice stays; no ✕ on foods", async () => {
-    const c = idea("Chicken");
-    await until(async () => assert.equal(await c.count(), 1));
-    assert.equal(await c.locator(".idea-x").count(), 0, "no ✕ on the foods");
-    await c.locator(".idea-edit").click();
-    await c.locator(".idea-nolike", { hasText: "Sweetcorn with Chicken" }).click();
-    await until(async () => assert.equal(await food(idea("Chicken"), "Sweetcorn").count(), 0));
-    assert.equal(await food(idea("Chicken"), "Rice").count(), 1);
-  });
-
-  await step("✎ Edit: Don't like Rice with Chicken → Chicken + Rice hidden, Chicken idea gone", async () => {
-    await idea("Chicken").locator(".idea-edit").click();
-    await idea("Chicken").locator(".idea-nolike", { hasText: "Rice with Chicken" }).click();
-    await until(async () => assert.equal(await idea("Chicken").count(), 0));
+  await step("Don't like Sweetcorn with Chicken, then Rice with Chicken: Chicken + Rice + Sweetcorn is gone for good", async () => {
+    await dontLike("Chicken", "Sweetcorn");
+    await dontLike("Chicken", "Rice");
   });
 
   const rows = page.locator("#weekPanel .wk-day");
