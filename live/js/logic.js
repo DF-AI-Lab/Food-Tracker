@@ -1281,6 +1281,30 @@
     return rows;
   }
 
+  // The week's ideas only: [{ day, idea }] in day order (days with no idea are left out)
+  function weekIdeas(packs, pairs, today, opts) {
+    return weekPlan(packs, pairs, today, opts).filter(r => r.idea).map(r => ({ day: r.day, idea: r.idea }));
+  }
+
+  // The days (of those given, in order) on which every food of an idea is still in date
+  function ideaDays(idea, days) {
+    const foods = [idea.main, ...(idea.sides || [])].filter(Boolean);
+    return (days || []).filter(d => foods.every(p => !p.date || p.date >= d));
+  }
+
+  // Swap one sitting (mealTime) between two days: packs and meal plans on from <-> to.
+  // Returns only the changed copies; the inputs are not touched.
+  function moveDayPlan(packs, mealPlans, from, to, mealTime) {
+    const swapDay = day => (day === from ? to : day === to ? from : day);
+    const changedPacks = (packs || [])
+      .filter(p => (p.plannedFor === from || p.plannedFor === to) && mealTimeOf(p) === mealTime)
+      .map(p => ({ ...p, plannedFor: swapDay(p.plannedFor) }));
+    const changedPlans = (mealPlans || [])
+      .filter(m => (m.day === from || m.day === to) && mealTimeOf(m) === mealTime)
+      .map(m => ({ ...m, day: swapDay(m.day) }));
+    return { packs: changedPacks, plans: changedPlans };
+  }
+
   // The soonest-dated food of an idea, as a line for its card and a colour state:
   // out (today or past), soon (within 2 days), ok. No dated food: { text: "", state: "" }
   function whyLine(foods, today) {
@@ -2401,6 +2425,9 @@
     tonightIdeas,
     dayIdeas,
     weekPlan,
+    weekIdeas,
+    ideaDays,
+    moveDayPlan,
     ideaWarn,
     slotFor,
     tidyName,

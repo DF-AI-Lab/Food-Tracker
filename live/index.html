@@ -181,21 +181,39 @@
       <button class="act ghost" id="nextSlot">Sides</button>
       <button class="act" id="nextDay">Next day</button>
     </div>
-    <div id="ideasTonight" hidden>
-      <div class="sechead"><h3 class="sec">Ideas for tonight</h3></div>
-      <div class="idea-list"></div>
-    </div>
-    <div id="fancyMeals" hidden>
-      <div class="sechead"><h3 class="sec">Meals I fancy</h3></div>
-      <div class="ml card" id="fancyList"></div>
-    </div>
-    <div id="myMeals" class="ideas">
-      <div class="sechead"><h3 class="sec">My meals</h3><button class="act ghost" id="newMeal" type="button">New meal</button></div>
-      <div class="ml card"></div>
-    </div>
-    <div id="combos">
-      <div class="sechead"><h3 class="sec">Combos</h3><button class="act ghost" id="comboAdd" type="button">+ Add</button></div>
-      <p class="note">Foods that go together. The app also learns pairs you eat 2 or more times.</p>
+    <details id="myMealsFold" class="fold">
+      <summary class="fold-sum"><span class="fold-t">My meals</span><span class="fold-n" id="myMealsCount"></span><span class="chev" aria-hidden="true">›</span></summary>
+      <div class="fold-body">
+        <div id="fancyMeals" hidden>
+          <div class="sechead"><h3 class="sec">Meals I fancy</h3></div>
+          <div class="ml card" id="fancyList"></div>
+        </div>
+        <div id="myMeals" class="ideas">
+          <div class="ml card"></div>
+        </div>
+        <details id="editMealsFold" class="fold fold-in">
+          <summary class="fold-sum"><span class="fold-t">✎ Edit meals</span><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fold-body">
+            <div class="btns"><button class="act ghost" id="newMeal" type="button">New meal</button></div>
+            <div class="edit-list card"></div>
+          </div>
+        </details>
+      </div>
+    </details>
+    <details id="combosFold" class="fold" open>
+      <summary class="fold-sum"><span class="fold-t">Combos</span><span class="chev" aria-hidden="true">›</span></summary>
+      <div class="fold-body">
+        <div id="ideasWeek">
+          <div class="sechead"><h3 class="sec">Ideas for the week</h3></div>
+          <p class="note">Best first. The app picks the day from what runs out soonest.</p>
+          <div class="idea-list"></div>
+        </div>
+        <details id="allCombosFold" class="fold fold-in">
+          <summary class="fold-sum"><span class="fold-t">All combos</span><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="fold-body">
+            <div id="combos">
+              <div class="sechead"><span></span><button class="act ghost" id="comboAdd" type="button">+ Add</button></div>
+              <p class="note">Foods that go together. The app also learns pairs you eat 2 or more times.</p>
       <div id="comboPick" class="card" hidden>
         <div class="cp-title"></div>
         <div class="cp-tabs"></div>
@@ -231,7 +249,11 @@
         <div class="sechead"><h3 class="sec">Hidden (not for me)</h3></div>
         <div class="card combo-hidden"></div>
       </div>
-    </div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </details>
   </div>
 
   <!-- Add Tab -->

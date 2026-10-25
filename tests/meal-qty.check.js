@@ -59,6 +59,11 @@ function startStatic() {
 
   await step("new meal: a fresh food starts at ×1; tap it -> ×2 -> ×3 -> ×1 -> ×2", async () => {
     await page.click('[data-tab="meals"]');
+    // New meal sits in My meals → Edit meals, both folded at first (d.v4.45)
+    for (const f of ["#myMealsFold", "#editMealsFold"]) {
+      if (!(await page.locator(f).evaluate(el => el.open))) await page.locator(f + " > summary").click();
+      await page.waitForFunction(s => document.querySelector(s).open && !document.querySelector(s).getAnimations({ subtree: true }).length, f);
+    }
     await page.click("#newMeal");
     await page.fill("#mealName", "Fajitas");
     await page.fill("#freshIn", "Whole");
