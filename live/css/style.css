@@ -120,9 +120,12 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .utabs{display:flex;gap:18px;border-bottom:1px solid var(--border)}
 .utabs .sb{height:40px;min-width:var(--tap);padding:0;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer}
 .utabs .sb.on{border-bottom-color:var(--accent);color:var(--text);font-weight:600}
-#mtabs{overflow-x:auto;scrollbar-width:none;gap:12px}
-#mtabs::-webkit-scrollbar{display:none}
-#mtabs .sb{flex:none}
+/* Meals picker tabs: fit a 320px phone (wrap only if it must); Meals is a soft pill, Takeaway sits at the end */
+#mtabs{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+#mtabs .sb{flex:none;min-width:0;height:38px;padding:0 4px;font-size:13px}
+#mtabs .sb.mtab-meals{height:auto;padding:4px 6px;border:1px solid var(--accent-border);border-radius:10px;background:var(--sel-bg);color:var(--accent);font-weight:700}
+#mtabs .sb.mtab-meals.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+#mtabTake{margin-left:auto;height:auto;padding:3px 4px;border:1px dashed var(--accent-border);border-radius:10px;background:none;color:var(--accent);font:inherit;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer}
 .rowhead .utabs{border-bottom:0;gap:14px}
 .rowhead .utabs .sb{height:36px;font-size:13px;min-width:0}
 
@@ -234,9 +237,8 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .chip2.warn{border-color:var(--danger)}
 .chip2.warn .nm{color:var(--danger)}
 .meal-ing.warn b,.meal-ing.warn span{color:var(--danger)}
-.dbody{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.dbody{padding:0 6px 12px;display:flex;flex-direction:column;gap:10px}
 .picker{display:flex;flex-direction:column;gap:10px}
-#pickFor{text-transform:none;letter-spacing:0;font-size:13px;font-weight:500}
 #pickList{display:flex;flex-direction:column;gap:6px}
 .item{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:var(--tap);padding:0 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--active);font-size:14px;font-weight:500;cursor:pointer}
 .item:focus-visible{outline:2px solid var(--accent)}
@@ -244,6 +246,7 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .item.st-soon span:last-child{color:var(--warn)}
 .item.st-out span:last-child{color:var(--danger)}
 .item.ta{justify-content:flex-start;color:var(--accent);border-style:dashed}
+.item.newmeal{justify-content:flex-start;color:var(--accent);border-style:dashed}
 .item.ta span{display:inline-flex;align-items:center;gap:8px;font-family:var(--font);font-size:14px;color:var(--accent)}
 .warnbar{display:flex;flex-direction:column;gap:8px;background:var(--danger-bg);border:1px solid var(--danger);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:500}
 .day.past .dbody{display:flex;flex-direction:column;gap:10px}
@@ -262,6 +265,22 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .act.sq{width:48px;padding:0;flex:none}
 .act:disabled{opacity:.5;cursor:not-allowed}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
+.week-btns{display:flex;gap:8px;flex-wrap:wrap}
+.week-btns .act{flex:1 1 40%}
+.msoon{margin-bottom:12px;padding:12px 14px;gap:4px}
+.msoon .msoon-line{font-size:16px}
+.msoon .msoon-line em{font-size:13px}
+.msoon .msoon-line.ok em{color:var(--accent)}
+#dinnerBox{margin-top:10px}
+#dinnerBox:empty{display:none}
+.dinner-list{display:grid;gap:10px}
+.dinner-list:empty{display:none}
+.dinner-card{padding:14px;display:grid;gap:8px}
+.dinner-title{font-size:15px;font-weight:600;color:var(--text)}
+.dinner-why{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
+.dinner-card .btns{align-items:center}
+.dinner-saved{font-size:14px;font-weight:600;color:var(--muted);min-height:48px;display:inline-flex;align-items:center}
+.dinner-no{font:inherit;font-size:13px;border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;min-height:48px;padding:0 8px;margin-left:auto}
 .btns .act{flex:1 1 40%}
 
 /* ---- Inputs ---- */
@@ -743,8 +762,12 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .meal-now .day-meal,.sit .day-meal{margin-left:auto;min-height:34px;padding:0 10px;border-radius:10px;border:1px dashed var(--accent-border);background:transparent;color:var(--text-2);font:inherit;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center}
 .other-meal{margin:10px 12px 14px;padding-top:10px;border-top:1px solid var(--border);font-size:14px;color:var(--muted);overflow-wrap:anywhere}
 /* Closed card: one line per meal that has food */
-.sit{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 12px 0 16px;min-width:0}
-.sit-lbl{width:56px;flex:none;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+.sit{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 10px 0 12px;min-width:0}
+.sit .chip2,.sit .chip{background:none;border:0;height:auto;min-height:34px;padding:0;font-size:15px;font-weight:600}
+.sit .meal-tag,.sit .chip2 .slot{display:none}
+.day:not(.open) .sit .day-meal{display:none}
+.day.open .meal-seg{margin-top:8px}
+.sit-lbl{width:52px;flex:none;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
 .sit>.chip2{max-width:100%}
 .sit-tag{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:1px 6px;letter-spacing:.04em;white-space:nowrap}
 /* My meals: same rhythm as the other sections; a smaller New meal button */
@@ -1017,7 +1040,7 @@ button.combo-food{display:block;font:inherit;font-weight:700;font-size:15px;colo
 
 /* A planned day: Change on a sitting, and its bar (Swap meal, Move day, Clear) */
 .sit-change,.chg-swap,.chg-move,.chg-clear,.chg-to{font:inherit;font-size:13px;font-weight:500;color:var(--text-2);background:transparent;border:1px dashed var(--accent-border);border-radius:10px;min-height:34px;padding:0 10px;cursor:pointer;white-space:nowrap}
-.sit-change{margin-left:auto}
+.sit-change{margin-left:auto;border:0;background:none;color:var(--muted);font-size:13px;padding:0 4px}
 .chg-clear{color:var(--danger);border-color:var(--danger)}
 .chg-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 16px 10px}
 .chg-bar .chg-cancel{font:inherit;font-size:13px;color:var(--muted);background:none;border:0;text-decoration:underline;min-height:34px;padding:0 8px;cursor:pointer;margin-left:auto}
