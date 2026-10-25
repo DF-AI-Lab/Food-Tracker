@@ -876,11 +876,13 @@
       if (storedKeys.has(key)) continue; // the same pair (and note) stored twice: keep the first
       storedKeys.add(key);
       const have = rows.get(key);
+      const role = s.role === "base" || s.role === "side" ? { role: s.role } : {};
       if (have) {
         have.id = s.id;
         have.hidden = !!s.hidden;
+        Object.assign(have, role);
       } else {
-        rows.set(key, { key, a, b, ...(note ? { note } : {}), count: 0, source: s.source || "hand", id: s.id, hidden: !!s.hidden });
+        rows.set(key, { key, a, b, ...(note ? { note } : {}), ...role, count: 0, source: s.source || "hand", id: s.id, hidden: !!s.hidden });
       }
     }
 
@@ -928,7 +930,22 @@
   // Combos picker save: one new hand pair per ticked food and per note (a note with commas is one
   // pair each). picked: names or { name, note }. Skips blanks, the food itself, doubles, and pairs
   // already in existingRows (by key).
-  function newComboRows(food, picked, existingRows) {
+  // Two uses: the combos picker (food, picked names, existing rows) and Ask AI save (pairs, stored combos);
+  // each returns the rows not stored yet
+  function newComboRows(first, second, third) {
+    if (!Array.isArray(first)) return pickComboRows(first, second, third);
+    const have = new Set((second || []).filter(r => r.type !== "dish").map(r => r.key ?? comboKey(r.a, r.b, r.note)));
+    const rows = [];
+    for (const pair of first) {
+      const key = comboKey(pair.a, pair.b, pair.note);
+      if (have.has(key)) continue;
+      have.add(key);
+      rows.push({ ...pair, source: "ai", hidden: false });
+    }
+    return rows;
+  }
+
+  function pickComboRows(food, picked, existingRows) {
     const have = new Set((existingRows || []).map(r => r.key ?? comboKey(r.a, r.b, r.note)));
     const rows = [];
     const self = String(food ?? "").trim().toLowerCase();
@@ -976,6 +993,21 @@
     return new Set(names.map(n => String(n ?? "").trim().toLowerCase()).filter(Boolean));
   }
 
+  // Combos AI: a pair as a line for the prompt, "A + B (note)"; and a list as lines, or "- none"
+  const pairLine = r => `- ${r.a} + ${r.b}` + (r.note ? ` (${r.note})` : "");
+  const orNone = lines => (lines.length ? lines.join("\n") : "- none");
+
+  // Combos AI: the meals eaten at home in the last 4 weeks up to today, newest first, as lines
+  function eatenLines(meals, today) {
+    const from = addDays(today, -28);
+    return (meals || [])
+      .filter(m => m.takeaway !== true && m.day && m.day >= from && m.day <= today && Array.isArray(m.items))
+      .map(m => ({ day: m.day, names: m.items.map(i => String(i.name ?? "").trim()).filter(Boolean) }))
+      .filter(m => m.names.length)
+      .sort((x, y) => y.day.localeCompare(x.day))
+      .map(m => `- ${m.day}: ${m.names.join(", ")}`);
+  }
+
   // Combos AI: what the AI is told (fixed), then this household's food (Darren 2026-10-25)
   const AI_COMBO_SYSTEM = [
     "You help a UK family plan dinners from the food they buy.",
@@ -984,6 +1016,7 @@
     "- Only use foods from their lists or their dishes, spelled exactly as written. Never add a food they don't buy.",
     "- \"a\" is a main or a dish. \"b\" is a side, veg, sauce or other food that goes with it.",
     "- \"note\" is only for a raw food that turns into different things, like Potatoes (chips, mash, roast, jacket). Give one pair per way. Leave note empty for everything else: no boiled, steamed or fried.",
+    "- \"role\" is \"base\" for the starch that goes on the plate (potatoes, chips, rice, pasta, noodles, bread): one per plate. \"side\" for veg, sauce and other goes-with foods.",
     "- Normal family dinners only: pairs most people would happily eat together on one plate. No pizza toppings or breakfast foods with a roast.",
     "- Don't repeat a pair they have, and never suggest anything under \"Don't suggest\".",
     "- Give as many good pairs as you can find, up to 40. Every main and dish should get some.",
@@ -994,16 +1027,7 @@
     const all = comboPairs(combos, meals);
     const foods = boughtFoods(packs);
     const list = kind => foods[kind].length ? foods[kind].join(", ") : "none";
-    const or = lines => lines.length ? lines.join("\n") : "- none";
-    const pairLine = r => `- ${r.a} + ${r.b}` + (r.note ? ` (${r.note})` : "");
     const dishes = comboDishes(combos).map(d => `- ${d.name} (${d.foods.join(" + ")})` + (d.note ? ` · ${d.note}` : ""));
-    const from = addDays(today, -28);
-    const eaten = (meals || [])
-      .filter(m => m.takeaway !== true && m.day && m.day >= from && m.day <= today && Array.isArray(m.items))
-      .map(m => ({ day: m.day, names: m.items.map(i => String(i.name ?? "").trim()).filter(Boolean) }))
-      .filter(m => m.names.length)
-      .sort((x, y) => y.day.localeCompare(x.day))
-      .map(m => `- ${m.day}: ${m.names.join(", ")}`);
     const user = [
       `Mains: ${list("main")}`,
       `Sides: ${list("side")}`,
@@ -1012,16 +1036,16 @@
       `Cupboard: ${list("cupboard")}`,
       "",
       "Their dishes:",
-      or(dishes),
+      orNone(dishes),
       "",
       "Pairs they have:",
-      or(all.shown.map(pairLine)),
+      orNone(all.shown.map(pairLine)),
       "",
       "Don't suggest:",
-      or(all.hidden.map(pairLine)),
+      orNone(all.hidden.map(pairLine)),
       "",
       "Eaten in the last 4 weeks:",
-      or(eaten)
+      orNone(eatenLines(meals, today))
     ].join("\n");
     return { system: AI_COMBO_SYSTEM, user };
   }
@@ -1052,8 +1076,8 @@
                 type: "array",
                 items: {
                   type: "object",
-                  properties: { a: { type: "string" }, b: { type: "string" }, note: { type: "string" } },
-                  required: ["a", "b", "note"],
+                  properties: { a: { type: "string" }, b: { type: "string" }, note: { type: "string" }, role: { type: "string", enum: ["base", "side"] } },
+                  required: ["a", "b", "note", "role"],
                   additionalProperties: false
                 }
               }
@@ -1073,19 +1097,24 @@
     return block ? String(block.text || "") : "";
   }
 
-  function parseAiCombos(text, existingRows, allowed) {
-    const str = v => String(v ?? "").trim();
-    const s = str(text);
+  // The list in an AI reply: a bare array, or the array under key (the reply may have words around the JSON)
+  function aiList(text, key) {
+    const s = String(text ?? "").trim();
     const slices = [s];
     if (s.indexOf("{") >= 0 && s.lastIndexOf("}") > s.indexOf("{")) slices.push(s.slice(s.indexOf("{"), s.lastIndexOf("}") + 1));
     if (s.indexOf("[") >= 0 && s.lastIndexOf("]") > s.indexOf("[")) slices.push(s.slice(s.indexOf("["), s.lastIndexOf("]") + 1));
-    let list = null;
     for (const t of slices) {
       let v;
       try { v = JSON.parse(t); } catch (e) { continue; }
-      list = Array.isArray(v) ? v : (v && Array.isArray(v.pairs) ? v.pairs : null);
-      if (list) break;
+      const list = Array.isArray(v) ? v : (v && Array.isArray(v[key]) ? v[key] : null);
+      if (list) return list;
     }
+    return null;
+  }
+
+  function parseAiCombos(text, existingRows, allowed) {
+    const str = v => String(v ?? "").trim();
+    const list = aiList(text, "pairs");
     if (!list) return { ok: false, reason: "Couldn't read the AI's answer. Try again." };
     const have = new Set((existingRows || []).map(r => r.key ?? comboKey(r.a, r.b, r.note)));
     const rows = [];
@@ -1097,9 +1126,144 @@
       const key = comboKey(a, b, note);
       if (have.has(key)) continue;
       have.add(key);
-      rows.push(note ? { a, b, note, source: "ai", hidden: false } : { a, b, source: "ai", hidden: false });
+      const role = str(item.role);
+      const roleKey = role === "base" || role === "side" ? { role } : {};
+      rows.push({ a, b, ...(note ? { note } : {}), ...roleKey, source: "ai", hidden: false });
     }
     return { ok: true, rows };
+  }
+
+  // Ask AI for dinner (Darren 2026-10-25): the AI picks 3 plates from the fridge, each 1 main, 1 base, up to 2 goes-with
+  const AI_DINNER_SYSTEM = [
+    "You help a UK family pick tonight's dinner from what's in their fridge.",
+    "Make 3 plates. Each plate is 1 main, 1 base (or \"\" if there isn't one) and up to 2 goes-with sides.",
+    "A base is potatoes (chips, mash, roast, jacket), rice, pasta, noodles or bread: one per plate.",
+    "Rules:",
+    "- Only use the foods under Fridge, spelled exactly as written. Never add a food that isn't listed.",
+    "- Use the soonest-dated foods first.",
+    "- \"note\" is only for a base that can be made different ways (potatoes: chips, mash, roast, jacket). Leave it empty otherwise.",
+    "- \"why\" is a short reason for the plate, under 12 words.",
+    "- Prefer plates they like. Never suggest anything under \"Don't suggest\", and avoid what they ate in the last 4 weeks.",
+    "Reply with JSON only."
+  ].join("\n");
+
+  function aiDinnerPrompt({ packs, combos, meals, today }) {
+    const all = comboPairs(combos, meals);
+    const seen = new Set();
+    const fridge = (packs || [])
+      .filter(p => isFree(p) && (!p.date || p.date >= today))
+      .sort(soonestFirst)
+      .filter(p => {
+        const key = keyOf(p.name);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(p => `- ${p.name} (${p.kind})` + (p.date ? ` · ${p.dateType === "best_before" ? "best before" : "use by"} ${p.date}` : ""));
+    const user = [
+      "Fridge (free, in date, soonest first):",
+      orNone(fridge),
+      "",
+      "Plates they like:",
+      orNone(all.shown.map(pairLine)),
+      "",
+      "Don't suggest:",
+      orNone(all.hidden.map(pairLine)),
+      "",
+      "Eaten in the last 4 weeks:",
+      orNone(eatenLines(meals, today))
+    ].join("\n");
+    return { system: AI_DINNER_SYSTEM, user };
+  }
+
+  // The request body for the Claude API: plates in a fixed shape (Haiku, as the combos)
+  function aiDinnerRequest(args) {
+    const p = aiDinnerPrompt(args);
+    const text = { type: "string" };
+    return {
+      model: AI_COMBO_MODEL,
+      max_tokens: 4000,
+      system: p.system,
+      messages: [{ role: "user", content: p.user }],
+      output_config: {
+        effort: "low",
+        format: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              plates: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { main: text, base: text, note: text, sides: { type: "array", items: text }, why: text },
+                  required: ["main", "base", "note", "sides", "why"],
+                  additionalProperties: false
+                }
+              }
+            },
+            required: ["plates"],
+            additionalProperties: false
+          }
+        }
+      }
+    };
+  }
+
+  // The AI's plates as ideas, with the fridge packs (free, in date; soonest first, one pack per food).
+  // A plate whose main or base is not in the fridge is skipped; sides not there are dropped (2 at most).
+  function parseAiDinner(text, packs, today) {
+    const str = v => String(v ?? "").trim();
+    const list = aiList(text, "plates");
+    if (!list) return { ok: false, reason: "Couldn't read the AI's answer. Try again." };
+    const free = (packs || []).filter(p => isFree(p) && (!p.date || p.date >= today));
+    const ideas = [];
+    const keys = new Set();
+    for (const plate of list) {
+      if (!plate || typeof plate !== "object") continue;
+      const used = new Set();
+      const pick = name => {
+        const found = name ? takePacks([name], free, used) : null;
+        if (!found) return null;
+        used.add(found[0].id);
+        return found[0];
+      };
+      const main = pick(str(plate.main));
+      if (!main) continue;
+      const baseName = str(plate.base);
+      const base = baseName ? pick(baseName) : null;
+      if (baseName && !base) continue;
+      const note = base ? str(plate.note) : "";
+      const sideNames = new Set([keyOf(main.name), ...(base ? [keyOf(base.name)] : [])]);
+      const sides = [];
+      for (const name of Array.isArray(plate.sides) ? plate.sides : []) {
+        if (sides.length === 2) break;
+        const n = str(name);
+        if (!n || sideNames.has(keyOf(n))) continue;
+        const side = pick(n);
+        if (!side) continue;
+        sideNames.add(keyOf(n));
+        sides.push(side);
+      }
+      const key = ("ai:" + [main.name, base ? base.name : "", note, ...sides.map(p => p.name)].join("|")).toLowerCase();
+      if (keys.has(key)) continue;
+      keys.add(key);
+      const pairs = [];
+      if (base) pairs.push(note ? { a: main.name, b: base.name, note, role: "base" } : { a: main.name, b: base.name, role: "base" });
+      for (const side of sides) pairs.push({ a: main.name, b: side.name, role: "side" });
+      const labels = [base ? (note ? `${base.name} (${note})` : base.name) : null, ...sides.map(p => p.name)].filter(Boolean);
+      const foods = [main, ...(base ? [base] : []), ...sides];
+      ideas.push({
+        key,
+        main,
+        sides: base ? [base, ...sides] : sides,
+        pairs,
+        title: [main.name, ...labels].join(" + "),
+        why: whyLine(foods, today),
+        aiWhy: str(plate.why)
+      });
+    }
+    return { ok: true, ideas };
   }
 
   // Stock check: the soonest date of a group of packs, with the later dates, and a state for its colour
@@ -1119,7 +1283,21 @@
     return { main, more, state };
   }
 
-  // Ideas for tonight: each free main in the fridge with the sides its pairs can make (3 at most).
+  // A plate's base (potatoes, rice, pasta...: one per plate) or side (veg, sauce, goes-with) by its name
+  const BASE_FOOD = /\b(potato(es)?|chips?|mash|rice|pasta|spaghetti|penne|noodles?|couscous|naan|wraps?|bread|jacket|wedges)\b/i;
+  function foodRole(name) {
+    return BASE_FOOD.test(String(name ?? "")) ? "base" : "side";
+  }
+
+  // A pair's role: the role stored on it, else the role of the food that isn't mainName
+  function pairRole(pair, mainName) {
+    if (pair.role === "base" || pair.role === "side") return pair.role;
+    const other = keyOf(pair.a) === keyOf(mainName) ? pair.b : pair.a;
+    return foodRole(other);
+  }
+
+  // Ideas for tonight: each free main in the fridge with the sides its pairs can make:
+  // 1 base (the soonest) and 2 goes-with at most (Darren 2026-10-25). Base first.
   // skipKeys: mains said "Not tonight". Sorted by the soonest date among the foods, then main name.
   // Dishes (comboDishes) too: a dish whose foods all have a free pack is an idea, key "dish:<name>",
   // with its goes-with items from the pairs (3 at most). Returns [{ key, main, sides, pairs, title, why }];
@@ -1155,18 +1333,23 @@
       if (!found.length) continue;
 
       found.sort((x, y) => soonestFirst(x.side, y.side));
-      const sides = [];
-      const shownPairs = [];
+      const role = f => pairRole(f.pair, main.name);
+      const pick = [];
       const names = new Set();
       for (const f of found) {
         const nk = keyOf(f.side.name);
         if (names.has(nk)) continue;
-        if (sides.length === 3) break;
+        const bases = pick.filter(x => role(x) === "base").length;
+        const goes = pick.length - bases;
+        if (role(f) === "base" ? bases === 1 : goes === 2) continue;
         names.add(nk);
-        sides.push(f.side);
-        shownPairs.push(f.pair);
+        pick.push(f);
       }
-      ideas.push({ key, main, sides, pairs: shownPairs, title: [main, ...sides].map(p => p.name).join(" + ") });
+      pick.sort((x, y) => (role(x) === "base" ? 0 : 1) - (role(y) === "base" ? 0 : 1)); // base first, dates kept
+      const sides = pick.map(f => f.side);
+      const shownPairs = pick.map(f => f.pair);
+      const labels = pick.map(f => (role(f) === "base" && f.pair.note ? `${f.side.name} (${f.pair.note})` : f.side.name));
+      ideas.push({ key, main, sides, pairs: shownPairs, title: [main.name, ...labels].join(" + ") });
     }
 
     // Dish ideas. A dish's foods take their soonest free packs (one each); each pair with the dish
@@ -2415,6 +2598,10 @@
     aiComboText,
     aiComboPrompt,
     aiComboRequest,
+    aiDinnerRequest,
+    parseAiDinner,
+    foodRole,
+    pairRole,
     aiReplyText,
     aiAllowedFoods,
     boughtFoods,

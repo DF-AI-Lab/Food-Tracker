@@ -13,6 +13,7 @@
   let meals = [];         // meals history, saved in DB.meals
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
+  let dinnerIdeas = [];   // Ask AI for dinner: the plates on screen ({ title, aiWhy, saved, ... }), not kept anywhere
   let combos = [];        // meal combos: pairs { a, b, note?, source, hidden } and dishes { type: 'dish', name, foods, note }, saved in DB.combos
   const low = s => String(s ?? '').trim().toLowerCase(); // lower case, trimmed: the key form ideas use
   let ideaSwaps = {};     // Ideas for the week: idea keys taken off a day (Not tonight / Not <day>), by day
@@ -325,6 +326,7 @@
       document.getElementById('weekPanel').hidden = false;
       renderWeek();
     });
+    document.getElementById('dinnerBtn').addEventListener('click', askDinner);
     document.getElementById('weekCancel').addEventListener('click', closeWeek);
     document.getElementById('weekPlan').addEventListener('click', planWeek);
     document.getElementById('aiCancel').addEventListener('click', () => { aiRows = []; renderAiReview(); });
@@ -4163,6 +4165,126 @@
       combos = [...combos, { ...row, id }];
     }
     renderAll();
+  }
+
+  // Ask AI for dinner: the AI's plates from the fridge, as cards under the button
+  function dinnerSay(text) {
+    const msg = document.getElementById('dinnerMsg');
+    msg.textContent = text;
+    msg.hidden = !text;
+  }
+
+  async function askDinner() {
+    const key = readAiKey();
+    if (!key) { dinnerSay('Add your Claude key in Settings first.'); return; }
+    const btn = document.getElementById('dinnerBtn');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Asking AI…';
+    dinnerSay('Thinking… about 10 seconds.');
+    dinnerIdeas = [];
+    renderDinner();
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify(FT.aiDinnerRequest({ packs, combos, meals, today }))
+      });
+      if (!res.ok) {
+        if (res.status === 401) dinnerSay("That key didn't work. Check it in Settings.");
+        else if (res.status === 429 || res.status === 529) dinnerSay('AI is busy. Try again in a minute.');
+        else dinnerSay(`AI error (${res.status}).`);
+        return;
+      }
+      const text = FT.aiReplyText(await res.json());
+      if (!text) { dinnerSay("The AI didn't answer. Try again."); return; }
+      const r = FT.parseAiDinner(text, packs, today);
+      if (!r.ok) { dinnerSay(r.reason); return; }
+      if (!r.ideas.length) { dinnerSay('Nothing found from the food in the fridge.'); return; }
+      dinnerSay('');
+      dinnerIdeas = r.ideas;
+      renderDinner();
+    } catch (e) {
+      dinnerSay('No connection to the AI.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  }
+
+  function renderDinner() {
+    const list = document.querySelector('#dinnerBox .dinner-list');
+    list.textContent = '';
+    for (const idea of dinnerIdeas) {
+      const card = document.createElement('div');
+      card.className = 'card dinner-card';
+      const title = document.createElement('div');
+      title.className = 'dinner-title';
+      title.textContent = idea.title;
+      card.append(title);
+      if (idea.aiWhy) {
+        const why = document.createElement('p');
+        why.className = 'dinner-why';
+        why.textContent = idea.aiWhy;
+        card.append(why);
+      }
+      const btns = document.createElement('div');
+      btns.className = 'btns';
+      if (idea.saved) {
+        const saved = document.createElement('span');
+        saved.className = 'dinner-saved';
+        saved.textContent = 'Saved ✓';
+        btns.append(saved);
+      } else {
+        const save = document.createElement('button');
+        save.type = 'button';
+        save.className = 'act ghost dinner-save';
+        save.textContent = '👍 Save';
+        save.addEventListener('click', () => saveDinnerIdea(idea));
+        btns.append(save);
+      }
+      const plan = document.createElement('button');
+      plan.type = 'button';
+      plan.className = 'act dinner-plan';
+      plan.textContent = 'Plan tonight';
+      plan.addEventListener('click', () => planDinnerIdea(idea));
+      const no = document.createElement('button');
+      no.type = 'button';
+      no.className = 'dinner-no';
+      no.textContent = 'Not this';
+      no.addEventListener('click', () => {
+        dinnerIdeas = dinnerIdeas.filter(i => i !== idea);
+        renderDinner();
+      });
+      btns.append(plan, no);
+      card.append(btns);
+      list.append(card);
+    }
+  }
+
+  // 👍 Save: the plate's pairs (with their roles) go into combos, the ones not there yet
+  async function saveDinnerIdea(idea) {
+    comboOpen.add(idea.main.name.toLowerCase()); // keep its group open to show the new pairs
+    for (const row of FT.newComboRows(idea.pairs, combos)) {
+      const id = await DB.combos.add(row);
+      combos = [...combos, { ...row, id }];
+    }
+    idea.saved = true;
+    renderDinner();
+    renderAll();
+  }
+
+  // Plan tonight: save the plate, plan it for today, and the card goes
+  async function planDinnerIdea(idea) {
+    await saveDinnerIdea(idea);
+    await planIdea(idea, today);
+    dinnerIdeas = dinnerIdeas.filter(i => i !== idea);
+    renderDinner();
   }
 
   // A hidden pair, with Bring back
