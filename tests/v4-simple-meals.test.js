@@ -58,9 +58,33 @@ test("app.js: no AI dinner or Ideas for the week code left, draws the Use soon s
   assert.match(app, /mealsSoon/);
 });
 
-test("version bumped to d.v4.49 (n 90), sw.js matches", () => {
+// ---- Part 2 (Darren 2026-10-25): small Use soon card, cleaner day card ----
+test("Use soon is one small card of lines (no pills, no sideways scroll)", () => {
+  const html = read("index.html");
+  assert.match(html, /id="mealsSoon" class="[^"]*\bcard\b[^"]*"/);
+  assert.match(html, /id="mealsSoonMore"/);
+  const app = read("js/app.js");
+  assert.doesNotMatch(app, /mpill/);
+  assert.match(app, /msoon-line/);
+  const css = read("css/style.css");
+  assert.doesNotMatch(css, /\.mpill|\.msoon-list\{[^}]*overflow-x/);
+});
+
+test("Day card: no Next buttons, no 'Adding to', Takeaway in the tab row, Meals tab marked to stand out", () => {
+  const html = read("index.html");
+  assert.doesNotMatch(html, /id="nextSlot"|id="nextDay"|id="pickFor"/);
+  const tabs = /<div class="mtabs[^"]*" id="mtabs">([\s\S]*?)<\/div>/.exec(html)[1];
+  assert.match(tabs, /data-s="meal"[^>]*class="[^"]*\bmtab-meals\b|class="[^"]*\bmtab-meals\b[^"]*"[^>]*data-s="meal"/);
+  assert.match(tabs, /id="mtabTake"[^>]*>[^<]*Takeaway/);
+  assert.ok(tabs.indexOf('data-s="misc"') < tabs.indexOf('id="mtabTake"'), "Takeaway after Other");
+  const app = read("js/app.js");
+  assert.doesNotMatch(app, /nextSlot|nextDay|pickFor|item ta'|dayIdeaBox\(|other-meal|meal-now/);
+  assert.match(app, /mtabTake/);
+});
+
+test("version bumped to d.v4.50 (n 91)", () => {
   const m = /n:\s*(\d+),\s*label:\s*"([\d.]+)"/.exec(read("js/version.js"));
-  assert.equal(Number(m[1]), 90);
-  assert.equal(m[2], "4.49");
-  assert.equal(Number(/const VERSION = (\d+)/.exec(read("sw.js"))[1]), 90);
+  assert.equal(Number(m[1]), 91);
+  assert.equal(m[2], "4.50");
+  assert.equal(Number(/const VERSION = (\d+)/.exec(read("sw.js"))[1]), 91);
 });

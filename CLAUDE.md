@@ -66,3 +66,8 @@ New chats start from the repo's **default branch**, so work left on a chat's own
 - These links never change: no more new folders or reinstalls. Changes land in place; bump `js/version.js` n + label and `sw.js` VERSION on each change.
 - Build and test in `demo/` first unless Darren says "straight to live"; then copy the change into `live/`.
 - `v2/` and `v2-next/` are the old V3 apps, kept but no longer worked on.
+
+## Look rules (Darren, 2026-10-25)
+
+- **No sideways sliders** anywhere in the app: no rows that scroll left/right with a scroll bar. Stack or wrap instead, and keep it uniform with the rest of the app (e.g. the Eat first card style).
+- Keep the app's existing look (timeline dots, day cards, chips) when simplifying a page: change the layout, not the style.
