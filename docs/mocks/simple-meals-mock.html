@@ -1,0 +1,96 @@
+<title>Simple Meals Mock</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone column. 1 "Use soon" strip (waste first), 2 the week with a suggestion in each empty day (✓ / ↻), 3 two folds at the bottom. */
+:root{
+  --bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;
+  --accent:#8FD4B0;--on-accent:#0A1210;--warn:#F2B35B;--bad:#F07A6A;--sel:#1B3329;--sel-b:#2E5444;
+  --font:'Geist',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--text);font:15px/1.4 var(--font);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
+.wrap{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:24px;margin:0}
+.lead{color:var(--muted);margin:0;font-size:14px}
+.step{font-family:var(--mono);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-top:10px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.soon{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.pill{flex:none;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:10px 12px;min-width:110px}
+.pill b{display:block;font-size:15px}
+.pill small{font-family:var(--mono);font-size:11px}
+.pill.warn{border-color:var(--warn)} .pill.warn small{color:var(--warn)}
+.pill.ok small{color:var(--accent)}
+.fill{border:0;border-radius:14px;padding:14px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px}
+.day{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.dh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase}
+.meal{font-weight:700;font-size:16px}
+.why{font-size:13px;color:var(--warn)}
+.sugg{border:1px dashed var(--sel-b);background:var(--sel);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.sugg .src{font-size:12px;color:var(--muted)}
+.yn{display:flex;gap:8px}
+.yn button{flex:1;border-radius:12px;padding:10px;border:1px solid var(--border);background:var(--surface-2);font-weight:600}
+.yn .yes{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.fold{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:14px;display:flex;justify-content:space-between;color:var(--muted)}
+.q{border:1px solid var(--sel-b);background:var(--sel);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.q h2{font-size:16px;margin:0}
+.q p{margin:0;font-size:14px}
+</style>
+
+<div class="wrap">
+  <h1>Meals, simple</h1>
+  <p class="lead">One job: use food before it goes off.</p>
+
+  <div class="step">1 · Use soon</div>
+  <div class="soon" id="soon"></div>
+
+  <div class="step">2 · This week</div>
+  <button class="fill" type="button" id="fillBtn">✨ Fill my week</button>
+  <div id="days" style="display:flex;flex-direction:column;gap:10px"></div>
+
+  <div class="step">3 · Tucked away</div>
+  <div class="fold"><span>My meals</span><span>›</span></div>
+  <div class="fold"><span>What goes with what (combos)</span><span>›</span></div>
+
+  <div class="q">
+    <h2>How it works</h2>
+    <p><b>Use soon</b> shows what goes off in 3 days. Orange = no dinner planned for it yet.</p>
+    <p><b>Each empty day</b> shows a suggestion. ✓ to plan it. ↻ for another. After the app's ideas run out, ↻ asks the AI.</p>
+    <p><b>✓ also saves</b> the plate, so the app learns. No combos to manage.</p>
+    <p><b>Gone:</b> the Plan my week panel, the Ideas list, and the two AI buttons. It's all inside the days now.</p>
+  </div>
+</div>
+
+<script>
+const foods=[{n:'Sausages',d:'Tue',plannedOn:null},{n:'Potatoes',d:'Wed',plannedOn:null},{n:'Chicken',d:'Mon',plannedOn:'Mon'},{n:'Mince',d:'Thu',plannedOn:null}];
+const days=[
+  {d:'Mon 26',meal:'Chicken + Rice + Peas'},
+  {d:'Tue 27',sugg:[
+    {t:'Sausages + Potatoes (mash) + Peas',why:'Sausages go out Tue',src:'App idea',uses:['Sausages','Potatoes']},
+    {t:'Sausages + Chips + Beans',why:'Sausages go out Tue',src:'App idea',uses:['Sausages']},
+    {t:'Toad in the hole + Peas + Gravy',why:'Sausages go out Tue',src:'✨ AI idea',uses:['Sausages']}]},
+  {d:'Wed 28',sugg:[{t:'Mince + Pasta (bolognese)',why:'Mince goes out Thu',src:'App idea',uses:['Mince']}]},
+  {d:'Thu 29',sugg:[{t:'Cottage pie',why:'from My meals',src:'My meal',uses:['Mince','Potatoes']}]},
+];
+days.forEach(x=>x.i=0);
+function draw(){
+  const s=document.getElementById('soon');s.innerHTML='';
+  foods.forEach(f=>{const p=document.createElement('div');p.className='pill '+(f.plannedOn?'ok':'warn');
+    p.innerHTML=`<b>${f.n}</b><small>${f.plannedOn?'✓ dinner '+f.plannedOn:'out '+f.d+' · not planned'}</small>`;s.appendChild(p)});
+  const box=document.getElementById('days');box.innerHTML='';
+  days.forEach(x=>{
+    const el=document.createElement('div');el.className='day';
+    if(x.meal){el.innerHTML=`<div class="dh"><span>${x.d}</span><span>planned</span></div><div class="meal">${x.meal}</div>`;box.appendChild(el);return}
+    const g=x.sugg[x.i%x.sugg.length];
+    el.innerHTML=`<div class="dh"><span>${x.d}</span><span>empty</span></div>
+      <div class="sugg"><div class="src">${g.src}</div><div class="meal">${g.t}</div><div class="why">${g.why}</div>
+      <div class="yn"><button class="yes" type="button">✓ Plan</button><button class="nx" type="button">↻ Another</button></div></div>`;
+    el.querySelector('.yes').onclick=()=>{x.meal=g.t;g.uses.forEach(u=>{const f=foods.find(f=>f.n===u);if(f&&!f.plannedOn)f.plannedOn=x.d.slice(0,3)});draw()};
+    el.querySelector('.nx').onclick=()=>{x.i++;draw()};
+    box.appendChild(el);
+  });
+}
+document.getElementById('fillBtn').onclick=()=>{days.forEach(x=>{if(!x.meal){const g=x.sugg[x.i%x.sugg.length];x.meal=g.t;g.uses.forEach(u=>{const f=foods.find(f=>f.n===u);if(f&&!f.plannedOn)f.plannedOn=x.d.slice(0,3)})}});draw()};
+draw();
+</script>
