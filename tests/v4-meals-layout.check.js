@@ -46,24 +46,7 @@ function startStatic() {
   const isOpen = sel => page.locator(sel).evaluate(el => el.open);
 
   await page.goto(url("2026-10-25", 10));
-  const addFood = async (kind, name, days) => {
-    await page.click('[data-tab="add"]');
-    await page.click('[data-sub="fridge"]');
-    await page.click(`[data-kind="${kind}"]`);
-    await page.fill("#name", name);
-    await page.fill("#days", String(days));
-    await page.click("#addBtn");
-    await until(async () => assert.match(await page.locator("#addMsg").innerText(), /added/i));
-  };
-  for (const [k, n, d] of [["main", "Chicken", 0], ["main", "Gammon", 5], ["main", "Sausages", 4], ["main", "Fish", 7],
-    ["side", "Rice", 1], ["side", "Mash", 3], ["side", "Chips", 6], ["veg", "Peas", 9], ["veg", "Sweetcorn", 8]]) await addFood(k, n, d);
-
-  await page.evaluate(k => localStorage.setItem(k, "sk-ant-test"), (APP_DIR === "live" ? "live." : "v4demo.") + "claudeKey");
-  const pairs = [["Chicken", "Rice"], ["Gammon", "Mash"], ["Sausages", "Chips"], ["Fish", "Peas"]].map(([a, b]) => ({ a, b, note: "" }));
-  await page.route("https://api.anthropic.com/v1/messages", route => route.fulfill({ status: 200, contentType: "application/json",
-    body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ pairs }) }] }) }));
   await page.click('[data-tab="meals"]');
-
   await step("Layout: days on top, My meals folded (Edit meals inside, folded), Combos open (All combos inside, folded)", async () => {
     const order = await page.evaluate(() => ["#weekBox", "#dayList", "#myMealsFold", "#combosFold"]
       .map(s => document.querySelector(s)).map(el => el && el.getBoundingClientRect().top));
@@ -88,6 +71,24 @@ function startStatic() {
     await until(async () => assert.equal(await isOpen("#myMealsFold"), true));
     assert.equal(await isOpen("#allCombosFold"), true);
   });
+
+  const addFood = async (kind, name, days) => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click(`[data-kind="${kind}"]`);
+    await page.fill("#name", name);
+    await page.fill("#days", String(days));
+    await page.click("#addBtn");
+    await until(async () => assert.match(await page.locator("#addMsg").innerText(), /added/i));
+  };
+  for (const [k, n, d] of [["main", "Chicken", 0], ["main", "Gammon", 5], ["main", "Sausages", 4], ["main", "Fish", 7],
+    ["side", "Rice", 1], ["side", "Mash", 3], ["side", "Chips", 6], ["veg", "Peas", 9], ["veg", "Sweetcorn", 8]]) await addFood(k, n, d);
+
+  await page.evaluate(k => localStorage.setItem(k, "sk-ant-test"), (APP_DIR === "live" ? "live." : "v4demo.") + "claudeKey");
+  const pairs = [["Chicken", "Rice"], ["Gammon", "Mash"], ["Sausages", "Chips"], ["Fish", "Peas"]].map(([a, b]) => ({ a, b, note: "" }));
+  await page.route("https://api.anthropic.com/v1/messages", route => route.fulfill({ status: 200, contentType: "application/json",
+    body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ pairs }) }] }) }));
+  await page.click('[data-tab="meals"]');
 
   await step("Ask AI adds the combos", async () => {
     await page.click("#aiAsk");

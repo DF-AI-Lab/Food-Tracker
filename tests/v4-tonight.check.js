@@ -64,13 +64,14 @@ function startStatic() {
   await page.route("https://api.anthropic.com/v1/messages", route => route.fulfill({ status: 200, contentType: "application/json",
     body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ pairs }) }] }) }));
   await page.click('[data-tab="meals"]');
+  await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
   await page.click("#aiAsk");
   await until(async () => assert.ok(await page.locator("#aiReview").isVisible()));
   await page.click("#aiAdd");
 
-  const cards = page.locator("#ideasTonight .idea-card");
+  const cards = page.locator("#ideasWeek .idea-card");
   const visible = async () => (await cards.evaluateAll(els => els.filter(e => e.offsetParent !== null).length));
-  const more = page.locator("#ideasTonight .idea-more");
+  const more = page.locator("#ideasWeek .idea-more");
 
   await step("best 3 shown, the rest behind Show 2 more ideas", async () => {
     await until(async () => assert.equal(await visible(), 3));
@@ -94,8 +95,9 @@ function startStatic() {
     await until(async () => assert.equal(await visible(), 3));
   });
 
-  await step("Not tonight on one: still 3 shown, Show 1 more idea", async () => {
-    await cards.first().locator(".idea-not").click();
+  await step("Not tonight on one (✎ Edit): still 3 shown, Show 1 more idea", async () => {
+    await cards.first().locator(".idea-edit").click();
+    await cards.first().locator(".idea-notday").click();
     await until(async () => assert.match(await more.innerText(), /Show 1 more idea\b/));
     assert.equal(await visible(), 3);
   });

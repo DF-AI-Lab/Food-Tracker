@@ -58,6 +58,8 @@ function startStatic() {
   for (const [k, n, d] of [["main", "Chicken", 0], ["side", "Rice", 1], ["veg", "Sweetcorn", 9], ["main", "Gammon", 5], ["misc", "Pineapple", 6], ["main", "Sausages", 4], ["side", "Mash", 3], ["misc", "Gravy", 20]]) await addFood(k, n, d);
 
   await page.click('[data-tab="meals"]');
+
+  await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
   await until(async () => assert.ok(await page.locator("#combos").isVisible()));
 
   // The Claude API, faked: records the request, answers with 3 pairs (1 uses a food not in the app)
@@ -88,6 +90,7 @@ function startStatic() {
     await until(async () => assert.match(await page.locator("#aiKeyNote").innerText(), /saved/i));
     await page.evaluate(() => { document.getElementById("settings").hidden = true; });
     await page.click('[data-tab="meals"]');
+    await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
   });
 
   await step("Ask AI: calls Claude (Haiku, key, browser header), review shows only foods in the app, all kept", async () => {

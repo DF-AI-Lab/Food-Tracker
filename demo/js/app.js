@@ -14,12 +14,18 @@
   let recipes = [];       // meals (V3), saved in DB.recipes, always through FT.normMeal
   let mealPlans = [];     // meal plans: one per meal on a day, saved in DB.mealPlans
   let combos = [];        // meal combos: pairs { a, b, note?, source, hidden } and dishes { type: 'dish', name, foods, note }, saved in DB.combos
-  let ideaOpenKey = null; // Ideas for tonight: the idea whose Yes panel is open (main's name key), or null
-  let ideaOpenDay = null; // Ideas: the day picked in that panel (ISO)
+  const low = s => String(s ?? '').trim().toLowerCase(); // lower case, trimmed: the key form ideas use
+  let ideaSwaps = {};     // Ideas for the week: idea keys taken off a day (Not tonight / Not <day>), by day
+  let ideaOtherKey = null; // Ideas for the week: the idea whose Other day choices are open, or null
+  let ideaEditKey = null; // Ideas for the week: the idea whose ✎ Edit box is open, or null
+  let ideaMealErr = null; // Ideas: a message for the idea's Edit box ({ key, text }), or null
   let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
-  let ideasAll = false;   // Ideas for tonight: all shown (false = the best 3 and a Show more button)
-  let ideaXOpen = null;   // Ideas: the side whose ✕ question is open, as 'idea key|side index', or null
+  let ideasAll = false;   // Ideas for the week: all shown (false = the best 3 and a Show more button)
   let weekSwaps = {};     // Plan my week: idea keys swapped out, by day
+  let weekMoves = {};     // Plan my week: ideas moved between days (Move), by day; null = the day is left empty
+  let weekMoveOpen = null; // Plan my week: the day whose Move bar is open, or null
+  let chgKey = null;      // A planned day: the sitting whose Change bar is open (FT.sitKey), or null
+  let chgMove = false;    // A planned day: the Change bar's Move day choices are open
   let weekOff = new Set(); // Plan my week: days left out (unticked)
   let dtEdit = null;      // Top 3 for a day: the idea whose Edit foods are open, as 'day|idea key', or null
   let dtX = null;         // Top 3 for a day: the side whose ✕ question is open, as 'day|idea key|side index', or null
@@ -314,6 +320,8 @@
     // Plan my week: the panel opens fresh each time
     document.getElementById('weekBtn').addEventListener('click', () => {
       weekSwaps = {};
+      weekMoves = {};
+      weekMoveOpen = null;
       weekOff = new Set();
       document.getElementById('weekPanel').hidden = false;
       renderWeek();
@@ -2824,6 +2832,8 @@
     renderMealIdeas();
     renderCombos();
     renderFancyMeals();
+    renderEditMeals();
+    document.getElementById('myMealsCount').textContent = recipes.length ? String(recipes.length) : '';
     const list = document.querySelector('#myMeals .ml');
     list.textContent = '';
     const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
@@ -2861,32 +2871,55 @@
     }
   }
 
-  // ---- Ideas for tonight and Combos (pairs) ----
-
-  // Not tonight: { day, keys } on this phone. The keys count only on the day they were set.
-  function notTonightKeys() {
-    try {
-      const s = JSON.parse(localStorage.getItem('v4demo.notTonight'));
-      return s && s.day === today && Array.isArray(s.keys) ? s.keys : [];
-    } catch (e) {
-      return [];
+  // ✎ Edit meals: each meal with its Edit button (the form)
+  function renderEditMeals() {
+    const list = document.querySelector('#editMealsFold .edit-list');
+    list.textContent = '';
+    const sorted = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+    if (!sorted.length) {
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = 'No meals yet. Tap New meal.';
+      list.appendChild(note);
+      return;
+    }
+    for (const m of sorted) {
+      const row = document.createElement('div');
+      row.className = 'edit-row';
+      const name = document.createElement('span');
+      name.className = 'mr-name';
+      name.textContent = m.name;
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'act ghost';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', () => openMealForm(m));
+      row.append(name, edit);
+      list.appendChild(row);
     }
   }
 
-  function addNotTonight(key) {
-    let s = { day: today, keys: [] };
-    try {
-      const stored = JSON.parse(localStorage.getItem('v4demo.notTonight'));
-      if (stored && stored.day === today && Array.isArray(stored.keys)) s = stored;
-    } catch (e) { /* ignore */ }
-    if (!s.keys.includes(key)) s.keys.push(key);
-    try { localStorage.setItem('v4demo.notTonight', JSON.stringify(s)); } catch (e) { /* ignore */ }
+  // Meals page folds: open or shut, remembered on this phone (try/catch: storage can be blocked)
+  const FOLD_IDS = ['myMealsFold', 'combosFold', 'editMealsFold', 'allCombosFold'];
+  function setupFolds() {
+    for (const id of FOLD_IDS) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      let saved = null;
+      try { saved = localStorage.getItem('v4demo.fold.' + id); } catch (e) { /* ignore */ }
+      if (saved === 'open') el.open = true;
+      else if (saved === 'shut') el.open = false;
+      el.addEventListener('toggle', () => {
+        try { localStorage.setItem('v4demo.fold.' + id, el.open ? 'open' : 'shut'); } catch (e) { /* ignore */ }
+      });
+    }
   }
 
-  // The pairs the ideas, the week plan and a day's top 3 use: the shown pairs, less those Not tonight today
+  // ---- Ideas for the week, and Combos (pairs) ----
+
+  // The pairs the ideas, the week plan and a day's top 3 use: the shown pairs
   function planPairs() {
-    const nt = new Set(notTonightKeys());
-    return FT.comboPairs(combos, meals).shown.filter(p => !nt.has('pair:' + FT.comboKey(p.a, p.b, p.note)));
+    return FT.comboPairs(combos, meals).shown;
   }
 
   // Short weekday for an ISO day ("Mon"), in UTC like the app's days
@@ -2894,27 +2927,42 @@
     return new Date(day + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
   }
 
-  // Ideas for tonight: what the fridge can make with the pairs. Yes plans it; Not tonight hides it till tomorrow.
+  // "tonight" for today, else the short weekday in lower case ("mon"): the words the buttons use
+  function dayWord(day) {
+    return day === today ? 'tonight' : shortWeekday(day);
+  }
+
+  // Days that already have a tea planned: the week plan leaves them alone
+  function teaSkipDays() {
+    return FT.mealDays(today).filter(day => FT.dayGroups(packs, mealPlans, recipes, day, 'tea').length > 0);
+  }
+
+  // Ideas for the week: the week plan's ideas, best first (3 shown, then Show more). Not this day
+  // (ideaSwaps) takes an idea off that day; the ✎ Edit box holds the rest.
   function renderMealIdeas() {
-    const box = document.getElementById('ideasTonight');
+    const box = document.getElementById('ideasWeek');
     const list = box.querySelector('.idea-list');
-    const ideas = [
-      ...FT.savedMealIdeas(recipes, packs, today, notTonightKeys()),
-      ...FT.tonightIdeas(packs, planPairs(), today, notTonightKeys(), FT.comboDishes(combos), meals)
-    ];
+    const rows = FT.weekIdeas(packs, planPairs(), today, {
+      dishes: FT.comboDishes(combos), meals, skipDays: teaSkipDays(), swaps: ideaSwaps, recipes
+    });
     list.textContent = '';
-    box.hidden = !ideas.length;
-    ideas.forEach((idea, i) => {
-      const card = ideaCard(idea);
+    if (!rows.length) {
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = 'No ideas for the week yet. Add foods and combos.';
+      list.appendChild(note);
+    }
+    rows.forEach((row, i) => {
+      const card = ideaCard(row);
       if (i >= 3 && !ideasAll) card.hidden = true;
       list.appendChild(card);
     });
     box.querySelector('.idea-more')?.remove();
-    if (ideas.length > 3) {
+    if (rows.length > 3) {
       const more = document.createElement('button');
       more.type = 'button';
       more.className = 'act ghost idea-more';
-      const n = ideas.length - 3;
+      const n = rows.length - 3;
       more.textContent = ideasAll ? 'Show fewer ▴' : `Show ${n} more ${n === 1 ? 'idea' : 'ideas'} ▾`;
       more.addEventListener('click', () => {
         ideasAll = !ideasAll;
@@ -2924,21 +2972,37 @@
     }
   }
 
-  function ideaCard(idea) {
+  // One idea for a day: title, why line, its foods, Plan <day>, Other day, ✎ Edit (and their panels)
+  function ideaCard(row) {
+    const idea = row.idea;
     const foods = [idea.main, ...idea.sides];
     const card = document.createElement('div');
     card.className = 'idea-card';
+    const head = document.createElement('div');
+    head.className = 'idea-head';
     const title = document.createElement('h4');
     title.className = 'idea-title';
     title.textContent = idea.title || foods.map(p => p.name).join(' + ');
-    card.appendChild(title);
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'idea-edit';
+    edit.textContent = '✎ Edit';
+    edit.setAttribute('aria-expanded', String(ideaEditKey === idea.key));
+    edit.addEventListener('click', () => {
+      ideaEditKey = ideaEditKey === idea.key ? null : idea.key;
+      ideaOtherKey = null;
+      ideaMealErr = null;
+      renderMealIdeas();
+    });
+    head.append(title, edit);
+    card.appendChild(head);
     if (idea.why && idea.why.text) {
       const why = document.createElement('div');
       why.className = `idea-why st-${idea.why.state}`;
       why.textContent = idea.why.text;
       card.appendChild(why);
     }
-    foods.forEach((p, n) => {
+    for (const p of foods) {
       const line = document.createElement('div');
       line.className = 'idea-food';
       const name = document.createElement('span');
@@ -2946,163 +3010,184 @@
       const when = document.createElement('small');
       when.textContent = FT.packDateLabel(p);
       line.append(name, when);
-      // The main has no ✕; a dish's sides have none either (its pairs are not one to one)
-      const side = n - 1;
-      const canX = side >= 0 && !idea.recipe && !idea.key.startsWith('dish:');
-      if (canX) line.appendChild(ideaXButton(idea, side));
       card.appendChild(line);
-      if (canX && ideaXOpen === `${idea.key}|${side}`) card.appendChild(ideaXPop(idea, side));
-    });
-    card.appendChild(ideaOpenKey === idea.key ? ideaDayPanel(idea) : ideaButtons(idea));
-    return card;
-  }
-
-  // The ✕ on a side: opens its question (Not tonight, Don't like), or shuts it
-  function ideaXButton(idea, i) {
-    const x = document.createElement('button');
-    x.type = 'button';
-    x.className = 'idea-x';
-    x.textContent = '✕';
-    x.setAttribute('aria-label', `Remove ${idea.sides[i].name}`);
-    x.addEventListener('click', () => {
-      const key = `${idea.key}|${i}`;
-      ideaXOpen = ideaXOpen === key ? null : key;
-      renderMealIdeas();
-    });
-    return x;
-  }
-
-  // The question under a side: Not tonight hides this pair for today; Don't like hides it for good
-  function ideaXPop(idea, i) {
-    const side = idea.sides[i];
-    const pair = idea.pairs[i];
-    const pop = document.createElement('div');
-    pop.className = 'idea-xpop';
-    const q = document.createElement('div');
-    q.className = 'idea-xq';
-    q.textContent = `${side.name} with ${idea.main.name}?`;
-    const btns = document.createElement('div');
-    btns.className = 'idea-btns';
-    const not = document.createElement('button');
-    not.type = 'button';
-    not.className = 'act ghost idea-xnot';
-    not.textContent = 'Not tonight';
-    not.addEventListener('click', () => {
-      ideaXOpen = null;
-      addNotTonight('pair:' + FT.comboKey(pair.a, pair.b, pair.note));
-      renderMealIdeas();
-    });
-    const bad = document.createElement('button');
-    bad.type = 'button';
-    bad.className = 'act ghost idea-xbad';
-    bad.textContent = "Don't like";
-    bad.addEventListener('click', () => {
-      ideaXOpen = null;
-      setPairHidden(pair, true);
-    });
-    btns.append(not, bad);
-    pop.append(q, btns);
-    return pop;
-  }
-
-  function ideaButtons(idea) {
-    const wrap = document.createElement('div');
-    wrap.className = 'idea-actions';
-    const btns = document.createElement('div');
-    btns.className = 'idea-btns';
-    const yes = document.createElement('button');
-    yes.type = 'button';
-    yes.className = 'act idea-yes';
-    yes.textContent = 'Yes';
-    yes.addEventListener('click', () => {
-      ideaOpenKey = idea.key;
-      ideaOpenDay = today;
-      ideaNfmKey = null;
-      renderMealIdeas();
-    });
-    const not = document.createElement('button');
-    not.type = 'button';
-    not.className = 'act ghost idea-not';
-    not.textContent = 'Not tonight';
-    not.addEventListener('click', () => {
-      addNotTonight(idea.key);
-      renderMealIdeas();
-    });
-    btns.append(yes, not);
-    const nfm = document.createElement('button');
-    nfm.type = 'button';
-    nfm.className = 'idea-nfm';
-    nfm.textContent = 'Not for me';
-    nfm.addEventListener('click', () => notForMe(idea));
-    wrap.append(btns);
-    if (!idea.recipe) wrap.append(nfm); // a saved meal has no pairs to take out
-    if (ideaNfmKey === idea.key) {
-      // Two or more pairs: ask which one is not for me
-      const pick = document.createElement('div');
-      pick.className = 'idea-pairs';
-      for (const pair of idea.pairs) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'idea-pair';
-        b.textContent = `${pair.a} + ${comboLabel(pair)}`;
-        b.addEventListener('click', () => {
-          ideaNfmKey = null;
-          setPairHidden(pair, true);
-        });
-        pick.appendChild(b);
-      }
-      wrap.appendChild(pick);
-    }
-    return wrap;
-  }
-
-  // Yes: pick the day (Tonight, then the next 3), with a warning for foods out of date by then
-  function ideaDayPanel(idea) {
-    const panel = document.createElement('div');
-    panel.className = 'idea-panel';
-    const lbl = document.createElement('div');
-    lbl.className = 'idea-lbl';
-    lbl.textContent = 'Which day?';
-    const days = document.createElement('div');
-    days.className = 'idea-days';
-    for (let i = 0; i < 4; i++) {
-      const day = FT.addDays(today, i);
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'idea-day' + (day === ideaOpenDay ? ' on' : '');
-      b.setAttribute('aria-pressed', String(day === ideaOpenDay));
-      b.textContent = i === 0 ? 'Tonight' : shortWeekday(day);
-      b.addEventListener('click', () => {
-        ideaOpenDay = day;
-        renderMealIdeas();
-      });
-      days.appendChild(b);
-    }
-    const warn = document.createElement('div');
-    warn.className = 'idea-warn';
-    const out = FT.ideaWarn(idea, ideaOpenDay);
-    if (out.length) {
-      warn.textContent = `${joinWords(out.map(p => p.name))} ${out.length > 1 ? 'run' : 'runs'} out before then`;
     }
     const btns = document.createElement('div');
     btns.className = 'idea-btns';
     const plan = document.createElement('button');
     plan.type = 'button';
-    plan.className = 'act idea-plan';
-    plan.textContent = 'Plan';
-    plan.addEventListener('click', () => planIdea(idea, ideaOpenDay));
-    const cancel = document.createElement('button');
-    cancel.type = 'button';
-    cancel.className = 'act ghost idea-cancel';
-    cancel.textContent = 'Cancel';
-    cancel.addEventListener('click', () => {
-      ideaOpenKey = null;
-      ideaOpenDay = null;
+    plan.className = 'act idea-plan-day';
+    plan.textContent = row.day === today ? 'Plan tonight' : 'Plan ' + shortWeekday(row.day);
+    plan.addEventListener('click', () => planIdea(idea, row.day));
+    const other = document.createElement('button');
+    other.type = 'button';
+    other.className = 'act ghost idea-other';
+    other.textContent = 'Other day';
+    other.setAttribute('aria-expanded', String(ideaOtherKey === idea.key));
+    other.addEventListener('click', () => {
+      ideaOtherKey = ideaOtherKey === idea.key ? null : idea.key;
+      ideaEditKey = null;
       renderMealIdeas();
     });
-    btns.append(plan, cancel);
-    panel.append(lbl, days, warn, btns);
+    btns.append(plan, other);
+    card.appendChild(btns);
+    if (ideaOtherKey === idea.key) card.appendChild(ideaOtherDays(idea));
+    if (ideaEditKey === idea.key) card.appendChild(ideaEditBox(row));
+    return card;
+  }
+
+  // Other day: the free days the idea's foods are all still in date for, then Cancel
+  function ideaOtherDays(idea) {
+    const panel = document.createElement('div');
+    panel.className = 'idea-panel';
+    const free = FT.mealDays(today).filter(day => !teaSkipDays().includes(day));
+    const days = FT.ideaDays(idea, free);
+    const lbl = document.createElement('div');
+    lbl.className = 'idea-lbl';
+    lbl.textContent = days.length ? 'Which day?' : 'No free day for it';
+    panel.appendChild(lbl);
+    if (days.length) {
+      const chips = document.createElement('div');
+      chips.className = 'idea-days';
+      for (const day of days) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'idea-day';
+        b.textContent = day === today ? 'Tonight' : shortWeekday(day);
+        b.addEventListener('click', () => planIdea(idea, day));
+        chips.appendChild(b);
+      }
+      panel.appendChild(chips);
+    }
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'idea-cancel';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => {
+      ideaOtherKey = null;
+      renderMealIdeas();
+    });
+    panel.appendChild(cancel);
     return panel;
+  }
+
+  // ✎ Edit: Make it a meal, Not <day>, Don't like <side> with <main> (one per pair), Not for me
+  function ideaEditBox(row) {
+    const { idea } = row;
+    const box = document.createElement('div');
+    box.className = 'idea-editbox';
+    if (!idea.recipe) {
+      const meal = document.createElement('button');
+      meal.type = 'button';
+      meal.className = 'idea-meal';
+      meal.textContent = '🍽 Make it a meal';
+      meal.addEventListener('click', () => makeIdeaMeal(idea));
+      box.appendChild(meal);
+    }
+    const notday = document.createElement('button');
+    notday.type = 'button';
+    notday.className = 'idea-notday';
+    notday.textContent = 'Not ' + dayWord(row.day);
+    notday.addEventListener('click', () => {
+      ideaSwaps[row.day] = [...(ideaSwaps[row.day] || []), idea.key];
+      ideaEditKey = null;
+      renderMealIdeas();
+    });
+    box.appendChild(notday);
+    if (ideaMealErr && ideaMealErr.key === idea.key) {
+      const err = document.createElement('p');
+      err.className = 'idea-err';
+      err.textContent = ideaMealErr.text;
+      box.appendChild(err);
+    }
+    if (!idea.recipe) {
+      const anchor = ideaAnchor(idea);
+      for (const pair of idea.pairs) {
+        const other = low(pair.a) === low(anchor) ? pair.b : pair.a;
+        const nolike = document.createElement('button');
+        nolike.type = 'button';
+        nolike.className = 'idea-nolike';
+        nolike.textContent = `Don't like ${pair.note ? `${other} (${pair.note})` : other} with ${anchor}`;
+        nolike.addEventListener('click', () => {
+          ideaEditKey = null;
+          setPairHidden(pair, true);
+        });
+        box.appendChild(nolike);
+      }
+      const nfm = document.createElement('button');
+      nfm.type = 'button';
+      nfm.className = 'idea-nfm';
+      nfm.textContent = 'Not for me';
+      nfm.addEventListener('click', () => notForMe(idea));
+      box.appendChild(nfm);
+      if (ideaNfmKey === idea.key) {
+        // Two or more pairs: ask which one is not for me
+        const pick = document.createElement('div');
+        pick.className = 'idea-pairs';
+        for (const pair of idea.pairs) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'idea-pair';
+          b.textContent = `${pair.a} + ${comboLabel(pair)}`;
+          b.addEventListener('click', () => {
+            ideaNfmKey = null;
+            ideaEditKey = null;
+            setPairHidden(pair, true);
+          });
+          pick.appendChild(b);
+        }
+        box.appendChild(pick);
+      }
+    }
+    return box;
+  }
+
+  // The name an idea's pairs hang off: its main, or a dish's name
+  function ideaAnchor(idea) {
+    if (idea.key.startsWith('dish:')) {
+      const dish = FT.comboDishes(combos).find(d => 'dish:' + low(d.name) === idea.key);
+      return dish ? dish.name : idea.title;
+    }
+    return idea.main.name;
+  }
+
+  // ✎ Edit → Make it a meal: the idea's foods become a saved meal (fresh foods, nothing else)
+  async function makeIdeaMeal(idea) {
+    const res = FT.makeMeal({
+      name: idea.title,
+      fresh: [idea.main, ...idea.sides].map(p => ({ name: p.name, some: false, qty: 1 })),
+      other: [],
+      fancy: false
+    }, recipes);
+    if (res.error) {
+      ideaMealErr = { key: idea.key, text: res.error };
+      renderMealIdeas();
+      return;
+    }
+    const meal = res.meal;
+    try {
+      meal.id = await DB.recipes.add(meal);
+    } catch (e) {
+      ideaMealErr = { key: idea.key, text: "Couldn't save the meal. Try again." };
+      renderMealIdeas();
+      return;
+    }
+    recipes = [...recipes, meal];
+    ideaEditKey = null;
+    ideaMealErr = null;
+    renderMeals();
+    renderAll();
+  }
+
+  // Not for me: one pair left goes straight to Hidden; with more, ask which pair first
+  function notForMe(idea) {
+    if (idea.pairs.length === 1) {
+      ideaNfmKey = null;
+      setPairHidden(idea.pairs[0], true);
+      return;
+    }
+    ideaNfmKey = ideaNfmKey === idea.key ? null : idea.key;
+    renderMealIdeas();
   }
 
   // A day's top 3 ideas: Plan puts the idea's foods on that day, for the meal shown.
@@ -3268,8 +3353,8 @@
 
   // Plan: every food of the idea goes on the day (tea), the soonest pack of each
   async function planIdea(idea, day) {
-    ideaOpenKey = null;
-    ideaOpenDay = null;
+    ideaOtherKey = null;
+    ideaEditKey = null;
     if (idea.recipe) {
       await planRecipeIdea(idea, day, 'tea');
     } else {
@@ -3283,11 +3368,12 @@
 
   // ---- Plan my week ----
 
-  // The week's panel: one row a day (soonest out first), Swap picks another idea for that day, the tick leaves it out
+  // The week's panel: one row a day (soonest out first), Swap picks another idea for that day,
+  // Move swaps a day's idea with another day's, the tick leaves it out
   function renderWeek() {
     const list = document.querySelector('#weekPanel .wk-list');
-    const skipDays = FT.mealDays(today).filter(day => FT.dayGroups(packs, mealPlans, recipes, day, 'tea').length > 0);
-    weekRows = FT.weekPlan(packs, planPairs(), today, { dishes: FT.comboDishes(combos), meals, skipDays, swaps: weekSwaps, recipes });
+    weekRows = FT.weekPlan(packs, planPairs(), today, { dishes: FT.comboDishes(combos), meals, skipDays: teaSkipDays(), swaps: weekSwaps, recipes });
+    weekRows = weekRows.map(row => (row.day in weekMoves ? { ...row, idea: weekMoves[row.day] } : row));
     list.textContent = '';
     for (const row of weekRows) {
       const line = document.createElement('div');
@@ -3317,6 +3403,17 @@
         swap.textContent = 'Swap';
         swap.addEventListener('click', () => {
           weekSwaps[row.day] = [...(weekSwaps[row.day] || []), idea.key];
+          delete weekMoves[row.day];
+          if (weekMoveOpen === row.day) weekMoveOpen = null;
+          renderWeek();
+        });
+        const move = document.createElement('button');
+        move.type = 'button';
+        move.className = 'wk-move';
+        move.textContent = 'Move';
+        move.setAttribute('aria-expanded', String(weekMoveOpen === row.day));
+        move.addEventListener('click', () => {
+          weekMoveOpen = weekMoveOpen === row.day ? null : row.day;
           renderWeek();
         });
         const on = !weekOff.has(row.day);
@@ -3330,15 +3427,46 @@
           else weekOff.add(row.day);
           renderWeek();
         });
-        line.append(m, swap, tick);
+        line.append(m, swap, move, tick);
       }
       list.appendChild(line);
+      if (weekMoveOpen === row.day && row.idea) list.appendChild(weekMoveBar(row));
     }
     const n = weekRows.filter(r => r.idea && !weekOff.has(r.day)).length;
     document.getElementById('weekPlan').textContent = `Plan these ${n}`;
   }
 
+  // Move: the other days (not already planned) this idea fits, with the other day's idea if it fits here
+  function weekMoveBar(row) {
+    const bar = document.createElement('div');
+    bar.className = 'wk-movebar';
+    const targets = weekRows.filter(r => r.day !== row.day && !r.skipped &&
+      FT.ideaDays(row.idea, [r.day]).length > 0 &&
+      (!r.idea || FT.ideaDays(r.idea, [row.day]).length > 0));
+    if (!targets.length) {
+      const none = document.createElement('span');
+      none.className = 'wk-movebar-lbl';
+      none.textContent = 'No other day fits it';
+      bar.appendChild(none);
+    }
+    for (const r of targets) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'wk-to';
+      b.textContent = shortWeekday(r.day);
+      b.addEventListener('click', () => {
+        weekMoves[row.day] = r.idea;
+        weekMoves[r.day] = row.idea;
+        weekMoveOpen = null;
+        renderWeek();
+      });
+      bar.appendChild(b);
+    }
+    return bar;
+  }
+
   function closeWeek() {
+    weekMoveOpen = null;
     document.getElementById('weekPanel').hidden = true;
   }
 
@@ -3357,17 +3485,6 @@
     closeWeek();
     renderMeals();
     renderAll();
-  }
-
-  // Not for me: one pair left goes straight to Hidden; with more, ask which pair first
-  function notForMe(idea) {
-    if (idea.pairs.length === 1) {
-      ideaNfmKey = null;
-      setPairHidden(idea.pairs[0], true);
-      return;
-    }
-    ideaNfmKey = ideaNfmKey === idea.key ? null : idea.key;
-    renderMealIdeas();
   }
 
   // Hide a pair or bring it back. A stored pair keeps its id; a learned pair gets a row when hidden.
@@ -3892,6 +4009,7 @@
   }
 
   function setupMeals() {
+    setupFolds();
     document.getElementById('newMeal').addEventListener('click', () => openMealForm(null));
     document.getElementById('mealSave').addEventListener('click', saveMealForm);
     document.getElementById('mealCancel').addEventListener('click', closeMealForm);
@@ -4139,6 +4257,119 @@
 
   // Upcoming day card. Open: Dinner | Tea buttons, the selected meal's foods, the picker, and the
   // other meal as one quiet line. Closed: one line per meal that has food (no buttons).
+  // A planned sitting's Change bar: Swap meal, Move day (the other days), Clear, Cancel
+  function changeBar(day, mealTime) {
+    const bar = document.createElement('div');
+    bar.className = 'chg-bar';
+    const swap = document.createElement('button');
+    swap.type = 'button';
+    swap.className = 'chg-swap';
+    swap.textContent = 'Swap meal';
+    swap.addEventListener('click', () => swapSitting(day, mealTime));
+    const move = document.createElement('button');
+    move.type = 'button';
+    move.className = 'chg-move';
+    move.textContent = 'Move day';
+    move.addEventListener('click', () => {
+      chgMove = !chgMove;
+      renderMeals();
+    });
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'chg-clear';
+    clear.textContent = 'Clear';
+    clear.addEventListener('click', () => clearSitting(day, mealTime));
+    bar.append(swap, move, clear);
+    if (chgMove) {
+      for (const to of FT.mealDays(today).filter(d => d !== day)) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chg-to';
+        b.textContent = shortWeekday(to);
+        b.addEventListener('click', () => moveSitting(day, to, mealTime));
+        bar.appendChild(b);
+      }
+    }
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'chg-cancel';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => {
+      chgKey = null;
+      chgMove = false;
+      renderMeals();
+    });
+    bar.appendChild(cancel);
+    return bar;
+  }
+
+  // Clear: the sitting's meal plans come off and its foods go back in the fridge (takeaways go).
+  // The writes come back; the lists change at once.
+  function clearSittingWrites(day, mealTime) {
+    const writes = dropPlansOn(day, mealTime);
+    writes.push(...FT.dayMeals(packs, day, mealTime).map(p => (p.kind === 'takeaway' ? dropPack(p) : setPack(FT.unplanPack(p)))));
+    return writes;
+  }
+
+  function clearSitting(day, mealTime) {
+    chgKey = null;
+    chgMove = false;
+    const writes = clearSittingWrites(day, mealTime);
+    renderMeals();
+    renderAll();
+    return persistAll(writes);
+  }
+
+  // Swap meal: clear the sitting, then plan the top idea for it that is not what was there
+  async function swapSitting(day, mealTime) {
+    const old = FT.dayMeals(packs, day, mealTime);
+    const oldIds = new Set(old.map(p => p.id));
+    const oldNames = new Set(old.map(p => low(p.name)));
+    const skips = [...oldNames];
+    for (const pl of mealPlans) {
+      if (pl.day === day && FT.mealTimeOf(pl) === mealTime) skips.push('meal:' + pl.mealId);
+    }
+    for (const d of FT.comboDishes(combos)) {
+      if (d.foods.some(f => oldNames.has(low(f)))) skips.push('dish:' + low(d.name));
+    }
+    // The foods as they are once the sitting is cleared (takeaways gone, the rest back in the fridge)
+    const after = packs
+      .filter(p => !(oldIds.has(p.id) && p.kind === 'takeaway'))
+      .map(p => (oldIds.has(p.id) ? FT.unplanPack(p) : p));
+    const [pick] = FT.dayIdeas(after, dayPairs(day), day, skips, FT.comboDishes(combos), meals, recipes);
+    await persistAll(clearSittingWrites(day, mealTime));
+    chgKey = null;
+    chgMove = false;
+    renderMeals();
+    renderAll();
+    if (pick) {
+      if (pick.recipe) {
+        await planRecipeIdea(pick, day, mealTime);
+      } else {
+        for (const p of [pick.main, ...pick.sides]) {
+          await savePack(FT.planPack(p, day, FT.slotFor(p.kind), mealTime));
+        }
+      }
+      renderMeals();
+      renderAll();
+    }
+  }
+
+  // Move day: the sitting (its foods and meal plan) swaps places with the other day's sitting
+  function moveSitting(from, to, mealTime) {
+    chgKey = null;
+    chgMove = false;
+    const r = FT.moveDayPlan(packs, mealPlans, from, to, mealTime);
+    const writes = r.packs.map(p => setPack(p));
+    for (const pl of r.plans) {
+      mealPlans = mealPlans.map(x => (String(x.id) === String(pl.id) ? pl : x));
+      writes.push(DB.mealPlans.put(pl));
+    }
+    renderMeals();
+    renderAll();
+    return persistAll(writes);
+  }
+
   function dayCard(day, picker) {
     const isToday = day === today;
     const isOpen = day === openDay && !inHad();
@@ -4243,7 +4474,21 @@
         lbl.textContent = meal === 'dinner' ? 'DINNER' : 'TEA';
         line.appendChild(lbl);
         const blocks = mealChips(line, day, meal, false);
+        const change = document.createElement('button');
+        change.type = 'button';
+        change.className = 'sit-change';
+        change.textContent = 'Change';
+        change.addEventListener('click', e => {
+          e.stopPropagation();
+          const key = FT.sitKey(day, meal);
+          chgKey = chgKey === key ? null : key;
+          chgMove = false;
+          openDay = null; // only one card open: a Change bar is on a closed card
+          renderMeals();
+        });
+        line.appendChild(change);
         card.appendChild(line);
+        if (chgKey === FT.sitKey(day, meal)) card.appendChild(changeBar(day, meal));
         blocks.forEach(b => card.appendChild(b));
       }
     }

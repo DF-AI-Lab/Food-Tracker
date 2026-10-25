@@ -54,6 +54,7 @@ function startStatic() {
 
   await page.goto(url("2026-10-24", 10));
   await page.click('[data-tab="meals"]');
+  await page.evaluate(() => { for (const id of ["myMealsFold", "editMealsFold", "allCombosFold"]) document.getElementById(id).open = true; });
 
   await step("+ Add opens step 1 on Main: 'What is it made of?', Next locked", async () => {
     await until(async () => assert.ok(await page.locator("#combos").isVisible()));
