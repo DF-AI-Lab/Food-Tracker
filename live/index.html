@@ -123,6 +123,7 @@
 
   <!-- Meals Tab -->
   <div data-tab-pane="meals" style="display:none;">
+    <div id="weekBox"><button id="weekBtn" class="act ghost" type="button">✨ Plan my week</button><div id="weekPanel" class="card" hidden><div class="wk-list"></div><div class="btns"><button class="act" id="weekPlan" type="button">Plan these 0</button><button class="act ghost" id="weekCancel" type="button">Cancel</button></div><p class="note">Soonest out goes first. Each food used once. Days already planned are left.</p></div></div>
     <div id="dayList" class="timeline"></div>
     <div id="mealShop" class="card rform" hidden>
       <h3 class="sec" id="mealShopTitle"></h3>
@@ -197,20 +198,35 @@
       <p class="note">Foods that go together. The app also learns pairs you eat 2 or more times.</p>
       <div id="comboPick" class="card" hidden>
         <div class="cp-title"></div>
-        <div class="cp-tabs">
-          <button type="button" data-cpkind="main">Main</button>
-          <button type="button" data-cpkind="side">Side</button>
-          <button type="button" data-cpkind="veg">Veg</button>
-          <button type="button" data-cpkind="misc">Other</button>
+        <div class="cp-tabs"></div>
+        <div class="cp-type">
+          <input id="cpType" type="text" placeholder="Not listed? Type a food" autocomplete="off">
+          <button id="cpTypeAdd" type="button">Add</button>
         </div>
         <div class="cp-chips"></div>
+        <div class="cp-dish">
+          <input id="cpName" type="text" placeholder="Name it, e.g. Pigs in blankets" autocomplete="off" hidden>
+          <input id="cpNote" type="text" placeholder="Note (optional)" autocomplete="off" hidden>
+        </div>
         <div class="cp-ticked note"></div>
         <div class="cp-btns">
+          <button id="cpNext" class="act" type="button">Next: goes with</button>
           <button id="cpSave" class="act" type="button">Save</button>
           <button id="cpCancel" class="act ghost" type="button">Cancel</button>
         </div>
       </div>
       <div class="combo-list card"></div>
+      <div class="sechead"><h3 class="sec">Ask an AI</h3></div>
+      <div class="card ai-box">
+        <div class="ai-btns"><button id="aiAsk" class="act" type="button">✨ Ask AI for combos</button></div>
+        <p class="note">Sends your foods to Claude. You keep or bin each pair it finds.</p>
+        <p id="aiMsg" class="note" hidden></p>
+      </div>
+      <div id="aiReview" class="card" hidden>
+        <div class="ai-title"></div>
+        <div class="ai-list"></div>
+        <div class="ai-btns"><button id="aiAdd" class="act" type="button">Add 0</button><button id="aiCancel" class="act ghost" type="button">Cancel</button></div>
+      </div>
       <div id="combosHidden" hidden>
         <div class="sechead"><h3 class="sec">Hidden (not for me)</h3></div>
         <div class="card combo-hidden"></div>
@@ -520,6 +536,12 @@
           <div id="inviteQr"></div>
           <div class="note">Works for 24 hours</div>
         </div>
+      </div>
+
+      <h3 class="sec">Ask AI</h3>
+      <div class="card list">
+        <div class="li"><input id="aiKey" type="password" placeholder="Claude API key (sk-ant-…)" autocomplete="off" class="grow"><button class="act" id="aiKeySave" type="button">Save</button></div>
+        <div class="li"><div class="grow note" id="aiKeyNote">Kept on this phone only. Used for Ask AI in Combos.</div></div>
       </div>
 
       <h3 class="sec">Backup</h3>

@@ -1,7 +1,7 @@
 // Service worker for V2 (step 6): the app opens offline and updates when a new version is published.
 // Classic script. Bump VERSION whenever the app files change (js/version.js n must match).
 
-const VERSION = 11;
+const VERSION = 12;
 const CACHE = "ftlive-v" + VERSION; // v2/ and the earlier V2 copy each clear their own prefix, so neither touches this
 const RUNTIME = "ftlive-runtime";
 

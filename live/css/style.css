@@ -265,7 +265,7 @@ body[data-page="add"] .titlerow,body[data-page="add"] #ver{display:flex}
 .btns .act{flex:1 1 40%}
 
 /* ---- Inputs ---- */
-input[type="text"],input:not([type]),input[type="date"],select,textarea{font:inherit;font-size:16px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;min-height:48px;padding:0 14px;min-width:0}
+input[type="text"],input[type="password"],input:not([type]),input[type="date"],select,textarea{font:inherit;font-size:16px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;min-height:48px;padding:0 14px;min-width:0}
 textarea{width:100%;min-height:150px;padding:14px;font-family:var(--mono);font-size:13px;line-height:1.5;border-style:dashed;border-color:var(--accent-border);resize:vertical}
 ::placeholder{color:var(--faint);opacity:1}
 input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
@@ -771,7 +771,11 @@ body[data-page="shop"] #undoBar{bottom:calc(var(--nav-h) + var(--safe-b) + 84px)
 .stock-row.ok{background:var(--ok-bg)}
 .stock-row .sr-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .stock-row .sr-name{font-size:15px;font-weight:500;overflow-wrap:anywhere}
-.stock-row .sr-date{font-size:12px;color:var(--muted)}
+.stock-row .sr-date{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.sr-date.st-out{color:var(--danger)}
+.sr-date.st-soon{color:var(--warn)}
+.sr-date.st-ok{color:var(--accent)}
+.sr-date .dim{color:var(--muted)}
 .stock-row .act{min-height:40px;padding:0 12px;font-size:14px}
 .stock-row .sr-x{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--ok-bg);border:1px solid var(--ok-border);color:var(--accent);font-size:12px;font-weight:600;line-height:18px;vertical-align:middle}
 .stock-editbox{display:flex;flex-direction:column;gap:10px;padding:12px;border-bottom:1px solid var(--divider);background:var(--surface-2)}
@@ -857,8 +861,45 @@ body.typing .pane.af.stepped #usuals{display:none}
 .idea-list{display:flex;flex-direction:column;gap:10px}
 .idea-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
 .idea-title{margin:0 0 4px;font-size:15px;font-weight:600;overflow-wrap:anywhere}
-.idea-food{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0;font-size:14px}
-.idea-food small{font-size:12px;color:var(--muted);white-space:nowrap}
+.idea-why{font-size:13px;margin:-2px 0 4px}
+.idea-why.st-out{color:var(--danger)}
+.idea-why.st-soon{color:var(--warn)}
+.idea-why.st-ok{color:var(--accent)}
+.idea-more{width:100%;margin-top:8px}
+.idea-x{margin-left:0;flex:none;width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted, inherit);font-size:13px;line-height:1;cursor:pointer}
+.idea-xpop{background:var(--surface-2, var(--surface));border:1px solid var(--border);border-radius:12px;padding:10px;margin:4px 0}
+.idea-xq{font-size:13px;margin-bottom:8px}
+.idea-xpop .act{flex:1}
+.idea-xpop .idea-btns{margin-top:0}
+.idea-xbad{color:var(--danger);border-color:var(--danger)}
+#weekBox{margin-bottom:12px}
+#weekBtn{width:100%}
+#weekPanel{margin-top:10px;padding:4px 14px 12px}
+.wk-day{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}
+.wk-day:last-child{border-bottom:0}
+.wk-d{width:40px;font-weight:700;font-size:13px;opacity:.7}
+.wk-m{flex:1;font-size:14px;overflow-wrap:anywhere}
+.wk-m small{display:block;font-size:12px}
+.wk-m small.st-out{color:var(--danger)}
+.wk-m small.st-soon{color:var(--warn)}
+.wk-m small.st-ok{color:var(--accent)}
+.wk-none{font-style:italic;opacity:.6}
+.wk-swap,.wk-tick{border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:12px;font-weight:600;background:transparent;color:inherit}
+.wk-tick.on{color:var(--accent);border-color:var(--accent)}
+.wk-tick:not(.on){opacity:.4}
+.day-ideas{margin:8px 0}
+.dt-lbl{font-size:12px;opacity:.7;margin-bottom:4px}
+.dt-idea{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.dt-idea:last-child{border-bottom:0}
+.dt-btns{display:flex;gap:6px;flex:none}
+.dt-foods{padding:4px 0 10px}
+.dt-not{width:100%;margin-top:6px}
+.dt-idea small{display:block;font-size:12px}
+.dt-idea small.st-out{color:var(--danger)}
+.dt-idea small.st-soon{color:var(--warn)}
+.dt-idea small.st-ok{color:var(--accent)}
+.idea-food{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:3px 0;font-size:14px}
+.idea-food small{font-size:12px;color:var(--muted);white-space:nowrap;margin-left:auto}
 .idea-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px}
 .idea-btns{display:flex;gap:8px;margin-top:6px}
 .idea-btns .act{flex:1;min-height:48px}
@@ -886,12 +927,22 @@ body.typing .pane.af.stepped #usuals{display:none}
 .cp-chip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .cp-chip:disabled{opacity:.6;cursor:not-allowed}
 .cp-ticked{margin:0}
+#comboPick [hidden]{display:none!important}
+#comboPick input[type=text]{font:inherit;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-height:40px;padding:8px 10px;width:100%;min-width:0;box-sizing:border-box}
+.cp-type{display:flex;gap:8px}
+.cp-type input{flex:1}
+.cp-type button{font:inherit;font-size:14px;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent-border);border-radius:10px;min-height:40px;padding:0 14px;flex:none;cursor:pointer}
+.cp-dish{display:flex;flex-direction:column;gap:8px}
+.cp-tick{display:flex;align-items:center;gap:10px;padding:4px 0}
+.cp-tick-name{flex:none;max-width:45%;font-size:14px;color:var(--text-2);overflow-wrap:anywhere}
+.cp-tick .cp-note{flex:1;min-width:0}
 .cp-btns{display:flex;gap:8px}
 .cp-btns .act{flex:1;min-height:44px}
 #combos .combo-list .note{padding:14px 16px}
 .combo-group{padding:10px 14px;border-bottom:1px solid var(--divider)}
 .combo-group:last-child{border-bottom:0}
-.combo-food{font-weight:700;font-size:15px;overflow-wrap:anywhere}
+button.combo-food{display:block;font:inherit;font-weight:700;font-size:15px;color:inherit;background:none;border:0;padding:0;margin:0;text-align:left;cursor:pointer;overflow-wrap:anywhere;max-width:100%}
+.combo-made{margin-top:2px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
 .combo-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .combo-chip{display:inline-flex;align-items:center;gap:2px;font-size:14px;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 4px 4px 10px;overflow-wrap:anywhere}
 .combo-x{font:inherit;font-size:16px;line-height:1;color:var(--muted);background:transparent;border:0;padding:4px 6px;cursor:pointer}
@@ -903,3 +954,22 @@ body.typing .pane.af.stepped #usuals{display:none}
 .combo-back{font:inherit;font-size:13px;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent-border);border-radius:10px;min-height:36px;padding:0 12px;flex:none;cursor:pointer}
 #combosHidden{display:flex;flex-direction:column;gap:10px}
 #combosHidden .combo-text span{color:var(--muted)}
+.combo-head{display:flex;align-items:center;gap:6px;width:100%;cursor:pointer}
+.combo-head .combo-food{flex:1;min-width:0}
+.combo-arr{color:var(--muted);margin-right:6px}
+.combo-count{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:500}
+.combo-chips[hidden]{display:none}
+.combo-more{border:1px dashed var(--border);border-radius:20px;padding:4px 10px;font:inherit;font-size:13px;background:none;color:var(--muted);cursor:pointer}
+.ai-box{padding:12px 14px}
+.ai-btns{display:flex;gap:8px;margin-top:8px}
+.ai-btns .act{flex:1}
+.ai-title{font-weight:600;padding:10px 14px}
+.ai-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--divider)}
+.ai-row.off .ai-text{opacity:.45;text-decoration:line-through}
+.ai-text{font-size:15px;font-weight:500;overflow-wrap:anywhere}
+.ai-text small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+.ai-yn{display:flex;gap:6px;flex:none}
+.ai-yn button{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text);font-weight:700;cursor:pointer}
+.ai-yes.on{border-color:var(--accent);color:var(--accent)}
+.ai-no.on{border-color:var(--danger);color:var(--danger)}
+#aiReview .ai-btns{padding:0 14px 14px}

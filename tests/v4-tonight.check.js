@@ -59,7 +59,7 @@ function startStatic() {
     ["side", "Rice", 1], ["side", "Mash", 3], ["side", "Chips", 6], ["veg", "Peas", 9], ["side", "Beans", 10]]) await addFood(k, n, d);
 
   // Combos added through Ask AI (faked)
-  await page.evaluate(() => localStorage.setItem("v4demo.claudeKey", "sk-ant-test"));
+  await page.evaluate(k => localStorage.setItem(k, "sk-ant-test"), (APP_DIR === "live" ? "live." : "v4demo.") + "claudeKey");
   const pairs = [["Chicken", "Rice"], ["Gammon", "Mash"], ["Sausages", "Chips"], ["Fish", "Peas"], ["Pork", "Beans"]].map(([a, b]) => ({ a, b, note: "" }));
   await page.route("https://api.anthropic.com/v1/messages", route => route.fulfill({ status: 200, contentType: "application/json",
     body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ pairs }) }] }) }));
