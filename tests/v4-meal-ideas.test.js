@@ -78,7 +78,7 @@ test("tonightIdeas: every meal the pairs can make, soonest date first", () => {
   const ideas = FT.tonightIdeas(fridge, pairs, "2026-10-24");
   assert.deepEqual(ideas.map(i => i.main.id), [1, 4]);
   assert.equal(ideas[0].key, "chicken");
-  assert.deepEqual(ideas[0].sides.map(p => p.id), [3, 2]); // soonest side first
+  assert.deepEqual(ideas[0].sides.map(p => p.id), [2, 3]); // base (Chips) first, then goes-with (Cauli cheese)
   assert.equal(ideas[0].pairs.length, 2);
   assert.deepEqual(ideas[1].sides.map(p => p.id), [5]);
   assert.equal(ideas[1].pairs.length, 1);
@@ -90,10 +90,10 @@ test("tonightIdeas: Not tonight keys are left out; nothing in = nothing out", ()
   assert.deepEqual(FT.tonightIdeas(fridge, [], "2026-10-24"), []);
 });
 
-test("tonightIdeas: at most 3 sides", () => {
+test("tonightIdeas: at most 1 base and 2 goes-with sides", () => {
   const many = ["A", "B", "C", "D"].map(n => ({ key: FT.pairKey("Chicken", n), a: "Chicken", b: n }));
   const ps = [pack(1, "Chicken", "main", { date: "2026-10-27" }), ...["A", "B", "C", "D"].map((n, i) => pack(10 + i, n, "veg"))];
-  assert.equal(FT.tonightIdeas(ps, many, "2026-10-24")[0].sides.length, 3);
+  assert.equal(FT.tonightIdeas(ps, many, "2026-10-24")[0].sides.length, 2);
 });
 
 test("ideaWarn: foods that are out of date by the chosen day", () => {
