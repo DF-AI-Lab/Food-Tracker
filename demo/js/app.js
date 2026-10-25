@@ -298,8 +298,12 @@
     document.getElementById('cpNext').addEventListener('click', nextComboStep);
     document.getElementById('cpSave').addEventListener('click', saveComboPicks);
     // Ask an AI: copy or download the text, paste or upload the answer, then keep or bin each pair
+    document.getElementById('aiAsk').addEventListener('click', askAi);
     document.getElementById('aiCopy').addEventListener('click', copyAiText);
     document.getElementById('aiDownload').addEventListener('click', downloadAiText);
+    // Settings: the Claude key for Ask AI (its placeholder shows whether a key is saved)
+    document.getElementById('aiKeySave').addEventListener('click', saveAiKey);
+    document.getElementById('settingsBtn').addEventListener('click', showAiKeyState);
     document.getElementById('aiPaste').addEventListener('click', () => {
       document.getElementById('aiPasteWrap').hidden = false;
       document.getElementById('aiPasteText').focus();
@@ -3385,10 +3389,74 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  // The Claude key for Ask AI: kept on this phone only (try/catch: storage can be blocked)
+  function readAiKey() {
+    try { return localStorage.getItem('v4demo.claudeKey') || ''; } catch (e) { return ''; }
+  }
+
+  function showAiKeyState() {
+    document.getElementById('aiKey').placeholder = readAiKey() ? 'Key saved · type to replace' : 'Claude API key (sk-ant-…)';
+  }
+
+  function saveAiKey() {
+    const input = document.getElementById('aiKey');
+    const note = document.getElementById('aiKeyNote');
+    const key = input.value.trim();
+    let saved = true;
+    try {
+      if (key) localStorage.setItem('v4demo.claudeKey', key);
+      else localStorage.removeItem('v4demo.claudeKey');
+    } catch (e) { saved = false; }
+    if (!saved) note.textContent = "Couldn't save the key on this phone.";
+    else if (!key) note.textContent = 'Key removed.';
+    else {
+      input.value = '';
+      note.textContent = 'Key saved on this phone.';
+    }
+    showAiKeyState();
+  }
+
+  // Ask Claude for combos: sends the app's foods, reads the answer into the review list
+  async function askAi() {
+    const key = readAiKey();
+    if (!key) { aiSay('Add your Claude key in Settings first.'); return; }
+    const btn = document.getElementById('aiAsk');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Asking AI…';
+    aiSay('Thinking… about 10 seconds.');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify(FT.aiComboRequest({ packs, combos, meals, today }))
+      });
+      if (!res.ok) {
+        if (res.status === 401) aiSay("That key didn't work. Check it in Settings.");
+        else if (res.status === 429 || res.status === 529) aiSay('AI is busy. Try again in a minute.');
+        else aiSay(`AI error (${res.status}).`);
+        return;
+      }
+      const text = FT.aiReplyText(await res.json());
+      if (!text) { aiSay("The AI didn't answer. Try again."); return; }
+      readAiAnswer(text);
+    } catch (e) {
+      aiSay('No connection to the AI.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  }
+
   // Read the AI's answer (pasted or uploaded) into the review list
   function readAiAnswer(text) {
     const all = FT.comboPairs(combos, meals);
-    const r = FT.parseAiCombos(text, [...all.shown, ...all.hidden]);
+    const r = FT.parseAiCombos(text, [...all.shown, ...all.hidden], FT.aiAllowedFoods(packs, combos));
     if (!r.ok) {
       aiSay(r.reason);
       aiRows = [];
@@ -3396,7 +3464,7 @@
       return;
     }
     if (!r.rows.length) {
-      aiSay('Nothing new in that answer.');
+      aiSay('Nothing new that uses your foods.');
       aiRows = [];
       renderAiReview();
       return;

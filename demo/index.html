@@ -219,8 +219,9 @@
       <div class="combo-list card"></div>
       <div class="sechead"><h3 class="sec">Ask an AI</h3></div>
       <div class="card ai-box">
+        <div class="ai-btns"><button id="aiAsk" class="act" type="button">✨ Ask AI for combos</button></div>
         <div class="ai-btns"><button id="aiCopy" class="act ghost" type="button">Copy for AI</button><button id="aiDownload" class="act ghost" type="button">Download</button></div>
-        <div class="ai-btns"><button id="aiPaste" class="act" type="button">Paste answer</button><button id="aiUpload" class="act ghost" type="button">Upload</button></div>
+        <div class="ai-btns"><button id="aiPaste" class="act ghost" type="button">Paste answer</button><button id="aiUpload" class="act ghost" type="button">Upload</button></div>
         <input id="aiFile" type="file" accept=".txt,.json,text/plain,application/json" hidden>
         <p class="note">Copy, paste into Claude or ChatGPT, then paste its answer back here.</p>
         <div id="aiPasteWrap" hidden><textarea id="aiPasteText" rows="4" placeholder="Paste the AI's answer"></textarea><button id="aiCheck" class="act" type="button">Check</button></div>
@@ -540,6 +541,12 @@
           <div id="inviteQr"></div>
           <div class="note">Works for 24 hours</div>
         </div>
+      </div>
+
+      <h3 class="sec">Ask AI</h3>
+      <div class="card list">
+        <div class="li"><input id="aiKey" type="password" placeholder="Claude API key (sk-ant-…)" autocomplete="off" class="grow"><button class="act" id="aiKeySave" type="button">Save</button></div>
+        <div class="li"><div class="grow note" id="aiKeyNote">Kept on this phone only. Used for Ask AI in Combos.</div></div>
       </div>
 
       <h3 class="sec">Backup</h3>

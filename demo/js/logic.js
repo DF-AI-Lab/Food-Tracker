@@ -949,11 +949,51 @@
     return rows;
   }
 
-  // Combos AI fill-in: the text to paste into an AI chat (what to do, the foods, dishes, pairs, last 4 weeks)
-  function aiComboText({ packs, combos, meals, today }) {
+  // Combos AI: the foods this household has bought (fridge, used or thrown, not deleted), by kind, A to Z
+  function boughtFoods(allPacks) {
+    const out = { main: [], side: [], veg: [], misc: [], cupboard: [] };
+    const seen = new Set();
+    for (const p of allPacks || []) {
+      if (p.status === "deleted") continue;
+      const name = String(p.name ?? "").trim();
+      const key = name.toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      const kind = rememberedKind(allPacks, name);
+      (out[kind] || out.misc).push(name);
+    }
+    for (const k of Object.keys(out)) out[k].sort((x, y) => x.localeCompare(y));
+    return out;
+  }
+
+  // Combos AI: every name the AI may use (foods bought, dishes, foods already in combos), lowercase
+  function aiAllowedFoods(allPacks, combos) {
+    const names = Object.values(boughtFoods(allPacks)).flat();
+    for (const c of combos || []) {
+      if (c.type === "dish") names.push(c.name, ...(c.foods || []));
+      else names.push(c.a, c.b);
+    }
+    return new Set(names.map(n => String(n ?? "").trim().toLowerCase()).filter(Boolean));
+  }
+
+  // Combos AI: what the AI is told (fixed), then this household's food (Darren 2026-10-25)
+  const AI_COMBO_SYSTEM = [
+    "You help a UK family plan dinners from the food they buy.",
+    "Suggest pairs: a main (or one of their dishes) and a food that goes with it on the same plate.",
+    "Rules:",
+    "- Only use foods from their lists or their dishes, spelled exactly as written. Never add a food they don't buy.",
+    "- \"a\" is a main or a dish. \"b\" is a side, veg, sauce or other food that goes with it.",
+    "- \"note\" is only for a raw food that turns into different things, like Potatoes (chips, mash, roast, jacket). Give one pair per way. Leave note empty for everything else: no boiled, steamed or fried.",
+    "- Normal family dinners only: pairs most people would happily eat together on one plate. No pizza toppings or breakfast foods with a roast.",
+    "- Don't repeat a pair they have, and never suggest anything under \"Don't suggest\".",
+    "- Give as many good pairs as you can find, up to 40. Every main and dish should get some.",
+    "Reply with JSON only."
+  ].join("\n");
+
+  function aiComboPrompt({ packs, combos, meals, today }) {
     const all = comboPairs(combos, meals);
-    const kindList = kind => comboFoods(packs, kind);
-    const list = kind => kindList(kind).length ? kindList(kind).join(", ") : "none";
+    const foods = boughtFoods(packs);
+    const list = kind => foods[kind].length ? foods[kind].join(", ") : "none";
     const or = lines => lines.length ? lines.join("\n") : "- none";
     const pairLine = r => `- ${r.a} + ${r.b}` + (r.note ? ` (${r.note})` : "");
     const dishes = comboDishes(combos).map(d => `- ${d.name} (${d.foods.join(" + ")})` + (d.note ? ` · ${d.note}` : ""));
@@ -964,19 +1004,14 @@
       .filter(m => m.names.length)
       .sort((x, y) => y.day.localeCompare(x.day))
       .map(m => `- ${m.day}: ${m.names.join(", ")}`);
-    return [
-      "You help a family pick foods that go together for dinner.",
-      "Suggest new pairs. \"a\" must be a main or one of their dishes. \"b\" is a food that goes with it; prefer foods from the lists below. An optional \"note\" says how it is made (e.g. chips, mash, roast).",
-      "Don't repeat the pairs they have, or anything under \"Don't suggest\".",
-      "Reply with JSON only, like:",
-      '{"pairs":[{"a":"Chicken","b":"Rice","note":""}]}',
-      "",
+    const user = [
       `Mains: ${list("main")}`,
       `Sides: ${list("side")}`,
       `Veg: ${list("veg")}`,
       `Other: ${list("misc")}`,
+      `Cupboard: ${list("cupboard")}`,
       "",
-      "Dishes:",
+      "Their dishes:",
       or(dishes),
       "",
       "Pairs they have:",
@@ -988,10 +1023,57 @@
       "Eaten in the last 4 weeks:",
       or(eaten)
     ].join("\n");
+    return { system: AI_COMBO_SYSTEM, user };
   }
 
-  // Combos AI fill-in: read the AI's answer. { ok, rows } with new pairs (source "ai"), or { ok: false, reason }
-  function parseAiCombos(text, existingRows) {
+  // The same, as one text to copy into an AI chat (with the reply shape spelled out)
+  function aiComboText(args) {
+    const p = aiComboPrompt(args);
+    return `${p.system}\nLike: {"pairs":[{"a":"Chicken","b":"Potatoes","note":"mash"}]}\n\n${p.user}`;
+  }
+
+  // Combos AI: the request body for the Claude API (Haiku: cheap; the answer is forced into the pairs shape)
+  const AI_COMBO_MODEL = "claude-haiku-5-5";
+  function aiComboRequest(args) {
+    const p = aiComboPrompt(args);
+    return {
+      model: AI_COMBO_MODEL,
+      max_tokens: 16000,
+      system: p.system,
+      messages: [{ role: "user", content: p.user }],
+      output_config: {
+        effort: "low",
+        format: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              pairs: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { a: { type: "string" }, b: { type: "string" }, note: { type: "string" } },
+                  required: ["a", "b", "note"],
+                  additionalProperties: false
+                }
+              }
+            },
+            required: ["pairs"],
+            additionalProperties: false
+          }
+        }
+      }
+    };
+  }
+
+  // Combos AI: the text of a Claude API reply (skips thinking blocks), or "" (refused, cut off, none)
+  function aiReplyText(reply) {
+    if (!reply || reply.stop_reason === "refusal") return "";
+    const block = (reply.content || []).find(b => b && b.type === "text");
+    return block ? String(block.text || "") : "";
+  }
+
+  function parseAiCombos(text, existingRows, allowed) {
     const str = v => String(v ?? "").trim();
     const s = str(text);
     const slices = [s];
@@ -1009,8 +1091,9 @@
     const rows = [];
     for (const item of list) {
       if (!item || typeof item !== "object") continue;
-      const a = str(item.a), b = str(item.b), note = str(item.note);
+      const a = str(item.a), b = str(item.b), note = str(item.note).toLowerCase();
       if (!a || !b || a.toLowerCase() === b.toLowerCase()) continue;
+      if (allowed && (!allowed.has(a.toLowerCase()) || !allowed.has(b.toLowerCase()))) continue; // only foods in the app
       const key = comboKey(a, b, note);
       if (have.has(key)) continue;
       have.add(key);
@@ -2216,6 +2299,11 @@
     comboPairs,
     comboFoods,
     aiComboText,
+    aiComboPrompt,
+    aiComboRequest,
+    aiReplyText,
+    aiAllowedFoods,
+    boughtFoods,
     parseAiCombos,
     stockWhen,
     comboGroups,

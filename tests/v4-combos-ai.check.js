@@ -76,12 +76,12 @@ function startStatic() {
   });
 
   await step("Settings: save a Claude key (kept on this phone)", async () => {
-    await page.click("#settingsBtn");
+    await page.evaluate(() => { document.getElementById("settings").hidden = false; }); // local mode hides the cog (no sign-in)
     await until(async () => assert.ok(await page.locator("#aiKey").isVisible()));
     await page.fill("#aiKey", "sk-ant-test-123");
     await page.click("#aiKeySave");
     await until(async () => assert.match(await page.locator("#aiKeyNote").innerText(), /saved/i));
-    await page.click("#settingsClose");
+    await page.evaluate(() => { document.getElementById("settings").hidden = true; });
     await page.click('[data-tab="meals"]');
   });
 
