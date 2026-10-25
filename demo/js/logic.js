@@ -1086,7 +1086,7 @@
       list = Array.isArray(v) ? v : (v && Array.isArray(v.pairs) ? v.pairs : null);
       if (list) break;
     }
-    if (!list) return { ok: false, reason: "Couldn't read that. Paste the AI's whole answer." };
+    if (!list) return { ok: false, reason: "Couldn't read the AI's answer. Try again." };
     const have = new Set((existingRows || []).map(r => r.key ?? comboKey(r.a, r.b, r.note)));
     const rows = [];
     for (const item of list) {

@@ -297,24 +297,11 @@
     document.getElementById('cpCancel').addEventListener('click', closeComboPicker);
     document.getElementById('cpNext').addEventListener('click', nextComboStep);
     document.getElementById('cpSave').addEventListener('click', saveComboPicks);
-    // Ask an AI: copy or download the text, paste or upload the answer, then keep or bin each pair
+    // Ask AI: Claude finds pairs, then keep or bin each
     document.getElementById('aiAsk').addEventListener('click', askAi);
-    document.getElementById('aiCopy').addEventListener('click', copyAiText);
-    document.getElementById('aiDownload').addEventListener('click', downloadAiText);
     // Settings: the Claude key for Ask AI (its placeholder shows whether a key is saved)
     document.getElementById('aiKeySave').addEventListener('click', saveAiKey);
     document.getElementById('settingsBtn').addEventListener('click', showAiKeyState);
-    document.getElementById('aiPaste').addEventListener('click', () => {
-      document.getElementById('aiPasteWrap').hidden = false;
-      document.getElementById('aiPasteText').focus();
-    });
-    document.getElementById('aiCheck').addEventListener('click', () => readAiAnswer(document.getElementById('aiPasteText').value));
-    document.getElementById('aiUpload').addEventListener('click', () => document.getElementById('aiFile').click());
-    document.getElementById('aiFile').addEventListener('change', async e => {
-      const file = e.target.files[0];
-      e.target.value = '';
-      if (file) readAiAnswer(await file.text());
-    });
     document.getElementById('aiAdd').addEventListener('click', addAiRows);
     document.getElementById('aiCancel').addEventListener('click', () => { aiRows = []; renderAiReview(); });
     document.getElementById('cpTypeAdd').addEventListener('click', addTypedFood);
@@ -3357,36 +3344,12 @@
     return wrap;
   }
 
-  // ---- Ask an AI (combos): copy or download the text, paste or upload the answer, then keep or bin each pair ----
-
-  function aiText() {
-    return FT.aiComboText({ packs, combos, meals, today });
-  }
+  // ---- Ask AI (combos): Claude finds pairs from the app's foods, then keep or bin each ----
 
   function aiSay(text) {
     const msg = document.getElementById('aiMsg');
     msg.textContent = text;
     msg.hidden = !text;
-  }
-
-  async function copyAiText() {
-    try {
-      await navigator.clipboard.writeText(aiText());
-      aiSay('Copied. Paste it into the AI.');
-    } catch (e) {
-      aiSay("Couldn't copy. Try Download.");
-    }
-  }
-
-  function downloadAiText() {
-    const url = URL.createObjectURL(new Blob([aiText()], { type: 'text/plain' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `combos-for-ai-${today}.txt`;
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   // The Claude key for Ask AI: kept on this phone only (try/catch: storage can be blocked)
@@ -3453,7 +3416,7 @@
     }
   }
 
-  // Read the AI's answer (pasted or uploaded) into the review list
+  // Read the AI's answer into the review list
   function readAiAnswer(text) {
     const all = FT.comboPairs(combos, meals);
     const r = FT.parseAiCombos(text, [...all.shown, ...all.hidden], FT.aiAllowedFoods(packs, combos));
@@ -3470,8 +3433,6 @@
       return;
     }
     aiSay('');
-    document.getElementById('aiPasteWrap').hidden = true;
-    document.getElementById('aiPasteText').value = '';
     aiRows = r.rows.map(x => ({ ...x, keep: true }));
     renderAiReview();
   }
