@@ -2531,6 +2531,14 @@
     return lines.join("\n");
   }
 
+  // Meals page, Use soon: the in-fridge foods that go off in 3 days or less (out of date too), soonest first
+  function mealsUseSoon(packs, today) {
+    return packs
+      .filter(p => p.status === "in_fridge" && p.date && daysLeft(p.date, today) <= 3)
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      .map(p => ({ id: p.id, name: p.name, date: p.date, days: daysLeft(p.date, today), plannedFor: p.plannedFor || null }));
+  }
+
   // Export
   const FT = {
     shopMatches,
@@ -2544,6 +2552,7 @@
     dateTag,
     addDays,
     daysLeft,
+    mealsUseSoon,
     formatDate,
     parseDDMM,
     parseDays,

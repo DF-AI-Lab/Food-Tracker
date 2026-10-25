@@ -125,7 +125,8 @@
 
   <!-- Meals Tab -->
   <div data-tab-pane="meals" style="display:none;">
-    <div id="weekBox"><div class="week-btns"><button id="weekBtn" class="act ghost" type="button">✨ Plan my week</button><button id="dinnerBtn" class="act ghost" type="button">✨ Ask AI for dinner</button></div><div id="dinnerBox"><p id="dinnerMsg" class="note" hidden></p><div class="dinner-list"></div></div><div id="weekPanel" class="card" hidden><div class="wk-list"></div><div class="btns"><button class="act" id="weekPlan" type="button">Plan these 0</button><button class="act ghost" id="weekCancel" type="button">Cancel</button></div><p class="note">Soonest out goes first. Each food used once. Days already planned are left.</p></div></div>
+    <div id="mealsSoon" class="msoon" hidden><div class="eyebrow">Use soon</div><div class="msoon-list"></div></div>
+    <div id="weekBox"><div class="week-btns"><button id="weekBtn" class="act ghost" type="button">✨ Plan my week</button></div><div id="weekPanel" class="card" hidden><div class="wk-list"></div><div class="btns"><button class="act" id="weekPlan" type="button">Plan these 0</button><button class="act ghost" id="weekCancel" type="button">Cancel</button></div><p class="note">Soonest out goes first. Each food used once. Days already planned are left.</p></div></div>
     <div id="dayList" class="timeline"></div>
     <div id="mealShop" class="card rform" hidden>
       <h3 class="sec" id="mealShopTitle"></h3>
@@ -205,11 +206,6 @@
     <details id="combosFold" class="fold" open>
       <summary class="fold-sum"><span class="fold-t">Combos</span><span class="chev" aria-hidden="true">›</span></summary>
       <div class="fold-body">
-        <div id="ideasWeek">
-          <div class="sechead"><h3 class="sec">Ideas for the week</h3></div>
-          <p class="note">Best first. The app picks the day from what runs out soonest.</p>
-          <div class="idea-list"></div>
-        </div>
         <details id="allCombosFold" class="fold fold-in">
           <summary class="fold-sum"><span class="fold-t">All combos</span><span class="chev" aria-hidden="true">›</span></summary>
           <div class="fold-body">
