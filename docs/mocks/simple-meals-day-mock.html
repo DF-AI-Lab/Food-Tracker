@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: phone column, same look as the demo app. Use soon as a wrapping grid (no sideways scroll), one Plan my week button, the week; an open day = Dinner|Tea, the plate, one list. */
+/* Layout: phone column, same look as the demo app. Use soon as one small card, a line per food, one Plan my week button, the week; an open day = Dinner|Tea, the plate, one list. */
 :root{
   --bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;
   --accent:#8FD4B0;--on-accent:#0A1210;--warn:#F2B35B;--sel:#1B3329;--sel-b:#2E5444;
@@ -16,12 +16,11 @@ h1{font-size:30px;margin:-8px 0 0}
 button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0;text-align:left}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
-.soon{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pill{border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:10px 12px;min-width:0}
-.pill b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pill small{font-size:12px}
-.pill.warn{border-color:var(--warn)} .pill.warn small{color:var(--warn)}
-.pill.ok small{color:var(--accent)}
+.soonc{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.srow{display:flex;justify-content:space-between;gap:12px;font-size:15px;font-weight:600}
+.srow em{font-style:normal;font-family:var(--mono);font-size:13px;font-weight:500;color:var(--warn);white-space:nowrap}
+.srow.ok em{color:var(--accent)}
+.smore{font-size:13px;color:var(--muted);text-decoration:underline;margin-top:4px;align-self:flex-start}
 .planwk{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:16px;text-align:center;font-weight:600;font-size:16px}
 .days{display:flex;flex-direction:column;gap:10px}
 .day{background:var(--surface);border:1px solid var(--border);border-radius:16px}
@@ -66,8 +65,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <p class="wk">Sun 25 – 31 Oct</p>
   <h1>Meals</h1>
 
-  <div class="eyebrow">Use soon</div>
-  <div class="soon" id="soon"></div>
+  <div class="soonc"><div class="eyebrow">Use soon</div><div id="soon"></div><button class="smore" type="button">+2 more soon</button></div>
 
   <button class="planwk" type="button">✨ Plan my week</button>
 
@@ -109,7 +107,7 @@ function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className
 
 function draw(){
   const s=document.getElementById('soon');s.innerHTML='';
-  soon.forEach(f=>{const on=plannedOn(f.n);const p=el('div','pill '+(on?'ok':'warn'),`<b>${f.n}</b><small>${on?'✓ '+on:'out in '+f.when+''}</small>`);s.appendChild(p)});
+  soon.forEach(f=>{const on=plannedOn(f.n);s.appendChild(el('div','srow'+(on?' ok':''),`<span>${f.n}</span><em>${on?'✓ '+on:f.when}</em>`))});
   const box=document.getElementById('days');box.innerHTML='';
   days.forEach(x=>{
     const card=el('div','day'+(x.open?' open':''));
