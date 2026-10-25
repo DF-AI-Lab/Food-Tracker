@@ -100,25 +100,18 @@ function startStatic() {
 
   const day = i => page.locator("#dayList .day").nth(i);
 
-  // Open a day's card (it may already be open) and return its top 3. The top 3 shows for the Dinner
-  // meal, so when it is missing (today's card starts on Tea) switch that card to Dinner.
-  const openDay = async i => {
+  // Open a day's card (it may already be open), its Tea, the picker's Mains tab, and tap the food
+  const pickOn = async (i, food) => {
     const d = day(i);
-    const box = d.locator(".day-ideas");
-    const shown = async () => box.first().isVisible().catch(() => false);
-    if (!(await shown())) {
-      if (!(await d.evaluate(el => el.classList.contains("open")))) await d.locator(".dh").click();
-      if (!(await shown())) await d.locator("button", { hasText: /^Dinner/ }).first().click();
-    }
-    await until(async () => assert.ok(await shown()));
-    return box;
+    if (!(await d.evaluate(el => el.classList.contains("open")))) await d.locator(".dh").click();
+    await d.locator('.meal-seg button[data-meal="tea"]').click();
+    await page.click('#mtabs [data-s="main"]');
+    await page.locator("#pickList .item", { hasText: food }).first().click();
   };
 
-  // Plan a day's top-3 idea by its food (the removed ideas-card steps planned Chicken on Sunday, Gammon on Wednesday)
-  await step("Plan Chicken on Sunday and Gammon on Wednesday from each day's top 3", async () => {
+  await step("Plan Chicken on Sunday and Gammon on Wednesday from the picker", async () => {
     for (const [i, food] of [[0, "Chicken"], [3, "Gammon"]]) {
-      const box = await openDay(i);
-      await box.locator(".dt-idea", { hasText: food }).first().locator(".dt-plan").click();
+      await pickOn(i, food);
       await until(async () => assert.match(await day(i).innerText(), new RegExp(food)));
     }
   });

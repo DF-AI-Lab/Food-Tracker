@@ -50,7 +50,7 @@ function startStatic() {
   await page.goto(url(T, 10));
 
   await step("fridge: 4 foods going off soon and one later", async () => {
-    for (const [name, kind, days] of [["Chicken", "main", "1"], ["Sausages", "main", "1"], ["Mince", "main", "2"], ["Potatoes", "side", "3"], ["Bacon", "main", "12"]]) {
+    for (const [name, kind, days] of [["Chicken", "main", "1"], ["Sausages", "main", "1"], ["Mince", "main", "2"], ["Mash", "side", "3"], ["Bacon", "main", "12"]]) {
       await page.click('[data-tab="add"]');
       await page.click('[data-sub="fridge"]');
       await page.click(`[data-kind="${kind}"]`);
