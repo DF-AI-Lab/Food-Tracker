@@ -17,6 +17,7 @@
   let ideaOpenKey = null; // Ideas for tonight: the idea whose Yes panel is open (main's name key), or null
   let ideaOpenDay = null; // Ideas: the day picked in that panel (ISO)
   let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
+  let ideasAll = false;   // Ideas for tonight: all shown (false = the best 3 and a Show more button)
   let cpFood = null;      // Combos picker: the food picked in step 1 (null = still picking it)
   let cpKind = 'main';    // Combos picker: the kind tab showing (main, side, veg, misc, dish)
   let cpTicked = [];      // Combos picker: the names ticked (step 1: what it is made of; step 2: what goes with it)
@@ -2875,10 +2876,27 @@
   function renderMealIdeas() {
     const box = document.getElementById('ideasTonight');
     const list = box.querySelector('.idea-list');
-    const ideas = FT.tonightIdeas(packs, FT.comboPairs(combos, meals).shown, today, notTonightKeys(), FT.comboDishes(combos));
+    const ideas = FT.tonightIdeas(packs, FT.comboPairs(combos, meals).shown, today, notTonightKeys(), FT.comboDishes(combos), meals);
     list.textContent = '';
     box.hidden = !ideas.length;
-    for (const idea of ideas) list.appendChild(ideaCard(idea));
+    ideas.forEach((idea, i) => {
+      const card = ideaCard(idea);
+      if (i >= 3 && !ideasAll) card.hidden = true;
+      list.appendChild(card);
+    });
+    box.querySelector('.idea-more')?.remove();
+    if (ideas.length > 3) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'act ghost idea-more';
+      const n = ideas.length - 3;
+      more.textContent = ideasAll ? 'Show fewer ▴' : `Show ${n} more ${n === 1 ? 'idea' : 'ideas'} ▾`;
+      more.addEventListener('click', () => {
+        ideasAll = !ideasAll;
+        renderMealIdeas();
+      });
+      list.after(more);
+    }
   }
 
   function ideaCard(idea) {
@@ -2889,6 +2907,12 @@
     title.className = 'idea-title';
     title.textContent = idea.title || foods.map(p => p.name).join(' + ');
     card.appendChild(title);
+    if (idea.why && idea.why.text) {
+      const why = document.createElement('div');
+      why.className = `idea-why st-${idea.why.state}`;
+      why.textContent = idea.why.text;
+      card.appendChild(why);
+    }
     for (const p of foods) {
       const line = document.createElement('div');
       line.className = 'idea-food';

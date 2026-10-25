@@ -868,6 +868,11 @@ body.typing .addbar{top:calc(var(--vvtop,0px) + var(--demo-h))}
 .idea-list{display:flex;flex-direction:column;gap:10px}
 .idea-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
 .idea-title{margin:0 0 4px;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.idea-why{font-size:13px;margin:-2px 0 4px}
+.idea-why.st-out{color:var(--danger)}
+.idea-why.st-soon{color:var(--warn)}
+.idea-why.st-ok{color:var(--accent)}
+.idea-more{width:100%;margin-top:8px}
 .idea-food{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0;font-size:14px}
 .idea-food small{font-size:12px;color:var(--muted);white-space:nowrap}
 .idea-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px}
