@@ -35,8 +35,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:4px}
 .seg button{text-align:center;padding:10px;border-radius:10px;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--accent);color:var(--on-accent)}
-.plate{display:flex;flex-wrap:wrap;gap:8px;min-height:38px;align-items:center}
-.plate .empty{color:var(--muted);font-size:14px}
+.sits{display:flex;flex-direction:column;gap:6px;padding:0 12px 14px}
+.open .sits{padding-bottom:12px}
+.sr{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:8px}
+.sr .k{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+.sr .m{font-weight:600;min-width:0}
+.sr button{color:var(--muted);font-size:14px;padding:2px 4px}
 .chip{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-2);border-radius:10px;padding:6px 10px;font-weight:600}
 .chip button{color:var(--muted);font-size:14px}
 .lab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -76,7 +80,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <p><b>Kept:</b> Dinner | Tea and the tabs.</p>
     <p><b>Takeaway</b> sits at the end of the tab row.</p>
     <p><b>Gone:</b> Top 3, "Adding to…", the Takeaway row, Next: Sides, Next day.</p>
-    <p>Tap a food to put it on the plate. Tap again or ✕ to take it off.</p>
+    <p><b>Each day:</b> the day on top, then a DINNER line and a TEA line under it. ✕ clears that meal.</p>
+    <p>Pick Dinner or Tea, then tap a food to add it. Tap again to take it off.</p>
     <p>Tap the day's name to close it.</p>
   </div>
 </div>
@@ -91,7 +96,7 @@ const tabs={
 };
 const tabNames=[['meal','Meals'],['main','Mains'],['side','Sides'],['veg','Veg'],['misc','Other']];
 const days=[
-  {d:'Sun',dt:'25 Oct',today:true,open:true,tea:[],dinner:[]},
+  {d:'Sun',dt:'25 Oct',today:true,open:true,tea:['Sausages wrapped in bacon'],dinner:['Frankfurters + Hotdog rolls']},
   {d:'Mon',dt:'26 Oct',tea:['Lasagne'],dinner:[]},
   {d:'Tue',dt:'27 Oct',tea:['Fajita recipe for 4'],dinner:[]},
   {d:'Wed',dt:'28 Oct',tea:[],dinner:[]},
@@ -112,19 +117,20 @@ function draw(){
   days.forEach(x=>{
     const card=el('div','day'+(x.open?' open':''));
     const all=[...x.dinner,...x.tea];
-    const right=x.open?'<span class="r">⌃</span>':all.length?`<span class="r meal">${all.join(' + ')}</span>`:'<span class="r">+ Plan</span>';
+    const right=x.open?'<span class="r">⌃</span>':all.length?'':'<span class="r">+ Plan</span>';
     const h=el('button','dh',`<span class="d">${x.d}</span><span class="dt">${x.dt}</span>${x.today?'<span class="today">TODAY</span>':''}${right}`);
     h.type='button';h.onclick=()=>{const was=x.open;days.forEach(y=>y.open=false);x.open=!was;draw()};
     card.appendChild(h);
+    if(all.length){const sits=el('div','sits');
+      ['dinner','tea'].forEach(k=>{if(!x[k].length)return;const r=el('div','sr',`<span class="k">${k.toUpperCase()}</span><span class="m">${x[k].join(' + ')}</span>`);
+        const xb=el('button','','✕');xb.type='button';xb.setAttribute('aria-label','Clear '+k);xb.onclick=()=>{x[k]=[];draw()};r.appendChild(xb);sits.appendChild(r)});
+      card.appendChild(sits)}
     if(x.open){
       const b=el('div','body');
       const seg=el('div','seg');
-      ['dinner','tea'].forEach(k=>{const btn=el('button',x.sit===k?'on':'',(k==='dinner'?'Dinner':'Tea')+(x[k].length?' · '+x[k].length:''));btn.type='button';btn.onclick=()=>{x.sit=k;draw()};seg.appendChild(btn)});
+      ['dinner','tea'].forEach(k=>{const btn=el('button',x.sit===k?'on':'',k==='dinner'?'Dinner':'Tea');btn.type='button';btn.onclick=()=>{x.sit=k;draw()};seg.appendChild(btn)});
       b.appendChild(seg);
-      const plate=el('div','plate');const cur=x[x.sit];
-      if(!cur.length)plate.appendChild(el('span','empty','Nothing on the plate yet. Tap below.'));
-      cur.forEach(n=>{const c=el('span','chip',n+' ');const xb=el('button','','✕');xb.type='button';xb.setAttribute('aria-label','Take off '+n);xb.onclick=()=>{x[x.sit]=cur.filter(m=>m!==n);draw()};c.appendChild(xb);plate.appendChild(c)});
-      b.appendChild(plate);
+      const cur=x[x.sit];
       const toggle=n=>{if(cur.includes(n))x[x.sit]=cur.filter(m=>m!==n);else x[x.sit]=[...cur,n];draw()};
       const tr=el('div','tabs');
       tabNames.forEach(([k,lab])=>{const t=el('button','t'+(k==='meal'?' meals':'')+(x.tab===k?' on':''),lab);t.type='button';t.onclick=()=>{x.tab=k;draw()};tr.appendChild(t)});
