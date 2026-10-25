@@ -1,4 +1,4 @@
-// Combos v4: groups collapse, AI fill-in (Copy / Download / Paste / Upload, then keep or bin each), Stock check days + colours (Darren 2026-10-25).
+// Combos v4: groups collapse, Ask AI only (direct to Claude, then keep or bin each), Stock check days + colours (Darren 2026-10-25).
 // Run with: node tests/v4-combos-ai.check.js  (demo)   (Chrome, phone size, local data, ?today= and ?hour= faked)
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
@@ -31,7 +31,7 @@ function startStatic() {
 (async () => {
   const server = await startStatic();
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true, permissions: ["clipboard-read", "clipboard-write"] });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   page.setDefaultTimeout(3000);
   const errors = [];
@@ -44,7 +44,6 @@ function startStatic() {
   };
   const group = name => page.locator("#combos .combo-list .combo-group", { has: page.locator(".combo-food", { hasText: new RegExp("^" + name) }) });
   const review = page.locator("#aiReview");
-  const answer = JSON.stringify({ pairs: [{ a: "Chicken", b: "Rice" }, { a: "Chicken", b: "Sweetcorn" }, { a: "Gammon", b: "Pineapple" }] });
 
   await page.goto(url("2026-10-25", 10));
   const addFood = async (kind, name, days) => {
@@ -63,10 +62,16 @@ function startStatic() {
 
   // The Claude API, faked: records the request, answers with 3 pairs (1 uses a food not in the app)
   let apiReq = null;
+  let replyText = JSON.stringify({ pairs: [{ a: "Chicken", b: "Rice", note: "" }, { a: "Chicken", b: "Sweetcorn", note: "" }, { a: "Gammon", b: "Pineapple", note: "" }, { a: "Gammon", b: "Quinoa", note: "" }] });
   await page.route("https://api.anthropic.com/v1/messages", async route => {
     apiReq = { headers: route.request().headers(), body: JSON.parse(route.request().postData()) };
-    const pairs = [{ a: "Sausages", b: "Gravy", note: "" }, { a: "Gammon", b: "Rice", note: "" }, { a: "Gammon", b: "Quinoa", note: "" }];
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "thinking", thinking: "" }, { type: "text", text: JSON.stringify({ pairs }) }] }) });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ stop_reason: "end_turn", content: [{ type: "thinking", thinking: "" }, { type: "text", text: replyText }] }) });
+  });
+
+  await step("AI box: only the Ask AI button (no copy, download, paste or upload)", async () => {
+    assert.ok(await page.locator("#aiAsk").isVisible());
+    for (const id of ["aiCopy", "aiDownload", "aiPaste", "aiUpload", "aiFile", "aiPasteWrap"]) assert.equal(await page.locator("#" + id).count(), 0, id);
+    assert.doesNotMatch(await page.locator("#combos .ai-box").innerText(), /ChatGPT|paste/i);
   });
 
   await step("Ask AI with no key: says to add it in Settings, no call", async () => {
@@ -85,39 +90,14 @@ function startStatic() {
     await page.click('[data-tab="meals"]');
   });
 
-  await step("Ask AI: calls Claude (Haiku, key, browser header), review shows only foods in the app", async () => {
+  await step("Ask AI: calls Claude (Haiku, key, browser header), review shows only foods in the app, all kept", async () => {
     await page.click("#aiAsk");
     await until(async () => assert.ok(await review.isVisible()));
     assert.equal(apiReq.headers["x-api-key"], "sk-ant-test-123");
     assert.equal(apiReq.headers["anthropic-dangerous-direct-browser-access"], "true");
     assert.equal(apiReq.body.model, "claude-haiku-5-5");
     assert.match(apiReq.body.messages[0].content, /Mains: [^\n]*Gammon/);
-    assert.equal(await review.locator(".ai-row").count(), 2, "Quinoa dropped");
-    await page.click("#aiCancel");
-  });
-
-  await step("AI box: Copy for AI puts the instructions and food on the clipboard", async () => {
-    await page.click("#aiCopy");
-    await until(async () => {
-      const t = await page.evaluate(() => navigator.clipboard.readText());
-      assert.match(t, /"pairs"/);
-      assert.match(t, /Mains:/);
-    });
-  });
-
-  await step("Download gives a .txt file", async () => {
-    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#aiDownload")]);
-    assert.match(dl.suggestedFilename(), /^combos-for-ai-2026-10-25\.txt$/);
-  });
-
-  await step("Paste answer: box, Check, review list with 3 rows all kept", async () => {
-    assert.ok(await review.isHidden());
-    await page.click("#aiPaste");
-    await until(async () => assert.ok(await page.locator("#aiPasteText").isVisible()));
-    await page.fill("#aiPasteText", "Here you go:\n```json\n" + answer + "\n```");
-    await page.click("#aiCheck");
-    await until(async () => assert.ok(await review.isVisible()));
-    assert.equal(await review.locator(".ai-row").count(), 3);
+    assert.equal(await review.locator(".ai-row").count(), 3, "Quinoa dropped");
     assert.match(await page.locator("#aiAdd").innerText(), /Add 3/);
   });
 
@@ -153,20 +133,19 @@ function startStatic() {
     await until(async () => assert.ok(await g.locator(".combo-chips").isHidden()));
   });
 
-  await step("Upload a file: same review; ones already added are skipped", async () => {
-    const more = JSON.stringify({ pairs: [{ a: "Chicken", b: "Rice" }, { a: "Sausages", b: "Mash" }] });
-    await page.setInputFiles("#aiFile", { name: "answer.txt", mimeType: "text/plain", buffer: Buffer.from(more) });
+  await step("Ask AI again: ones already added are skipped", async () => {
+    replyText = JSON.stringify({ pairs: [{ a: "Chicken", b: "Rice", note: "" }, { a: "Sausages", b: "Mash", note: "" }] });
+    await page.click("#aiAsk");
     await until(async () => assert.ok(await review.isVisible()));
     assert.equal(await review.locator(".ai-row").count(), 1);
     await page.click("#aiCancel");
     await until(async () => assert.ok(await review.isHidden()));
   });
 
-  await step("Paste nonsense: a message, no review", async () => {
-    await page.click("#aiPaste");
-    await page.fill("#aiPasteText", "sorry, no idea");
-    await page.click("#aiCheck");
-    await until(async () => assert.ok(await page.locator("#aiMsg").isVisible()));
+  await step("AI answers nonsense: a message, no review", async () => {
+    replyText = "sorry, no idea";
+    await page.click("#aiAsk");
+    await until(async () => assert.match(await page.locator("#aiMsg").innerText(), /Try again/));
     assert.ok(await review.isHidden());
   });
 
