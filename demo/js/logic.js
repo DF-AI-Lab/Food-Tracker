@@ -1220,6 +1220,36 @@
     return ideas.map(({ key, main, sides, pairs: used, title }) => ({ key, main, sides, pairs: used, title, why: whyLine([main, ...sides], today) }));
   }
 
+  // A day's top 3 ideas: only foods still in date that day
+  function dayIdeas(packs, pairs, day, skipKeys = [], dishes = [], meals = []) {
+    const inDate = (packs || []).filter(p => !p.date || p.date >= day);
+    return tonightIdeas(inDate, pairs, day, skipKeys, dishes, meals).slice(0, 3);
+  }
+
+  // Plan my week: one idea per day (soonest out first), each food used once.
+  // Days in skipDays are left alone; swaps[day] lists idea keys not to use that day.
+  function weekPlan(packs, pairs, today, { dishes = [], meals = [], skipDays = [], swaps = {} } = {}) {
+    let avail = (packs || []).filter(isFree);
+    const used = new Set();
+    const rows = [];
+    for (const day of mealDays(today)) {
+      if (skipDays.includes(day)) {
+        rows.push({ day, idea: null, skipped: true });
+        continue;
+      }
+      const ideas = tonightIdeas(avail.filter(p => !p.date || p.date >= day), pairs, day,
+        [...used, ...(swaps[day] || [])], dishes, meals);
+      const idea = ideas[0] || null;
+      if (idea) {
+        used.add(idea.key);
+        const taken = new Set([idea.main, ...idea.sides].map(p => p.id));
+        avail = avail.filter(p => !taken.has(p.id));
+      }
+      rows.push({ day, idea });
+    }
+    return rows;
+  }
+
   // The soonest-dated food of an idea, as a line for its card and a colour state:
   // out (today or past), soon (within 2 days), ok. No dated food: { text: "", state: "" }
   function whyLine(foods, today) {
@@ -2337,6 +2367,8 @@
     comboGroups,
     newComboRows,
     tonightIdeas,
+    dayIdeas,
+    weekPlan,
     ideaWarn,
     slotFor,
     tidyName,

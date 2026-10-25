@@ -18,6 +18,10 @@
   let ideaOpenDay = null; // Ideas: the day picked in that panel (ISO)
   let ideaNfmKey = null;  // Ideas: the idea whose Not for me pair choice is open, or null
   let ideasAll = false;   // Ideas for tonight: all shown (false = the best 3 and a Show more button)
+  let ideaXOpen = null;   // Ideas: the side whose ✕ question is open, as 'idea key|side index', or null
+  let weekSwaps = {};     // Plan my week: idea keys swapped out, by day
+  let weekOff = new Set(); // Plan my week: days left out (unticked)
+  let weekRows = [];      // Plan my week: the rows last shown, from FT.weekPlan
   let cpFood = null;      // Combos picker: the food picked in step 1 (null = still picking it)
   let cpKind = 'main';    // Combos picker: the kind tab showing (main, side, veg, misc, dish)
   let cpTicked = [];      // Combos picker: the names ticked (step 1: what it is made of; step 2: what goes with it)
@@ -304,6 +308,15 @@
     document.getElementById('aiKeySave').addEventListener('click', saveAiKey);
     document.getElementById('settingsBtn').addEventListener('click', showAiKeyState);
     document.getElementById('aiAdd').addEventListener('click', addAiRows);
+    // Plan my week: the panel opens fresh each time
+    document.getElementById('weekBtn').addEventListener('click', () => {
+      weekSwaps = {};
+      weekOff = new Set();
+      document.getElementById('weekPanel').hidden = false;
+      renderWeek();
+    });
+    document.getElementById('weekCancel').addEventListener('click', closeWeek);
+    document.getElementById('weekPlan').addEventListener('click', planWeek);
     document.getElementById('aiCancel').addEventListener('click', () => { aiRows = []; renderAiReview(); });
     document.getElementById('cpTypeAdd').addEventListener('click', addTypedFood);
     document.getElementById('cpType').addEventListener('keydown', e => {
@@ -2867,6 +2880,12 @@
     try { localStorage.setItem('v4demo.notTonight', JSON.stringify(s)); } catch (e) { /* ignore */ }
   }
 
+  // The pairs the ideas, the week plan and a day's top 3 use: the shown pairs, less those Not tonight today
+  function planPairs() {
+    const nt = new Set(notTonightKeys());
+    return FT.comboPairs(combos, meals).shown.filter(p => !nt.has('pair:' + FT.comboKey(p.a, p.b, p.note)));
+  }
+
   // Short weekday for an ISO day ("Mon"), in UTC like the app's days
   function shortWeekday(day) {
     return new Date(day + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
@@ -2876,7 +2895,7 @@
   function renderMealIdeas() {
     const box = document.getElementById('ideasTonight');
     const list = box.querySelector('.idea-list');
-    const ideas = FT.tonightIdeas(packs, FT.comboPairs(combos, meals).shown, today, notTonightKeys(), FT.comboDishes(combos), meals);
+    const ideas = FT.tonightIdeas(packs, planPairs(), today, notTonightKeys(), FT.comboDishes(combos), meals);
     list.textContent = '';
     box.hidden = !ideas.length;
     ideas.forEach((idea, i) => {
@@ -2913,7 +2932,7 @@
       why.textContent = idea.why.text;
       card.appendChild(why);
     }
-    for (const p of foods) {
+    foods.forEach((p, n) => {
       const line = document.createElement('div');
       line.className = 'idea-food';
       const name = document.createElement('span');
@@ -2921,10 +2940,63 @@
       const when = document.createElement('small');
       when.textContent = FT.packDateLabel(p);
       line.append(name, when);
+      // The main has no ✕; a dish's sides have none either (its pairs are not one to one)
+      const side = n - 1;
+      const canX = side >= 0 && !idea.key.startsWith('dish:');
+      if (canX) line.appendChild(ideaXButton(idea, side));
       card.appendChild(line);
-    }
+      if (canX && ideaXOpen === `${idea.key}|${side}`) card.appendChild(ideaXPop(idea, side));
+    });
     card.appendChild(ideaOpenKey === idea.key ? ideaDayPanel(idea) : ideaButtons(idea));
     return card;
+  }
+
+  // The ✕ on a side: opens its question (Not tonight, Don't like), or shuts it
+  function ideaXButton(idea, i) {
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'idea-x';
+    x.textContent = '✕';
+    x.setAttribute('aria-label', `Remove ${idea.sides[i].name}`);
+    x.addEventListener('click', () => {
+      const key = `${idea.key}|${i}`;
+      ideaXOpen = ideaXOpen === key ? null : key;
+      renderMealIdeas();
+    });
+    return x;
+  }
+
+  // The question under a side: Not tonight hides this pair for today; Don't like hides it for good
+  function ideaXPop(idea, i) {
+    const side = idea.sides[i];
+    const pair = idea.pairs[i];
+    const pop = document.createElement('div');
+    pop.className = 'idea-xpop';
+    const q = document.createElement('div');
+    q.className = 'idea-xq';
+    q.textContent = `${side.name} with ${idea.main.name}?`;
+    const btns = document.createElement('div');
+    btns.className = 'idea-btns';
+    const not = document.createElement('button');
+    not.type = 'button';
+    not.className = 'act ghost idea-xnot';
+    not.textContent = 'Not tonight';
+    not.addEventListener('click', () => {
+      ideaXOpen = null;
+      addNotTonight('pair:' + FT.comboKey(pair.a, pair.b, pair.note));
+      renderMealIdeas();
+    });
+    const bad = document.createElement('button');
+    bad.type = 'button';
+    bad.className = 'act ghost idea-xbad';
+    bad.textContent = "Don't like";
+    bad.addEventListener('click', () => {
+      ideaXOpen = null;
+      setPairHidden(pair, true);
+    });
+    btns.append(not, bad);
+    pop.append(q, btns);
+    return pop;
   }
 
   function ideaButtons(idea) {
@@ -3026,6 +3098,43 @@
     return panel;
   }
 
+  // A day's top 3 ideas: Plan puts the idea's foods on that day, for the meal shown
+  function dayIdeaBox(ideas, day) {
+    const box = document.createElement('div');
+    box.className = 'day-ideas';
+    const lbl = document.createElement('div');
+    lbl.className = 'dt-lbl';
+    lbl.textContent = 'Top 3 for this day';
+    box.appendChild(lbl);
+    for (const idea of ideas) {
+      const row = document.createElement('div');
+      row.className = 'dt-idea';
+      const text = document.createElement('span');
+      const title = document.createElement('b');
+      title.textContent = idea.title;
+      const why = document.createElement('small');
+      why.className = `st-${idea.why.state}`;
+      why.textContent = idea.why.text;
+      text.append(title, why);
+      const plan = document.createElement('button');
+      plan.type = 'button';
+      plan.className = 'act ghost dt-plan';
+      plan.textContent = 'Plan';
+      plan.addEventListener('click', () => planDayIdea(idea, day));
+      row.append(text, plan);
+      box.appendChild(row);
+    }
+    return box;
+  }
+
+  async function planDayIdea(idea, day) {
+    for (const p of [idea.main, ...idea.sides]) {
+      await savePack(FT.planPack(p, day, FT.slotFor(p.kind), selMeal));
+    }
+    renderMeals();
+    renderAll();
+  }
+
   // Plan: every food of the idea goes on the day (tea), the soonest pack of each
   async function planIdea(idea, day) {
     ideaOpenKey = null;
@@ -3033,6 +3142,80 @@
     for (const p of [idea.main, ...idea.sides]) {
       await savePack(FT.planPack(p, day, FT.slotFor(p.kind), 'tea'));
     }
+    renderMeals();
+    renderAll();
+  }
+
+  // ---- Plan my week ----
+
+  // The week's panel: one row a day (soonest out first), Swap picks another idea for that day, the tick leaves it out
+  function renderWeek() {
+    const list = document.querySelector('#weekPanel .wk-list');
+    const skipDays = FT.mealDays(today).filter(day => FT.dayGroups(packs, mealPlans, recipes, day, 'tea').length > 0);
+    weekRows = FT.weekPlan(packs, planPairs(), today, { dishes: FT.comboDishes(combos), meals, skipDays, swaps: weekSwaps });
+    list.textContent = '';
+    for (const row of weekRows) {
+      const line = document.createElement('div');
+      line.className = 'wk-day';
+      const d = document.createElement('span');
+      d.className = 'wk-d';
+      d.textContent = shortWeekday(row.day);
+      line.appendChild(d);
+      if (!row.idea) {
+        const none = document.createElement('span');
+        none.className = 'wk-m wk-none';
+        none.textContent = row.skipped ? 'Already planned' : 'Nothing left';
+        line.appendChild(none);
+      } else {
+        const idea = row.idea;
+        const m = document.createElement('span');
+        m.className = 'wk-m';
+        const title = document.createElement('b');
+        title.textContent = idea.title;
+        const why = document.createElement('small');
+        why.className = `st-${idea.why.state}`;
+        why.textContent = idea.why.text;
+        m.append(title, why);
+        const swap = document.createElement('button');
+        swap.type = 'button';
+        swap.className = 'wk-swap';
+        swap.textContent = 'Swap';
+        swap.addEventListener('click', () => {
+          weekSwaps[row.day] = [...(weekSwaps[row.day] || []), idea.key];
+          renderWeek();
+        });
+        const on = !weekOff.has(row.day);
+        const tick = document.createElement('button');
+        tick.type = 'button';
+        tick.className = 'wk-tick' + (on ? ' on' : '');
+        tick.textContent = '✓';
+        tick.setAttribute('aria-pressed', String(on));
+        tick.addEventListener('click', () => {
+          if (weekOff.has(row.day)) weekOff.delete(row.day);
+          else weekOff.add(row.day);
+          renderWeek();
+        });
+        line.append(m, swap, tick);
+      }
+      list.appendChild(line);
+    }
+    const n = weekRows.filter(r => r.idea && !weekOff.has(r.day)).length;
+    document.getElementById('weekPlan').textContent = `Plan these ${n}`;
+  }
+
+  function closeWeek() {
+    document.getElementById('weekPanel').hidden = true;
+  }
+
+  // Plan these: each ticked day gets its idea's foods (tea), then the panel closes
+  async function planWeek() {
+    const picked = weekRows.filter(r => r.idea && !weekOff.has(r.day));
+    for (const row of picked) {
+      for (const p of [row.idea.main, ...row.idea.sides]) {
+        await savePack(FT.planPack(p, row.day, FT.slotFor(p.kind), 'tea'));
+      }
+    }
+    closeWeek();
     renderMeals();
     renderAll();
   }
@@ -3504,11 +3687,12 @@
   }
 
   // Add the kept pairs (source ai, closed groups), then the review closes
+  // Pairs not kept are saved hidden too, so asking again does not bring them back
   async function addAiRows() {
-    const kept = aiRows.filter(r => r.keep).map(({ keep, ...row }) => row);
+    const rows = aiRows.map(({ keep, ...row }) => (keep ? row : { ...row, hidden: true }));
     aiRows = [];
     renderAiReview();
-    for (const row of kept) {
+    for (const row of rows) {
       const id = await DB.combos.add(row);
       combos = [...combos, { ...row, id }];
     }
@@ -3885,6 +4069,12 @@
       line.className = 'meal-line';
       now.append(line, ...mealChips(line, day, selMeal, false));
       card.appendChild(now);
+
+      // Nothing planned for this meal yet: the day's top 3 ideas
+      if (FT.dayGroups(packs, mealPlans, recipes, day, selMeal).length === 0) {
+        const ideas = FT.dayIdeas(packs, planPairs(), day, [], FT.comboDishes(combos), meals);
+        if (ideas.length) card.appendChild(dayIdeaBox(ideas, day));
+      }
 
       const body = document.createElement('div');
       body.className = 'dbody';
@@ -4808,6 +4998,7 @@
       renderAddedToday();
     }
     renderMealIdeas();
+    if (!document.getElementById('weekPanel').hidden) renderWeek();
     renderCombos();
     renderPageCount();
     syncSearch(); // also at start-up, where updateNav has not run yet
