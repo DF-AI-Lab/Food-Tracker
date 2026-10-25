@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Week plan mock</title>
+<style>
+:root{--bg:#0f1714;--card:#16201c;--line:#26332d;--txt:#eef3f0;--mut:#8a9a92;--grn:#8FD4B0;--amb:#F2B35B;--red:#F08A7E}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0f0d;color:var(--txt);font:15px/1.35 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}
+.note{color:var(--mut);margin:0 0 16px;font-size:13px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px}
+.phone{width:340px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:14px}
+.cap{font-weight:700;color:var(--grn);font-size:13px;margin-bottom:10px}
+.sec{font-weight:700;margin:2px 0 10px;display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.t{font-weight:700;font-size:16px;margin:0 0 4px}
+.why{font-size:13px;margin-bottom:6px}
+.f{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0;color:var(--mut)}
+.f span{color:var(--txt)}
+.x{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;color:var(--mut);margin-left:8px;font-size:13px}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;border:1px solid var(--line);background:#111a16;color:var(--txt);border-radius:12px;padding:9px 12px;font-weight:600;font-size:14px;text-align:center}
+.go{background:var(--grn);color:#062014;border:0}
+.bad{border-color:var(--red);color:var(--red)}
+.ok{color:var(--grn)}.soon{color:var(--amb)}.out{color:var(--red)}
+.new{outline:2px dashed var(--amb);outline-offset:3px;border-radius:6px}
+.pop{background:#1c2823;border:1px solid var(--line);border-radius:12px;padding:10px;margin:6px 0}
+.pop .q{font-size:13px;color:var(--mut);margin-bottom:8px}
+.day{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:8px}
+.day:last-child{border-bottom:0}
+.day .d{width:42px;font-weight:700;color:var(--mut);font-size:13px}
+.day .m{flex:1;font-size:14px}
+.day .m small{display:block;font-size:12px}
+.sm{border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-size:12px;font-weight:600;background:#111a16}
+.tick{color:var(--grn);font-weight:700}
+.opt{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.opt:last-child{border-bottom:0}
+.opt small{display:block;font-size:12px}
+.free{color:var(--mut);font-style:italic}
+</style></head><body>
+<h1>Meals: mock 2</h1>
+<p class="note">Mock only. 1 edit an idea · 2 plan my week · 3 top 3 for any day. The dashed boxes are what's new. No AI here: the app works it out from your combos and dates.</p>
+
+<div class="wrap">
+
+<div class="phone">
+  <div class="cap">1 · Edit an idea (✕ on each food)</div>
+  <div class="card">
+    <div class="t">Chicken + Rice + Sweetcorn</div>
+    <div class="why out">⚠ Chicken goes out today</div>
+    <div class="f"><span>Chicken</span><span><b class="out">today</b></span></div>
+    <div class="f"><span>Rice</span><span><b class="soon">1 day</b><span class="x new">✕</span></span></div>
+    <div class="pop new">
+      <div class="q">Sweetcorn with Chicken?</div>
+      <div class="btns" style="margin-top:0"><div class="btn">Not tonight</div><div class="btn bad">Don't like</div></div>
+    </div>
+    <div class="f"><span>Sweetcorn</span><span><b class="ok">9 days</b><span class="x new">✕</span></span></div>
+    <div class="btns"><div class="btn go">Yes</div><div class="btn">Not tonight</div></div>
+  </div>
+  <div class="note" style="margin-top:8px"><b>Not tonight</b>: drops it from tonight's idea only.<br><b>Don't like</b>: hides Chicken + Sweetcorn for good. The AI won't suggest it again.</div>
+  <div class="card new" style="font-size:13px">AI review list: every <b>✗</b> is now saved as "don't like" too, so it never comes back.</div>
+</div>
+
+<div class="phone">
+  <div class="cap">2 · Plan my week</div>
+  <div class="sec">This week <span class="btn go new" style="flex:none;padding:7px 12px">✨ Plan my week</span></div>
+  <div class="card new">
+    <div class="day"><span class="d">Sun</span><span class="m">Chicken + Rice<small class="out">chicken out today</small></span><span class="sm">Swap</span><span class="tick">✓</span></div>
+    <div class="day"><span class="d">Mon</span><span class="m">Pigs in blankets + Potatoes (roast)<small class="soon">sausages out in 3 days</small></span><span class="sm">Swap</span><span class="tick">✓</span></div>
+    <div class="day"><span class="d">Tue</span><span class="m">Gammon + Mash + Peas<small class="ok">gammon 5 days</small></span><span class="sm">Swap</span><span class="tick">✓</span></div>
+    <div class="day"><span class="d">Wed</span><span class="m">Fish + Chips<small class="ok">fish 7 days</small></span><span class="sm">Swap</span><span class="tick">✓</span></div>
+    <div class="day"><span class="d">Thu</span><span class="m">Mince + Spaghetti<small class="ok">cupboard</small></span><span class="sm">Swap</span><span class="tick">✓</span></div>
+    <div class="day"><span class="d">Fri</span><span class="m free">Nothing left · takeaway?</span><span class="sm">Pick</span></div>
+    <div class="day"><span class="d">Sat</span><span class="m free">Nothing left · shop</span><span class="sm">Pick</span></div>
+  </div>
+  <div class="btns"><div class="btn go">Plan these 5</div><div class="btn">Cancel</div></div>
+  <div class="note" style="margin-top:10px">Soonest out goes first. Each food used once. No main twice. Skips days already planned.</div>
+</div>
+
+<div class="phone">
+  <div class="cap">3 · Tap a day: its top 3</div>
+  <div class="sec">Wed 28 Oct</div>
+  <div class="card new">
+    <div class="opt"><span><b>Fish + Chips</b><small class="ok">fish 3 days left by Wed</small></span><span class="sm">Plan</span></div>
+    <div class="opt"><span><b>Gammon + Mash</b><small class="soon">mash out Wed</small></span><span class="sm">Plan</span></div>
+    <div class="opt"><span><b>Pork + Beans</b><small class="ok">pork 5 days left by Wed</small></span><span class="sm">Plan</span></div>
+  </div>
+  <div class="note">Only foods still in date on that day. Foods already planned for another day are left out.</div>
+</div>
+
+</div>
+</body></html>
