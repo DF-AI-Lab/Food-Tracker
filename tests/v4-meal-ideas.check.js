@@ -94,10 +94,10 @@ function startStatic() {
     assert.equal((await first.locator(".idea-plan-day").innerText()).trim(), "Plan tonight");
     assert.ok(await first.locator(".idea-other").isVisible());
     assert.ok(await first.locator(".idea-edit").isVisible());
-    assert.equal(await first.locator(".idea-nfm").count(), 0, "Not for me sits in ✎ Edit");
+    assert.equal(await first.locator(".idea-minor .idea-nfm").count(), 1, "Not for me sits under the buttons");
+    assert.equal(await first.locator(".idea-editbox .idea-nfm").count(), 0, "Not for me is not in ✎ Edit");
     await first.locator(".idea-edit").click();
     assert.match(await first.locator(".idea-notday").innerText(), /Not tonight/);
-    assert.match(await first.locator(".idea-nfm").innerText(), /Not for me/);
     await first.locator(".idea-edit").click();
   });
 
@@ -110,7 +110,6 @@ function startStatic() {
   });
 
   await step("Not for me on Pizza (1 pair): pair goes to Hidden, idea gone", async () => {
-    await idea("Pizza").locator(".idea-edit").click();
     await idea("Pizza").locator(".idea-nfm").click();
     await until(async () => assert.equal(await idea("Pizza").count(), 0));
     await until(async () => assert.equal(await page.locator("#combosHidden .combo-row", { hasText: "Pizza" }).count(), 1));
@@ -122,16 +121,13 @@ function startStatic() {
     await until(async () => assert.equal(await idea("Pizza").count(), 1));
   });
 
-  await step("Not for me on Chicken (2 pairs): asks which pair", async () => {
-    await idea("Chicken").locator(".idea-edit").click();
+  await step("Not for me on Chicken (2 pairs): both pairs hidden at once, Undo brings them back", async () => {
     await idea("Chicken").locator(".idea-nfm").click();
-    const opts = idea("Chicken").locator(".idea-pair");
-    await until(async () => assert.equal(await opts.count(), 2));
-    await idea("Chicken").locator(".idea-pair", { hasText: "Cauli cheese" }).click();
-    await until(async () => assert.doesNotMatch(await idea("Chicken").innerText(), /Cauli cheese/));
-    assert.match(await idea("Chicken").innerText(), /Chips/);
-    await page.locator("#combosHidden .combo-row", { hasText: "Cauli cheese" }).locator(".combo-back").click();
+    await until(async () => assert.equal(await idea("Chicken").count(), 0));
+    assert.equal(await page.locator("#combosHidden .combo-row", { hasText: "Cauli cheese" }).count(), 1);
+    await page.locator("#ideasWeek .idea-undo button").click();
     await until(async () => assert.match(await idea("Chicken").innerText(), /Cauli cheese/));
+    assert.equal(await page.locator("#combosHidden .combo-row", { hasText: "Cauli cheese" }).count(), 0);
   });
 
   await step("Other day: only the days its foods are in date (Tonight, Sun: Cauli cheese runs out); Cancel; Plan tonight", async () => {
