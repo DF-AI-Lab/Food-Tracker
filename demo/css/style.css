@@ -891,7 +891,7 @@ body.typing .addbar{top:calc(var(--vvtop,0px) + var(--demo-h))}
 .wk-m small.st-soon{color:var(--warn)}
 .wk-m small.st-ok{color:var(--accent)}
 .wk-none{font-style:italic;opacity:.6}
-.wk-swap,.wk-move,.wk-tick{border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:12px;font-weight:600;background:transparent;color:inherit}
+.wk-swap,.wk-tick{border:1px solid var(--border);border-radius:10px;padding:5px 8px;font-size:12px;font-weight:600;background:transparent;color:inherit}
 .wk-tick.on{color:var(--accent);border-color:var(--accent)}
 .wk-tick:not(.on){opacity:.4}
 .day-ideas{margin:8px 0}
@@ -990,8 +990,8 @@ button.combo-food{display:block;font:inherit;font-weight:700;font-size:15px;colo
 .fold-in>.fold-sum{min-height:40px}
 .fold-t{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .fold-n{font-size:13px;color:var(--faint)}
-.chev{margin-left:auto;font-size:20px;line-height:1;color:var(--muted);transition:transform .15s ease}
-.fold[open]>.fold-sum .chev{transform:rotate(90deg)}
+.chev{margin-left:auto;font-size:20px;line-height:1;color:var(--muted);transition:transform .25s ease-out}
+.fold.fold-on>.fold-sum .chev{transform:rotate(90deg)}
 .fold-body{display:flex;flex-direction:column;gap:10px;padding-top:6px}
 .edit-list{display:flex;flex-direction:column}
 .edit-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--divider)}
@@ -1013,11 +1013,13 @@ button.combo-food{display:block;font:inherit;font-weight:700;font-size:15px;colo
 .idea-editbox .idea-err{margin:0;font-size:13px;color:var(--danger)}
 .idea-cancel{font:inherit;font-size:13px;color:var(--muted);background:none;border:0;text-decoration:underline;align-self:center;min-height:36px;padding:0 8px;cursor:pointer}
 
-/* Plan my week: Move, and the bar of days it can go to */
-.wk-movebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:2px 0 10px 48px;border-bottom:1px solid var(--border)}
-.wk-movebar .wk-to{font-size:13px;color:var(--text-2)}
-.wk-to{border:1px solid var(--accent-line);border-radius:10px;padding:5px 10px;font:inherit;font-size:13px;font-weight:600;background:transparent;color:var(--accent);cursor:pointer}
-.wk-movebar-lbl{font-size:12px;color:var(--muted);width:100%}
+/* Drag to move: the ⠿ grab handle on a week row or a planned day, the lifted row or card, and the day it would land on */
+.wk-grab,.sit-grab{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;min-height:36px;padding:0;border:0;background:none;color:var(--faint);font:inherit;font-size:18px;line-height:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.wk-grab:active,.sit-grab:active{cursor:grabbing}
+.wk-day{position:relative}
+.grab-lift{position:relative;z-index:20;background:var(--surface);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.wk-day.drop-ok{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--accent)}
+.day.drop-ok{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-line)}
 
 /* A planned day: Change on a sitting, and its bar (Swap meal, Move day, Clear) */
 .sit-change,.chg-swap,.chg-move,.chg-clear,.chg-to{font:inherit;font-size:13px;font-weight:500;color:var(--text-2);background:transparent;border:1px dashed var(--accent-border);border-radius:10px;min-height:34px;padding:0 10px;cursor:pointer;white-space:nowrap}

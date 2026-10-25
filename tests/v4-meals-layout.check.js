@@ -66,6 +66,8 @@ function startStatic() {
   await step("Folds are remembered on this phone", async () => {
     await page.locator("#myMealsFold > summary").click();
     await page.locator("#allCombosFold > summary").click();
+    // the state is kept when a slide settles: wait for both to finish before reloading
+    await until(async () => assert.equal(await page.locator("#myMealsFold, #allCombosFold").evaluateAll(els => els.every(el => el.getAnimations({ subtree: true }).length === 0)), true));
     await page.reload();
     await page.click('[data-tab="meals"]');
     await until(async () => assert.equal(await isOpen("#myMealsFold"), true));
@@ -148,20 +150,26 @@ function startStatic() {
   const rows = page.locator("#weekPanel .wk-day");
   const title = i => rows.nth(i).locator(".wk-m b").innerText();
 
+  // Drag from the grab handle (sel) to the middle of target, in small steps like a finger
+  const drag = async (handle, target) => {
+    const a = await handle.boundingBox(), b = await target.boundingBox();
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 8, { steps: 3 });
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
+    await page.mouse.up();
+  };
+
   await step("Plan my week: Move swaps two days' ideas", async () => {
     await page.click("#weekBtn");
     await until(async () => assert.ok(await page.locator("#weekPanel").isVisible()));
     const n = await rows.count();
     const withIdea = [];
-    for (let i = 0; i < n; i++) if (await rows.nth(i).locator(".wk-move").count()) withIdea.push(i);
+    for (let i = 0; i < n; i++) if (await rows.nth(i).locator(".wk-grab").count()) withIdea.push(i);
     assert.ok(withIdea.length >= 2, "two days with ideas");
     const [a, b] = withIdea;
     const ta = await title(a), tb = await title(b);
-    await rows.nth(a).locator(".wk-move").click();
-    const bar = page.locator("#weekPanel .wk-movebar");
-    await until(async () => assert.ok(await bar.isVisible()));
-    const dayB = (await rows.nth(b).locator(".wk-d").innerText()).trim();
-    await bar.locator(".wk-to", { hasText: dayB }).click();
+    await drag(rows.nth(a).locator(".wk-grab"), rows.nth(b));
     await until(async () => assert.equal(await title(a), tb));
     assert.equal(await title(b), ta);
     await page.click("#weekCancel");
