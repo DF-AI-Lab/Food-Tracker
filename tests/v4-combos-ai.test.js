@@ -97,3 +97,45 @@ test("backups keep combos; an older backup without them reads as none", () => {
   assert.deepEqual(old.data.combos, []);
   assert.ok("combos" in FT.restorePlan({}, r.data));
 });
+
+test("AI only sees foods bought (not the built-in list, not deleted ones)", () => {
+  const ps = [...packs, pack(9, "Typo food", "main", { status: "deleted" }), pack(10, "Spaghetti", "cupboard", { status: "used" })];
+  const b = FT.boughtFoods(ps);
+  assert.deepEqual(b.main, ["Chicken", "Sausages"]);
+  assert.deepEqual(b.cupboard, ["Spaghetti"]);
+  const t = FT.aiComboText({ packs: ps, combos, meals, today: T });
+  assert.doesNotMatch(t, /Gammon|Mince|Typo food/); // Gammon and Mince are built-in names, never bought here
+  assert.match(t, /Cupboard: Spaghetti/);
+  assert.match(t, /Only use foods from their lists/);
+});
+
+test("parseAiCombos with allowed foods: skips foods not in the app; notes lowercase", () => {
+  const allowed = FT.aiAllowedFoods(packs, combos);
+  assert.ok(allowed.has("pigs in blankets") && allowed.has("bacon") && allowed.has("rice"));
+  const text = JSON.stringify({ pairs: [
+    { a: "Chicken", b: "Rice", note: "" },
+    { a: "Chicken", b: "Quinoa", note: "" },
+    { a: "Pigs in blankets", b: "Peas", note: "" },
+    { a: "Sausages", b: "Rice", note: "Egg Fried" }
+  ] });
+  const r = FT.parseAiCombos(text, [], allowed);
+  assert.deepEqual(r.rows.map(x => `${x.a}+${x.b}${x.note ? "|" + x.note : ""}`), ["Chicken+Rice", "Pigs in blankets+Peas", "Sausages+Rice|egg fried"]);
+});
+
+test("aiComboRequest: Haiku, fixed instructions as system, food as the message, JSON pairs shape", () => {
+  const body = FT.aiComboRequest({ packs, combos, meals, today: T });
+  assert.equal(body.model, "claude-haiku-5-5");
+  assert.match(body.system, /Only use foods from their lists/);
+  assert.equal(body.messages.length, 1);
+  assert.match(body.messages[0].content, /Mains: Chicken, Sausages/);
+  assert.equal(body.output_config.format.type, "json_schema");
+  assert.deepEqual(body.output_config.format.schema.required, ["pairs"]);
+  assert.ok(!("temperature" in body));
+});
+
+test("aiReplyText: the text block (skips thinking); empty when refused", () => {
+  const reply = { stop_reason: "end_turn", content: [{ type: "thinking", thinking: "" }, { type: "text", text: '{"pairs":[]}' }] };
+  assert.equal(FT.aiReplyText(reply), '{"pairs":[]}');
+  assert.equal(FT.aiReplyText({ stop_reason: "refusal", content: [] }), "");
+  assert.equal(FT.aiReplyText(null), "");
+});
