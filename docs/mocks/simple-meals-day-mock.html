@@ -1,0 +1,148 @@
+<title>Meals Day Card</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone column, same look as the demo app. Use soon as a wrapping grid (no sideways scroll), one Plan my week button, the week; an open day = Dinner|Tea, the plate, one list. */
+:root{
+  --bg:#0A1210;--surface:#111C18;--surface-2:#16241F;--border:#1E2C27;--text:#E8EFEC;--muted:#8A9E96;
+  --accent:#8FD4B0;--on-accent:#0A1210;--warn:#F2B35B;--sel:#1B3329;--sel-b:#2E5444;
+  --font:'Geist',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--text);font:15px/1.4 var(--font);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
+.wrap{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.wk{color:var(--muted);font-size:14px;margin:0}
+h1{font-size:30px;margin:-8px 0 0}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0;text-align:left}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
+.soon{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pill{border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:10px 12px;min-width:0}
+.pill b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill small{font-size:12px}
+.pill.warn{border-color:var(--warn)} .pill.warn small{color:var(--warn)}
+.pill.ok small{color:var(--accent)}
+.planwk{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:16px;text-align:center;font-weight:600;font-size:16px}
+.days{display:flex;flex-direction:column;gap:10px}
+.day{background:var(--surface);border:1px solid var(--border);border-radius:16px}
+.day.open{border-color:var(--sel-b)}
+.dh{display:flex;align-items:center;gap:10px;width:100%;padding:16px}
+.dh .d{font-weight:700;font-size:17px}
+.dh .dt{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.dh .today{background:var(--accent);color:var(--on-accent);font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;letter-spacing:.05em}
+.dh .r{margin-left:auto;color:var(--accent);font-weight:600;font-size:15px}
+.dh .r.meal{color:var(--text);font-weight:600;max-width:55%;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.body{padding:0 16px 16px;display:flex;flex-direction:column;gap:14px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:4px}
+.seg button{text-align:center;padding:10px;border-radius:10px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--accent);color:var(--on-accent)}
+.plate{display:flex;flex-wrap:wrap;gap:8px;min-height:38px;align-items:center}
+.plate .empty{color:var(--muted);font-size:14px}
+.chip{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-2);border-radius:10px;padding:6px 10px;font-weight:600}
+.chip button{color:var(--muted);font-size:14px}
+.lab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;justify-content:space-between;gap:12px;align-items:center;width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:12px;padding:13px 14px}
+.item .n{font-weight:600;min-width:0}
+.item .s{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.item .s.warn{color:var(--warn)}
+.item .s.ok{color:var(--accent)}
+.item.on{border-color:var(--accent);background:var(--sel)}
+.item.dim{opacity:.5}
+.take{color:var(--accent);font-weight:600;font-size:14px;align-self:flex-start;padding:4px 0}
+.note{border:1px solid var(--sel-b);background:var(--sel);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.note h2{font-size:16px;margin:0}
+.note p{margin:0;font-size:14px}
+</style>
+
+<div class="wrap">
+  <p class="wk">Sun 25 – 31 Oct</p>
+  <h1>Meals</h1>
+
+  <div class="eyebrow">Use soon</div>
+  <div class="soon" id="soon"></div>
+
+  <button class="planwk" type="button">✨ Plan my week</button>
+
+  <div class="days" id="days"></div>
+
+  <div class="note">
+    <h2>What changed in the open day</h2>
+    <p><b>Gone:</b> Top 3 (Plan my week does that), the 5 tabs, Next: Sides, Next day.</p>
+    <p><b>Kept:</b> Dinner | Tea.</p>
+    <p><b>Now:</b> one list. My meals first, then the fridge, going off soonest at the top. Tap to put it on the plate. Tap again or × to take it off.</p>
+    <p>Tap the day's name to close it.</p>
+  </div>
+</div>
+
+<script>
+const fridge=[
+  {n:'Whole chicken',left:'2 days',warn:true},
+  {n:'Potatoes',left:'2 days',warn:true},
+  {n:'Hotdog rolls',left:'4 days'},
+  {n:'Grated cheese',left:'3 days'},
+  {n:'Frankfurters ×2',left:'14 days'},
+  {n:'Bacon ×2',left:'20 days'},
+  {n:'Tagliatelle',left:'38 days'}
+].sort((a,b)=>parseInt(a.left)-parseInt(b.left));
+const myMeals=[
+  {n:'Frankfurters + Hotdog rolls',s:'All in fridge',c:'ok'},
+  {n:'Sausages wrapped in bacon',s:'Need sausages',c:'warn'},
+  {n:'Lasagne',s:'Planned Mon',c:''},
+  {n:'Fajita recipe for 4',s:'Planned Tue',c:''}
+];
+const days=[
+  {d:'Sun',dt:'25 Oct',today:true,open:true,tea:[],dinner:[]},
+  {d:'Mon',dt:'26 Oct',tea:['Lasagne'],dinner:[]},
+  {d:'Tue',dt:'27 Oct',tea:['Fajita recipe for 4'],dinner:[]},
+  {d:'Wed',dt:'28 Oct',tea:[],dinner:[]},
+  {d:'Thu',dt:'29 Oct',tea:[],dinner:[]},
+  {d:'Fri',dt:'30 Oct',tea:[],dinner:[]},
+  {d:'Sat',dt:'31 Oct',tea:[],dinner:[]}
+];
+days.forEach(x=>x.sit='tea');
+const soon=[{n:'Whole chicken',when:'2 days'},{n:'Potatoes',when:'2 days'},{n:'Grated cheese',when:'3 days'}];
+
+function plannedOn(name){const x=days.find(x=>x.tea.includes(name)||x.dinner.includes(name));return x?x.d:null}
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+
+function draw(){
+  const s=document.getElementById('soon');s.innerHTML='';
+  soon.forEach(f=>{const on=plannedOn(f.n);const p=el('div','pill '+(on?'ok':'warn'),`<b>${f.n}</b><small>${on?'✓ '+on:'out in '+f.when+' · not planned'}</small>`);s.appendChild(p)});
+  const box=document.getElementById('days');box.innerHTML='';
+  days.forEach(x=>{
+    const card=el('div','day'+(x.open?' open':''));
+    const all=[...x.dinner,...x.tea];
+    const right=x.open?'<span class="r">⌃</span>':all.length?`<span class="r meal">${all.join(' + ')}</span>`:'<span class="r">+ Plan</span>';
+    const h=el('button','dh',`<span class="d">${x.d}</span><span class="dt">${x.dt}</span>${x.today?'<span class="today">TODAY</span>':''}${right}`);
+    h.type='button';h.onclick=()=>{const was=x.open;days.forEach(y=>y.open=false);x.open=!was;draw()};
+    card.appendChild(h);
+    if(x.open){
+      const b=el('div','body');
+      const seg=el('div','seg');
+      ['dinner','tea'].forEach(k=>{const btn=el('button',x.sit===k?'on':'',(k==='dinner'?'Dinner':'Tea')+(x[k].length?' · '+x[k].length:''));btn.type='button';btn.onclick=()=>{x.sit=k;draw()};seg.appendChild(btn)});
+      b.appendChild(seg);
+      const plate=el('div','plate');const cur=x[x.sit];
+      if(!cur.length)plate.appendChild(el('span','empty','Nothing on the plate yet. Tap below.'));
+      cur.forEach(n=>{const c=el('span','chip',n+' ');const xb=el('button','','✕');xb.type='button';xb.setAttribute('aria-label','Take off '+n);xb.onclick=()=>{x[x.sit]=cur.filter(m=>m!==n);draw()};c.appendChild(xb);plate.appendChild(c)});
+      b.appendChild(plate);
+      const toggle=n=>{if(cur.includes(n))x[x.sit]=cur.filter(m=>m!==n);else x[x.sit]=[...cur,n];draw()};
+      b.appendChild(el('div','lab','My meals'));
+      const ml=el('div','list');
+      myMeals.forEach(m=>{const on=cur.includes(m.n);const other=!on&&plannedOn(m.n);
+        const it=el('button','item'+(on?' on':'')+(other?' dim':''),`<span class="n">${m.n}</span><span class="s ${on?'ok':other?'':m.c}">${on?'✓ on plate':other?'Planned '+other:m.s}</span>`);it.type='button';it.onclick=()=>toggle(m.n);ml.appendChild(it)});
+      b.appendChild(ml);
+      b.appendChild(el('div','lab','From the fridge · soonest first'));
+      const fl=el('div','list');
+      fridge.forEach(f=>{const on=cur.includes(f.n);const other=!on&&plannedOn(f.n);
+        const it=el('button','item'+(on?' on':'')+(other?' dim':''),`<span class="n">${f.n}</span><span class="s ${on?'ok':other?'':(f.warn?'warn':'')}">${on?'✓ on plate':other?'Planned '+other:f.left}</span>`);it.type='button';it.onclick=()=>toggle(f.n);fl.appendChild(it)});
+      b.appendChild(fl);
+      const tk=el('button','take','🛍 Takeaway instead');tk.type='button';tk.onclick=()=>{x[x.sit]=['Takeaway'];draw()};
+      b.appendChild(tk);
+      card.appendChild(b);
+    }
+    box.appendChild(card);
+  });
+}
+draw();
+</script>
