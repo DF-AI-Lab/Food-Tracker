@@ -124,6 +124,17 @@ function startStatic() {
     assert.ok(await review.isHidden());
   });
 
+  const addFood = async (kind, name, days) => {
+    await page.click('[data-tab="add"]');
+    await page.click('[data-sub="fridge"]');
+    await page.click(`[data-kind="${kind}"]`);
+    await page.fill("#name", name);
+    await page.fill("#days", String(days));
+    await page.click("#addBtn");
+    await until(async () => assert.match(await page.locator("#addMsg").innerText(), /added/i));
+  };
+  await addFood("main", "Chicken", 0); await addFood("side", "Rice", 1); await addFood("misc", "Gravy", 20);
+
   await step("Stock check: every dated row shows days, coloured", async () => {
     await page.click('[data-tab="fridge"]');
     await page.click("#stockBtn");

@@ -949,6 +949,93 @@
     return rows;
   }
 
+  // Combos AI fill-in: the text to paste into an AI chat (what to do, the foods, dishes, pairs, last 4 weeks)
+  function aiComboText({ packs, combos, meals, today }) {
+    const all = comboPairs(combos, meals);
+    const kindList = kind => comboFoods(packs, kind);
+    const list = kind => kindList(kind).length ? kindList(kind).join(", ") : "none";
+    const or = lines => lines.length ? lines.join("\n") : "- none";
+    const pairLine = r => `- ${r.a} + ${r.b}` + (r.note ? ` (${r.note})` : "");
+    const dishes = comboDishes(combos).map(d => `- ${d.name} (${d.foods.join(" + ")})` + (d.note ? ` · ${d.note}` : ""));
+    const from = addDays(today, -28);
+    const eaten = (meals || [])
+      .filter(m => m.takeaway !== true && m.day && m.day >= from && m.day <= today && Array.isArray(m.items))
+      .map(m => ({ day: m.day, names: m.items.map(i => String(i.name ?? "").trim()).filter(Boolean) }))
+      .filter(m => m.names.length)
+      .sort((x, y) => y.day.localeCompare(x.day))
+      .map(m => `- ${m.day}: ${m.names.join(", ")}`);
+    return [
+      "You help a family pick foods that go together for dinner.",
+      "Suggest new pairs. \"a\" must be a main or one of their dishes. \"b\" is a food that goes with it; prefer foods from the lists below. An optional \"note\" says how it is made (e.g. chips, mash, roast).",
+      "Don't repeat the pairs they have, or anything under \"Don't suggest\".",
+      "Reply with JSON only, like:",
+      '{"pairs":[{"a":"Chicken","b":"Rice","note":""}]}',
+      "",
+      `Mains: ${list("main")}`,
+      `Sides: ${list("side")}`,
+      `Veg: ${list("veg")}`,
+      `Other: ${list("misc")}`,
+      "",
+      "Dishes:",
+      or(dishes),
+      "",
+      "Pairs they have:",
+      or(all.shown.map(pairLine)),
+      "",
+      "Don't suggest:",
+      or(all.hidden.map(pairLine)),
+      "",
+      "Eaten in the last 4 weeks:",
+      or(eaten)
+    ].join("\n");
+  }
+
+  // Combos AI fill-in: read the AI's answer. { ok, rows } with new pairs (source "ai"), or { ok: false, reason }
+  function parseAiCombos(text, existingRows) {
+    const str = v => String(v ?? "").trim();
+    const s = str(text);
+    const slices = [s];
+    if (s.indexOf("{") >= 0 && s.lastIndexOf("}") > s.indexOf("{")) slices.push(s.slice(s.indexOf("{"), s.lastIndexOf("}") + 1));
+    if (s.indexOf("[") >= 0 && s.lastIndexOf("]") > s.indexOf("[")) slices.push(s.slice(s.indexOf("["), s.lastIndexOf("]") + 1));
+    let list = null;
+    for (const t of slices) {
+      let v;
+      try { v = JSON.parse(t); } catch (e) { continue; }
+      list = Array.isArray(v) ? v : (v && Array.isArray(v.pairs) ? v.pairs : null);
+      if (list) break;
+    }
+    if (!list) return { ok: false, reason: "Couldn't read that. Paste the AI's whole answer." };
+    const have = new Set((existingRows || []).map(r => r.key ?? comboKey(r.a, r.b, r.note)));
+    const rows = [];
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      const a = str(item.a), b = str(item.b), note = str(item.note);
+      if (!a || !b || a.toLowerCase() === b.toLowerCase()) continue;
+      const key = comboKey(a, b, note);
+      if (have.has(key)) continue;
+      have.add(key);
+      rows.push(note ? { a, b, note, source: "ai", hidden: false } : { a, b, source: "ai", hidden: false });
+    }
+    return { ok: true, rows };
+  }
+
+  // Stock check: the soonest date of a group of packs, with the later dates, and a state for its colour
+  // (out: today or past, soon: within 2 days, ok). { main, more, state }
+  function stockWhen(packs, today) {
+    const dated = (packs || []).filter(p => p.date).sort((x, y) => x.date.localeCompare(y.date));
+    if (!dated.length) {
+      const added = (packs || []).map(p => p.added).filter(Boolean).sort();
+      return { main: added.length ? "added " + dayMonth(added[0]) : "", more: "", state: "" };
+    }
+    const first = dated[0];
+    const d = daysLeft(first.date, today);
+    const words = d < 0 ? `${-d} day${d === -1 ? "" : "s"} out` : d === 0 ? "today" : d === 1 ? "1 day" : `${d} days`;
+    const main = (first.dateType === "best_before" ? "BB " : "") + dayMonth(first.date) + " · " + words;
+    const more = [...new Set(dated.map(p => p.date).filter(x => x !== first.date))].map(dayMonth).join(" · ");
+    const state = d <= 0 ? "out" : d <= 2 ? "soon" : "ok";
+    return { main, more, state };
+  }
+
   // Ideas for tonight: each free main in the fridge with the sides its pairs can make (3 at most).
   // skipKeys: mains said "Not tonight". Sorted by the soonest date among the foods, then main name.
   // Dishes (comboDishes) too: a dish whose foods all have a free pack is an idea, key "dish:<name>",
@@ -1677,7 +1764,7 @@
 
   // V2 step 9: backups. The file is plain JSON with every list in it.
   const BACKUP_APP = "food-tracker-v2";
-  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans"];
+  const BACKUP_LISTS = ["packs", "shop", "meals", "sheets", "ratings", "recipes", "mealPlans", "combos"];
   const NOT_BACKUP = "This isn't a Food Tracker backup file.";
   const BACKUP_EVERY = 5;
 
@@ -2128,6 +2215,9 @@
     comboDishes,
     comboPairs,
     comboFoods,
+    aiComboText,
+    parseAiCombos,
+    stockWhen,
     comboGroups,
     newComboRows,
     tonightIdeas,

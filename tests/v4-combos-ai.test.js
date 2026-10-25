@@ -26,9 +26,9 @@ test("aiComboText: instructions, foods by kind, dishes, pairs, hidden, last 4 we
   const t = FT.aiComboText({ packs, combos, meals, today: T });
   assert.match(t, /JSON/);
   assert.match(t, /"pairs"/);
-  assert.match(t, /Mains: .*Chicken.*Sausages/);
-  assert.match(t, /Sides: Rice/);
-  assert.match(t, /Veg: Peas/);
+  assert.match(t, /Mains: [^\n]*Chicken[^\n]*Sausages/);
+  assert.match(t, /Sides: [^\n]*Rice/);
+  assert.match(t, /Veg: [^\n]*Peas/);
   assert.match(t, /Pigs in blankets/);
   assert.match(t, /Chicken \+ Peas/);
   assert.match(t, /Don't suggest[^\n]*\n[^\n]*Chicken \+ Gravy/);

@@ -217,6 +217,20 @@
         </div>
       </div>
       <div class="combo-list card"></div>
+      <div class="sechead"><h3 class="sec">Ask an AI</h3></div>
+      <div class="card ai-box">
+        <div class="ai-btns"><button id="aiCopy" class="act ghost" type="button">Copy for AI</button><button id="aiDownload" class="act ghost" type="button">Download</button></div>
+        <div class="ai-btns"><button id="aiPaste" class="act" type="button">Paste answer</button><button id="aiUpload" class="act ghost" type="button">Upload</button></div>
+        <input id="aiFile" type="file" accept=".txt,.json,text/plain,application/json" hidden>
+        <p class="note">Copy, paste into Claude or ChatGPT, then paste its answer back here.</p>
+        <div id="aiPasteWrap" hidden><textarea id="aiPasteText" rows="4" placeholder="Paste the AI's answer"></textarea><button id="aiCheck" class="act" type="button">Check</button></div>
+        <p id="aiMsg" class="note" hidden></p>
+      </div>
+      <div id="aiReview" class="card" hidden>
+        <div class="ai-title"></div>
+        <div class="ai-list"></div>
+        <div class="ai-btns"><button id="aiAdd" class="act" type="button">Add 0</button><button id="aiCancel" class="act ghost" type="button">Cancel</button></div>
+      </div>
       <div id="combosHidden" hidden>
         <div class="sechead"><h3 class="sec">Hidden (not for me)</h3></div>
         <div class="card combo-hidden"></div>
