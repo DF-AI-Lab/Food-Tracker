@@ -40,12 +40,13 @@ New chats start from the repo's **default branch**, so work left on a chat's own
   1. Run the tests. If they fail, tell me and stop.
   2. Commit and push everything.
   3. Open a pull request from this chat's branch into the **default branch** and merge it.
-  4. **Close the branches** (Darren, 2026-10-13): delete every `claude/*` branch on GitHub whose work is already on the default branch, this chat's branch included. Never delete the default branch. If a branch still has commits not on the default branch, don't delete it: list it and ask me.
-  5. Tell me in one line that it's merged and the branches are closed, with the PR link.
+  4. **Don't delete branches** (Darren, 2026-10-25): GitHub deletes old merged branches by itself. Don't try to delete them, list them or ask about them.
+  5. Tell me in one line that it's merged, with the PR link.
 - **At the start of every chat:** check for other `claude/*` branches with commits not yet on the default branch. If there are any, tell me which and ask before merging them in.
   - **Skip these old ones, never ask about them** (old V1 work from 7–8 Oct, replaced by V2; Darren said leave them, 2026-10-11/12): `claude/adoring-mccarthy-22jl0l`, `claude/festive-hopper-xdzo11`, `claude/nice-thompson-lxinyj`, `claude/stoic-faraday-8q4w4a`.
   - **Also skip these, never ask** (Darren, 2026-10-13): `claude/festive-johnson-vp52uf`, `claude/quirky-hypatia-xx7jyn`, `claude/trusting-dirac-xu88h2`.
   - **And these, never ask** (old V2 work from 11 Oct, replaced; Darren 2026-10-16): `claude/compassionate-ramanujan-r2gukp`, `claude/intelligent-hamilton-romoyo`, `claude/kind-cannon-h6gu82`.
+  - **And this one, never ask** (Darren 2026-10-25): `claude/ecstatic-goodall-o1kmfe`.
   - **Only ask about a branch with work from the last 2 days.** Anything older is stale: skip it silently (Darren 2026-10-16).
 - **Merge without asking once tests pass** (Darren, 2026-10-11): after each finished build or fix, run the tests; if they pass, commit, push, open a PR into the **default branch** and merge it straight away. Then tell me in one line it's merged, with the PR link. If tests fail, don't merge: tell me.
 - Never leave work only on a chat branch at the end of a session without asking me first.
