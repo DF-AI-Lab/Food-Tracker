@@ -35,6 +35,8 @@
   let addedEditId = null;  // Added today, Use in 3 days tab: the pack whose date box is open, or null
   let stockEditKey = null; // Stock check: the food whose Edit box is open (name key), or null
   let stockLeft = 0;       // Stock check: how many packs of that food are still left
+  let stockPop = null;     // Stock check Edit box: 'help' or 'sections' is open (only one), or null
+  let stockAdding = false; // Stock check: a "+" that adds a pack is being saved
   // A "sitting" is a day's meal: its key is the day (tea) or day|dinner (FT.sitKey)
   let askDay = null;      // sitting in "What did you have?" (or cost) mode
   let addingDay = null;  // an asking sitting whose picker is open (+ Add); tonight after 5pm too
@@ -2172,12 +2174,26 @@
     stockKey = 'main';
     stockOk = new Set();
     stockEditKey = null;
+    stockPop = null;
     renderStock();
+  }
+
+  // Stock check: move every pack of this food to another section (or the freezer), straight away
+  async function moveStock(group, key) {
+    const writes = [];
+    for (const p of group.packs) {
+      const updated = FT.stockMove(p, key, today);
+      if (updated !== p) writes.push(setPack(updated));
+    }
+    stockEditKey = null;
+    stockPop = null;
+    renderAll();
+    await persistAll(writes);
   }
 
   // Stock check: apply Used / Thrown away / Delete to the packs that are gone (the soonest ones)
   async function applyStockGone(group, choice) {
-    const gone = FT.stockGone(group.packs, group.packs.length > 1 ? stockLeft : 0);
+    const gone = FT.stockGone(group.packs, stockLeft);
     if (!gone.length) return;
     const writes = [];
     for (const p of gone) {
@@ -2265,7 +2281,8 @@
       edit.textContent = 'Edit';
       edit.addEventListener('click', () => {
         stockEditKey = stockEditKey === key ? null : key;
-        stockLeft = n > 1 ? n - 1 : n; // a group opens with one already gone
+        stockLeft = n - 1; // a group opens with one already gone (a single pack starts at 0 left)
+        stockPop = null;
         renderStock();
       });
 
@@ -2276,40 +2293,111 @@
 
       const box = document.createElement('div');
       box.className = 'stock-editbox';
-      if (n > 1) {
-        const howMany = document.createElement('div');
-        howMany.className = 'stock-q';
-        howMany.textContent = 'How many left?';
-        const step = document.createElement('div');
-        step.className = 'stock-step';
-        const minus = document.createElement('button');
-        minus.type = 'button';
-        minus.className = 'act ghost stock-minus';
-        minus.textContent = '−';
-        const left = document.createElement('span');
-        left.className = 'stock-left';
-        left.textContent = stockLeft;
-        const plus = document.createElement('button');
-        plus.type = 'button';
-        plus.className = 'act ghost stock-plus';
-        plus.textContent = '+';
-        minus.addEventListener('click', () => {
-          stockLeft = Math.max(0, stockLeft - 1);
-          left.textContent = stockLeft;
-          syncChoices();
-        });
-        plus.addEventListener('click', () => {
-          stockLeft = Math.min(n, stockLeft + 1);
-          left.textContent = stockLeft;
-          syncChoices();
-        });
-        step.append(minus, left, plus);
-        box.append(howMany, step);
-      }
 
+      // Header: the question, and a round (i) that explains the buttons (the help floats, so the box keeps its height)
+      const hd = document.createElement('div');
+      hd.className = 'stock-hd';
       const what = document.createElement('div');
       what.className = 'stock-q';
       what.textContent = n > 1 ? 'What happened to the gone ones?' : 'What happened to it?';
+      const info = document.createElement('button');
+      info.type = 'button';
+      info.className = 'stock-info' + (stockPop === 'help' ? ' on' : '');
+      info.textContent = 'i';
+      info.setAttribute('aria-label', 'What the buttons do');
+      info.addEventListener('click', () => {
+        stockPop = stockPop === 'help' ? null : 'help';
+        renderStock();
+      });
+      hd.append(what, info);
+
+      const help = document.createElement('div');
+      help.className = 'stock-help';
+      help.hidden = stockPop !== 'help';
+      [
+        ['− / +', 'how many are left'],
+        ['Wrong section?', 'move it to the right tab'],
+        ['Used', 'you ate it'],
+        ['Thrown away', 'it went off'],
+        ['Delete', 'it was never there (a mistake)']
+      ].forEach(([bold, rest]) => {
+        const line = document.createElement('p');
+        const b = document.createElement('b');
+        b.textContent = bold;
+        line.append(b, ' ' + rest);
+        help.appendChild(line);
+      });
+
+      // Middle line: how many are left (left), Wrong section? (right)
+      const mid = document.createElement('div');
+      mid.className = 'stock-mid';
+      const step = document.createElement('div');
+      step.className = 'stock-step';
+      const minus = document.createElement('button');
+      minus.type = 'button';
+      minus.className = 'act ghost stock-minus';
+      minus.textContent = '−';
+      const left = document.createElement('span');
+      left.className = 'stock-left';
+      left.textContent = stockLeft;
+      const plus = document.createElement('button');
+      plus.type = 'button';
+      plus.className = 'act ghost stock-plus';
+      plus.textContent = '+';
+      minus.addEventListener('click', () => {
+        stockLeft = Math.max(0, stockLeft - 1);
+        left.textContent = stockLeft;
+        syncChoices();
+      });
+      plus.addEventListener('click', async () => {
+        if (stockLeft < n) {
+          stockLeft++;
+          left.textContent = stockLeft;
+          syncChoices();
+          return;
+        }
+        // Already all there: one more of this food is added straight away (a tap at a time)
+        if (stockAdding) return;
+        stockAdding = true;
+        try {
+          const np = FT.stockCopy(group.packs[n - 1], today);
+          np.id = await DB.add(np);
+          packs.push(np);
+          stockLeft = n + 1;
+          syncPlans();
+          renderAll();
+        } catch (e) {
+          // nothing was added; the counter stays as it is
+        } finally {
+          stockAdding = false;
+        }
+      });
+      step.append(minus, left, plus);
+
+      const move = document.createElement('button');
+      move.type = 'button';
+      move.className = 'act ghost stock-move';
+      move.textContent = 'Wrong section? ▾';
+      move.addEventListener('click', () => {
+        stockPop = stockPop === 'sections' ? null : 'sections';
+        renderStock();
+      });
+      mid.append(step, move);
+
+      // Wrong section? list: floats over the box, the current section is marked
+      const pick = document.createElement('div');
+      pick.className = 'stock-sections';
+      pick.hidden = stockPop !== 'sections';
+      for (const s of sections) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'act ghost' + (s.key === stockKey ? ' on' : '');
+        b.dataset.move = s.key;
+        b.textContent = s.label;
+        b.addEventListener('click', () => moveStock(group, s.key));
+        pick.appendChild(b);
+      }
+
       const choices = document.createElement('div');
       choices.className = 'stock-choices';
       const used = document.createElement('button');
@@ -2328,26 +2416,24 @@
       del.textContent = 'Delete';
       del.addEventListener('click', () => applyStockGone(group, 'delete'));
       choices.append(used, thrown, del);
-      // Nothing gone yet (a group with every pack still left): the three choices do nothing, so disable them
+      // Nothing gone yet (every pack still left): the three choices do nothing, so disable them
       function syncChoices() {
-        const none = n > 1 && stockLeft === n;
+        const none = stockLeft >= n;
         used.disabled = none;
         thrown.disabled = none;
         del.disabled = none;
       }
       syncChoices();
-      const delNote = document.createElement('p');
-      delNote.className = 'note stock-delnote';
-      delNote.textContent = 'Delete = it was never there';
       const cancel = document.createElement('button');
       cancel.type = 'button';
       cancel.className = 'act ghost stock-cancel';
       cancel.textContent = 'Cancel';
       cancel.addEventListener('click', () => {
         stockEditKey = null;
+        stockPop = null;
         renderStock();
       });
-      box.append(what, choices, delNote, cancel);
+      box.append(hd, help, mid, pick, choices, cancel);
       listEl.appendChild(box);
     }
   }

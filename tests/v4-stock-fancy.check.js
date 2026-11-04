@@ -104,7 +104,7 @@ function startStatic() {
     await row.locator(".stock-edit").click();
     const box = page.locator("#stockList .stock-editbox");
     await until(async () => assert.ok(await box.isVisible()));
-    assert.equal(await box.locator(".stock-left").count(), 0); // just 1: no how-many
+    assert.equal((await box.locator(".stock-left").innerText()).trim(), "0"); // just 1: counter shows 0 left
     assert.ok(await box.locator(".stock-used").isVisible());
     assert.ok(await box.locator(".stock-del").isVisible());
     assert.ok(await box.locator(".stock-cancel").isVisible());
