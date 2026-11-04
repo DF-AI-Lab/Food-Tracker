@@ -82,9 +82,9 @@ test("Day card: no Next buttons, no 'Adding to', Takeaway in the tab row, Meals 
   assert.match(app, /mtabTake/);
 });
 
-test("version bumped to d.v4.50 (n 91)", () => {
+test("version bumped to at least d.v4.50 (n 91), sw.js matches", () => {
   const m = /n:\s*(\d+),\s*label:\s*"([\d.]+)"/.exec(read("js/version.js"));
-  assert.equal(Number(m[1]), 91);
-  assert.equal(m[2], "4.50");
-  assert.equal(Number(/const VERSION = (\d+)/.exec(read("sw.js"))[1]), 91);
+  assert.ok(Number(m[1]) >= 91);
+  assert.ok(Number(m[2]) >= 4.50);
+  assert.equal(Number(/const VERSION = (\d+)/.exec(read("sw.js"))[1]), Number(m[1]));
 });

@@ -1920,6 +1920,35 @@
     return packs.slice(0, Math.max(0, packs.length - left));
   }
 
+  // Stock check: move a pack to another section (kind), or to the freezer (frozen today).
+  // Returns the same pack object when it is already there. Moving out of the freezer keeps the date.
+  const STOCK_MOVE_KEYS = ["main", "side", "veg", "misc", "cupboard", "freezer"];
+  function stockMove(pack, key, today) {
+    if (!STOCK_MOVE_KEYS.includes(key)) throw new Error(`Unknown stock section: ${key}`);
+    if (key === "freezer") {
+      if (pack.status === "frozen") return pack;
+      return { ...pack, status: "frozen", frozen: today };
+    }
+    if (pack.status === "in_fridge" && pack.kind === key) return pack;
+    return { ...pack, kind: key, status: "in_fridge", frozen: null };
+  }
+
+  // Stock check: one more of the same food, as a new pack (no id) added today
+  function stockCopy(pack, today) {
+    return {
+      name: pack.name,
+      kind: pack.kind,
+      date: pack.date ?? null,
+      dateType: pack.dateType ?? null,
+      status: pack.status,
+      added: today,
+      left: null,
+      frozen: pack.frozen ?? null,
+      sub: pack.sub ?? null,
+      price: pack.price ?? null
+    };
+  }
+
   // Every fridge food (mains, sides, veg, other) in one list, soonest first
   function byDateList(packs) {
     return (packs || [])
@@ -2633,6 +2662,8 @@
     stockSections,
     stockGroups,
     stockGone,
+    stockMove,
+    stockCopy,
     byDateList,
     packDateLabel,
     newFoodName,
