@@ -51,6 +51,10 @@ if (params.get("local") === "1") {
 
 async function start() {
   const emu = params.get("emu") === "1";
+  // Passport ID first (demo only): its Google sign-in also signs into Firebase below
+  const passportOn = !emu && !!window.FT_PASSPORT && !params.has("nopassport");
+  const unlocked = passportOn ? window.FT_PASSPORT.start() : Promise.resolve(null);
+  if (passportOn) window.FT_PASSPORT.onSignOut = () => AU.signOut(auth);
 
   // Dynamic import: only fetched when not in local mode. Each namespace is the whole Firebase API.
   const [A, AU, F] = await Promise.all([
@@ -223,6 +227,9 @@ async function start() {
     });
     // Which Google account this phone uses (both of Darren's accounts share a name)
     $("signedInAs").textContent = user.email || "";
+    $("passportId").textContent = passportOn ? (window.FT_PASSPORT.id() || "—") : "Off";
+    $("passportBtn").hidden = !passportOn;
+    $("passportBtn").onclick = () => { $("settings").hidden = true; window.FT_PASSPORT.settings(); };
     // When the household last backed up (shared, so it is read again each time)
     $("backupNote").textContent = window.FT.lastBackupLabel(window.DB.lastBackup());
     const list = $("members");
@@ -305,7 +312,10 @@ async function start() {
     $("inviteBox").hidden = false;
   });
 
-  $("signOut").onclick = onSettings(() => AU.signOut(auth));
+  $("signOut").onclick = onSettings(async () => {
+    if (passportOn) window.FT_PASSPORT.signOut();
+    await AU.signOut(auth);
+  });
 
   // Close my account: leave the household (food stays for the others), delete my record and my
   // sign-in, then sign out. The email on the allowed list is removed by hand in the Firebase console.
@@ -333,5 +343,15 @@ async function start() {
   // A join link prefills the code
   $("joinCode").value = codeFromUrl(location.href) || "";
 
-  AU.onAuthStateChanged(auth, user => (user ? enter(user) : showSignedOut()));
+  AU.onAuthStateChanged(auth, async user => {
+    const p = await unlocked;
+    if (p && window.FT_PASSPORT.needsFirebaseSignIn(user && user.email, p.email)) {
+      const cred = window.FT_PASSPORT.credential(AU);
+      if (cred) {
+        try { await AU.signInWithCredential(auth, cred); return; } // onAuthStateChanged fires again with the new user
+        catch (e) { console.warn("Passport → Firebase sign-in failed, use Continue with Google", e); }
+      }
+    }
+    return user ? enter(user) : showSignedOut();
+  });
 }

@@ -1,0 +1,26 @@
+{
+  "name": "Food Tracker",
+  "tagline": "Know what's in your fridge.",
+  "button": "Open my fridge",
+  "drive": "FT",
+  "font": "Inter Tight",
+  "fontUrl": "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600;700;800&display=swap",
+  "align": "left",
+  "logo": {
+    "type": "svg",
+    "value": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"6\" y=\"3\" width=\"12\" height=\"18\" rx=\"2\"/><path d=\"M6 10h12M9 6.5v1.5M9 13v2\"/></svg>"
+  },
+  "colors": {
+    "bg": "#0B1311",
+    "text": "#F2F4F3",
+    "muted": "#8FA39A",
+    "accent": "#F2F4F3",
+    "accentText": "#0B1311",
+    "field": "#121B18",
+    "fieldBorder": "#2A3833",
+    "link": "#8FD9B0",
+    "error": "#FF8A80",
+    "tile": "#8FD9B0",
+    "tileText": "#0B1311"
+  }
+}

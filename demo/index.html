@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"></noscript>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="passport/passport.css">
 </head>
 <body>
   <!-- Demo only: a red band so it is never mistaken for the real app (Darren 2026-10-17) -->
@@ -572,11 +573,15 @@
       <h3 class="sec">Account</h3>
       <div class="card list">
         <div class="li"><div class="grow"><div class="note small">Signed in as</div><div id="signedInAs"></div></div></div>
+        <div class="li"><div class="grow"><div class="note small">Your passport</div><div id="passportId"></div></div></div>
+        <button class="li" id="passportBtn">Passport settings</button>
         <button class="danger-row" id="signOut"><i data-icon="signout" data-size="17" data-width="1.8"></i>Sign out</button>
         <button class="danger-row" id="closeAccount"><i data-icon="close" data-size="17" data-width="1.8"></i>Close my account</button>
       </div>
     </div>
   </div>
+
+  <div id="passport" class="passport-screen"></div>
 
   <div id="bell" class="overlay" hidden>
     <div class="ocard">
@@ -594,6 +599,11 @@
   <script src="js/db.js"></script>
   <script src="js/photos.js"></script>
   <script src="js/app.js"></script>
+  <script src="passport/config.js"></script>
+  <script src="passport/google.js"></script>
+  <script src="passport/passport.js"></script>
+  <script src="passport/ui.js"></script>
+  <script src="js/passport-gate.js"></script>
   <script type="module" src="js/account.js"></script>
 </body>
 </html>
