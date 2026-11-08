@@ -1,7 +1,7 @@
 // Service worker for V2 (step 6): the app opens offline and updates when a new version is published.
 // Classic script. Bump VERSION whenever the app files change (js/version.js n must match).
 
-const VERSION = 16;
+const VERSION = 17;
 const CACHE = "ftlive-v" + VERSION; // v2/ and the earlier V2 copy each clear their own prefix, so neither touches this
 const RUNTIME = "ftlive-runtime";
 
@@ -23,6 +23,13 @@ const PRECACHE = [
   "js/icons.js",
   "js/omr.js",
   "js/pwa.js",
+  "js/passport-gate.js",
+  "passport/config.js",
+  "passport/google.js",
+  "passport/passport.js",
+  "passport/ui.js",
+  "passport/passport.css",
+  "passport/theme.json",
   "js/version.js",
   "js/vendor/qrcode.mjs",
   "icons/apple-touch-icon.png",

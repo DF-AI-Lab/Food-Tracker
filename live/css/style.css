@@ -1061,3 +1061,5 @@ button.combo-food{display:block;font:inherit;font-weight:700;font-size:15px;colo
 .chg-bar .chg-cancel{font:inherit;font-size:13px;color:var(--muted);background:none;border:0;text-decoration:underline;min-height:34px;padding:0 8px;cursor:pointer;margin-left:auto}
 .chg-bar .chg-lbl{width:100%;font-size:12px;color:var(--muted)}
 
+.passport-screen{display:none}
+html.lockon .passport-screen{display:block;position:fixed;inset:0;z-index:299;padding-top:var(--demo-h,0px);overflow:auto;background:#0B1311}
