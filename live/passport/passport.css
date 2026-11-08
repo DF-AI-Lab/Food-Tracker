@@ -1,0 +1,80 @@
+/* Passport — shared layout. Colours + font come from the app's theme.json (--ps-*). */
+.ps-screen {
+  box-sizing: border-box; width: 100%; max-width: 420px; min-height: 100%;
+  margin: 0 auto; padding: 32px 24px 28px;
+  display: flex; flex-direction: column; gap: 18px;
+  font-family: var(--ps-font); color: var(--ps-text);
+}
+.ps-screen * { box-sizing: border-box; }
+
+/* app section: each app's own logo, name, tagline */
+.ps-app { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 8px 0; }
+[data-align="left"] .ps-app { align-items: flex-start; text-align: left; }
+.ps-tile {
+  width: 76px; height: 76px; border-radius: 20px; display: flex; align-items: center; justify-content: center;
+  background: var(--ps-tile); color: var(--ps-tileText); border: 2px var(--ps-tileBorderStyle, solid) var(--ps-tileBorder, transparent);
+  font-size: 26px; font-weight: 800;
+}
+.ps-tile svg { width: 40px; height: 40px; }
+.ps-app.small .ps-tile { width: 48px; height: 48px; border-radius: 14px; font-size: 17px; }
+.ps-app.small .ps-tile svg { width: 26px; height: 26px; }
+.ps-name { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+.ps-app.small .ps-name { font-size: 18px; }
+.ps-tag { margin: 0; font-size: 15px; color: var(--ps-muted); }
+
+.ps-h { margin: 0; font-size: 22px; font-weight: 700; }
+.ps-sub { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ps-muted); }
+.ps-kicker { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--ps-accent); }
+.ps-small { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ps-muted); text-align: center; }
+.ps-center { text-align: center; }
+[data-align="left"] .ps-center { text-align: left; }
+.ps-tile .long { font-size: 13px; font-weight: 700; }
+.ps-gap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 40px; }
+.ps-grow { flex: 1; min-height: 12px; }
+
+.ps-form { display: flex; flex-direction: column; gap: 10px; }
+.ps-label { font-size: 15px; font-weight: 600; margin-top: 6px; }
+.ps-input {
+  height: 54px; border-radius: 12px; padding: 0 16px; width: 100%;
+  border: 1px solid var(--ps-fieldBorder); background: var(--ps-field); color: var(--ps-text);
+  font: inherit; font-size: 17px;
+}
+.ps-input:focus { outline: 2px solid var(--ps-accent); outline-offset: 1px; }
+.ps-input[readonly] { opacity: 0.7; }
+.ps-code { text-align: center; letter-spacing: 0.6em; font-size: 22px; }
+.ps-mono { font-family: ui-monospace, monospace; letter-spacing: 0.1em; }
+
+.ps-btn {
+  min-height: 54px; border-radius: 14px; border: none; width: 100%;
+  background: var(--ps-accent); color: var(--ps-accentText);
+  font: inherit; font-size: 17px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.ps-btn:disabled { opacity: 0.6; cursor: default; }
+.ps-btn:focus-visible, .ps-link:focus-visible { outline: 2px solid var(--ps-accent); outline-offset: 2px; }
+.ps-ghost { background: transparent; color: var(--ps-text); border: 1px solid var(--ps-fieldBorder); min-height: 48px; font-size: 15px; }
+.ps-google { background: #FFFFFF; color: #1F1F1F; border: 1px solid #DADCE0; }
+.ps-link {
+  background: none; border: none; padding: 8px 0; min-height: 44px; cursor: pointer;
+  font: inherit; font-size: 14px; color: var(--ps-link); text-decoration: underline; text-underline-offset: 3px;
+}
+.ps-left { align-self: flex-start; font-size: 13px; text-decoration: none; min-height: 32px; padding: 4px 0; }
+.ps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.ps-codes {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 18px; border-radius: 16px;
+  background: var(--ps-field); border: 1px solid var(--ps-fieldBorder);
+}
+.ps-codes code { font-family: ui-monospace, monospace; font-size: 17px; text-align: center; color: var(--ps-text); }
+
+.ps-drive { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--ps-muted); }
+.ps-err { margin: 0; font-size: 14px; color: var(--ps-error); font-weight: 600; }
+.ps-big-icon { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--ps-field); color: var(--ps-accent); }
+.ps-big-icon svg { width: 36px; height: 36px; }
+.ps-demo-note { font-size: 13px; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--ps-fieldBorder); color: var(--ps-muted); }
+
+.ps-card { margin: 0; padding: 6px 16px; border-radius: 16px; background: var(--ps-field); border: 1px solid var(--ps-fieldBorder); }
+.ps-card div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--ps-fieldBorder); font-size: 15px; }
+.ps-card div:last-child { border-bottom: none; }
+.ps-card dt { color: var(--ps-muted); }
+.ps-card dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }

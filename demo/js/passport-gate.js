@@ -1,4 +1,4 @@
-// Passport ID gate for the demo app (classic script, loaded after demo/passport/*.js).
+// Passport ID gate for the demo app (classic script, loaded after passport/*.js).
 // Behaviour copied from TaskNotes' passport-lock.js; the demo keeps its own Passport app name ("ft-demo").
 // Passport's Google sign-in also signs into Firebase (account.js calls credential()). Data stays in Firebase.
 (function (window) {

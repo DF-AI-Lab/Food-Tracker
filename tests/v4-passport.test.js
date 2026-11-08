@@ -7,9 +7,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-const APP = path.join(__dirname, "..", "demo");
+// Runs for demo/ and live/ (Darren 2026-11-08: "move it to live")
+for (const [DIR, NAME] of [["demo", "ft-demo"], ["live", "ft"]]) {
+const APP = path.join(__dirname, "..", DIR);
 const read = f => fs.readFileSync(path.join(APP, f), "utf8");
 const exists = f => fs.existsSync(path.join(APP, f));
+const test = (t, fn) => require("node:test")(`${DIR}: ${t}`, fn);
 
 const PASSPORT_FILES = ["passport/config.js", "passport/google.js", "passport/passport.js", "passport/ui.js", "passport/passport.css", "passport/theme.json"];
 const CLIENT_ID = "1018863337394-dhhfi006uhdf715dovuqetkl22tj5gdo.apps.googleusercontent.com";
@@ -60,9 +63,9 @@ test("service worker saves the Passport files (opens offline) and versions match
   assert.equal(VERSION, window.FT_VERSION.n);
 });
 
-test("demo uses its own Passport app name, so it never mixes with live", () => {
+test("own Passport app name, so demo and live never mix", () => {
   const g = loadGate();
-  assert.equal(g.APP, "ft-demo");
+  assert.equal(g.APP, NAME);
 });
 
 test("needsFirebaseSignIn: only when Firebase has nobody, or a different Google account", () => {
@@ -91,7 +94,4 @@ test("account.js waits for Passport, then signs into Firebase with its token (ol
   assert.ok(js.includes("signInWithPopup"), "Continue with Google still works if Passport can't sign Firebase in");
 });
 
-test("live is not changed yet (demo first)", () => {
-  const live = fs.readFileSync(path.join(__dirname, "..", "live", "index.html"), "utf8");
-  assert.ok(!live.includes("passport/ui.js"));
-});
+}
