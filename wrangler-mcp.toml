@@ -1,5 +1,5 @@
 # Cloudflare Worker for the Food Tracker MCP (code in mcp/)
-# Deploy: npx wrangler deploy -c wrangler-mcp.toml
+# Deploy: npx wrangler deploy -c wrangler-mcp.toml (also the Cloudflare dashboard deploy command)
 #
 # Secrets (not stored in this file). Set each with:
 #   wrangler secret put MCP_TOKEN -c wrangler-mcp.toml                  # the secret part of the /mcp/<token> URL
