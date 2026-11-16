@@ -675,7 +675,9 @@
     const toFreezer = r.freezer === true || r.toFreezer === true;
 
     let problem = null;
-    if (!name) problem = "Needs a name";
+    const failed = typeof r.fail === "string" && r.fail !== "";
+    if (failed) problem = r.fail;
+    else if (!name) problem = "Needs a name";
     else if (needsKind) problem = "Pick a kind";
     else if (!KINDS.includes(kind)) problem = "Kind must be main, side, veg, misc or cupboard";
     else if (hasDate && !isRealDate(date)) problem = "Date must look like 2026-10-10";
