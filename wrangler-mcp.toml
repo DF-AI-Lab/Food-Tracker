@@ -4,6 +4,8 @@
 # Secrets (not stored in this file). Set each with:
 #   wrangler secret put MCP_TOKEN -c wrangler-mcp.toml                  # the secret part of the /mcp/<token> URL
 #   wrangler secret put FIREBASE_SERVICE_ACCOUNT -c wrangler-mcp.toml   # service account JSON, paste the whole file
+#   wrangler secret put HOUSEHOLD_ID -c wrangler-mcp.toml               # the live household (kept out of git)
+# Or add all three in the Cloudflare dashboard: Settings > Variables and Secrets, type Secret.
 
 name = "food-tracker-mcp"
 main = "mcp/src/index.js"
@@ -13,5 +15,3 @@ preview_urls = false
 
 [vars]
 FIREBASE_PROJECT_ID = "food-tracker-92b1c"
-# The household to read and write. Fill this in before deploying.
-HOUSEHOLD_ID = ""
