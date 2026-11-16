@@ -57,6 +57,16 @@
     return "Something went wrong on our side — try again";
   }
 
+  // Why a photo couldn't be read (Worker code) -> words for the row; null when there is no reason
+  function failText(code) {
+    if (!code) return null;
+    if (code === "key") return "Couldn't read photo: Claude key not working";
+    if (code === "credit") return "Couldn't read photo: Claude credit ran out";
+    if (code === "busy") return "Couldn't read photo: AI busy, try again";
+    if (code === "network") return "Couldn't read photo: no connection to AI";
+    return `Couldn't read photo (${code})`;
+  }
+
   // Worker results -> Quick fill rows (the same shape Claude's JSON gives)
   function toQuickFill(results) {
     return (results || []).map(r => {
@@ -72,6 +82,7 @@
         check: r.needsCheck === true,
       };
       if (r.failKey) row.failKey = r.failKey;
+      if (r.fail) row.fail = failText(r.fail);
       return row;
     });
   }
@@ -191,7 +202,7 @@
 
   const FT_PHOTOS = {
     WORKER_URL, chunk, fitSize, gaugeText, gaugeLeft, gaugePct,
-    trayText, readLabel, readingText, errorText, toQuickFill, usageText, fetchUsage, fixFor, sendFix, scanAll, shrink
+    trayText, readLabel, readingText, errorText, failText, toQuickFill, usageText, fetchUsage, fixFor, sendFix, scanAll, shrink
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = FT_PHOTOS;

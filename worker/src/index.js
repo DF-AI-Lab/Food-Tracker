@@ -152,6 +152,15 @@ async function monthLog(env, household, now) {
 
 // ---- Claude ----
 
+// Short reason code for a failed Claude call. Never includes the key or the raw body.
+export function failReason(status, bodyText) {
+  if (status === 401 || status === 403) return "key";
+  if (status === 400 && /credit/i.test(String(bodyText ?? ""))) return "credit";
+  if (status === 429 || status === 529 || status >= 500) return "busy";
+  if (status === 0) return "network";
+  return "error " + status;
+}
+
 // One Claude call. Any failure becomes a needs-check answer; no key or raw body is passed on.
 async function ask(model, photo, ctx, calls) {
   try {
@@ -167,18 +176,22 @@ async function ask(model, photo, ctx, calls) {
         ] }],
       }),
     });
-    if (!res.ok) return { error: `Claude ${res.status}`, date: null, needsCheck: true };
+    if (!res.ok) {
+      let text = "";
+      try { text = await res.text(); } catch { text = ""; }
+      return { error: `Claude ${res.status}`, fail: failReason(res.status, text), date: null, needsCheck: true };
+    }
     const data = await res.json();
     calls.push({ model, input_tokens: data.usage?.input_tokens || 0, output_tokens: data.usage?.output_tokens || 0 });
     const block = (data.content || []).find((b) => b.type === "text");
     return parseReply(block ? block.text : "");
   } catch {
-    return { error: "Claude call failed", date: null, needsCheck: true };
+    return { error: "Claude call failed", fail: "network", date: null, needsCheck: true };
   }
 }
 
 // Haiku first; a doubtful answer is re-checked by Sonnet (same rules as tools/photo-test/run-api.js)
-async function scanOne(photo, ctx) {
+export async function scanOne(photo, ctx) {
   const calls = [];
   let answer = await ask(MODEL, photo, ctx, calls);
   let model = MODEL;
@@ -201,6 +214,7 @@ async function scanOne(photo, ctx) {
     kind: answer.kind ?? null, noDate: answer.noDate === true, needsCheck: answer.needsCheck === true,
     model, retried,
   };
+  if (answer.fail) result.fail = answer.fail;
   return { result, calls };
 }
 
